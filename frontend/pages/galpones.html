@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galpones - Sistema de Gestión</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/scroller/2.3.0/css/scroller.dataTables.min.css">
+
+    <style>
+        body {
+            background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
+            min-height: 100vh;
+        }
+
+        .container-page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-hover-scale:hover {
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-down {
+            animation: slideDown 0.4s ease;
+        }
+
+        .table-scroll {
+            max-height: calc(100vh - 250px);
+            min-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+
+        .table-scroll table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-scroll th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #2563eb;
+        }
+
+        .table-scroll th,
+        .table-scroll td {
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .table-scroll tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* DataTables customization */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 12px;
+            padding: 8px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 4px 10px !important;
+            margin: 0 2px;
+            font-size: 11px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #7c3aed !important;
+            color: white !important;
+            border: 1px solid #7c3aed !important;
+        }
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+        table.dataTable tbody tr {
+            will-change: transform;
+        }
+
+        /* Select2 styling */
+        .select2-container--default .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            background-color: white !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px !important;
+            padding-left: 12px !important;
+            padding-right: 40px !important;
+            color: #374151 !important;
+            font-size: 0.875rem !important;
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            outline: none !important;
+            border-color: #a855f7 !important;
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+        }
+
+        .select2-dropdown {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* Animación para filtros */
+        #filterContent {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            opacity: 0;
+        }
+
+        #filterContent.show {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        body.dark-mode {
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode .card-shadow {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_length,
+        body.dark-mode .dataTables_wrapper .dataTables_filter,
+        body.dark-mode .dataTables_wrapper .dataTables_info,
+        body.dark-mode .dataTables_wrapper .dataTables_paginate {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_length select,
+        body.dark-mode .dataTables_wrapper .dataTables_filter input {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode table.dataTable tbody tr {
+            background-color: #0f1b34 !important;
+        }
+
+        body.dark-mode table.dataTable.stripe tbody tr.odd,
+        body.dark-mode table.dataTable.display tbody tr.odd {
+            background-color: #13213f !important;
+        }
+
+        body.dark-mode table.dataTable tbody tr:hover {
+            background-color: #1e293b !important;
+        }
+
+        body.dark-mode .select2-container--default .select2-selection--single {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .select2-dropdown {
+            background: #1e293b !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode .select2-results__option {
+            color: #e2e8f0 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Contenido Principal -->
+    <main class="container-page">
+        <!-- Acciones -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-tools text-purple-600"></i>
+                Acciones
+            </h2>
+            <div class="flex flex-wrap gap-3">
+                <button id="btnNuevoGalpon"
+                    class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-plus mr-2"></i>
+                    Agregar características
+                </button>
+                <button id="btnExportarexcel" style="background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    Exportar Reporte
+                </button>
+                <button id="btnExportar"
+                    style="background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));" class="hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    Exportar pdf
+                </button>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section id="filterSection" class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-purple-600"></i>
+                    Filtros
+                </h2>
+                <button id="btnToggleFiltros" class="text-gray-500 hover:text-purple-600 transition">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                <div class="flex gap-3">
+                    
+                    <button id="btnLimpiarFiltros" class="text-purple-600 hover:text-purple-700 font-semibold">
+                        <i class="fas fa-times-circle mr-1"></i>
+                        Limpiar filtros
+                    </button>
+                </div>
+            </div>
+            <div id="filterContent"
+                class="transition-all duration-300 ease-in-out overflow-hidden show">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Búsqueda por texto -->
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-search text-purple-600 mr-1"></i>
+                            Buscar
+                        </label>
+                        <input type="text" id="searchInput" placeholder="ID, nombre..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                    </div>
+                    
+                    <!-- Filtro por Granja -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-home text-purple-600 mr-1"></i>
+                            Granja
+                        </label>
+                        <select id="filterGranja" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                            <option value="">Todas las granjas</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Fecha Desde -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-calendar-alt text-purple-600 mr-1"></i>
+                            Desde
+                        </label>
+                        <input type="date" id="filterFechaDesde"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                    </div>
+                    
+                    <!-- Fecha Hasta -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-calendar-alt text-purple-600 mr-1"></i>
+                            Hasta
+                        </label>
+                        <input type="date" id="filterFechaHasta"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                    </div>
+                </div>
+                
+                <!-- Botones de acción de filtros -->
+                <div class="flex gap-2 mt-4">
+                    <button id="btnAplicarFiltros" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fa-solid fa-filter mr-2"></i>
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-warehouse text-purple-600"></i>
+                Registros de Galpones
+            </h2>
+
+            <div class="table-scroll">
+                <table class="min-w-full" id="galponesTable">
+                    <thead class="bg-linear-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr id="headerRow">
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                                #
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                                Granja
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                                Galpón
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                                Nombre
+                            </th>
+                            <!-- Las características se insertarán aquí dinámicamente -->
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                                Opciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Los datos se insertarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mensaje de vacío -->
+            <div id="emptyMessage" class="text-center py-12" style="display: none;">
+                <i class="fas fa-warehouse text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-lg">No hay galpones registrados</p>
+                <p class="text-gray-400 text-sm">Haz clic en "Nuevo Galpón" para comenzar</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts Core -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/scroller/2.3.0/js/dataTables.scroller.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- jsPDF y AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/core/Http.js"></script>
+
+    <!-- Config -->
+    <script src="../js/config/config.js"></script>
+
+    <!-- Inicializar Store Global -->
+    <script>
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({
+                user: null,
+                isAuthenticated: false,
+                loading: false
+            });
+        }
+    </script>
+
+    <!-- Shared Components -->
+    <script src="../js/shared/components/Modal.js"></script>
+    <script src="../js/shared/components/Notification.js"></script>
+    <script src="../js/shared/utils/swal-helpers.js"></script>
+
+    <!-- Módulo Auth -->
+    <script src="../js/modules/auth/auth.service.js"></script>
+
+    <!-- Módulo Galpones -->
+    <script src="../js/modules/galpones/galpones.service.js"></script>
+    <script src="../js/modules/galpones/components/GalponForm.js"></script>
+    <script src="../js/modules/galpones/components/GalponTable.js"></script>
+    <script src="../js/modules/galpones/galpones.controller.js"></script>
+    <script src="../js/shared/utils/theme-sync.js"></script>
+
+    <!-- Inicialización -->
+    <script>
+        // Detectar si debe mostrarse en modo embed (sin header)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmbed = urlParams.get('embed') === 'true';
+
+        if (isEmbed) {
+            // Ocultar header en modo embed
+            const header = document.querySelector('header');
+            if (header) {
+                header.style.display = 'none';
+            }
+            // Ajustar estilos del body para modo embed
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Validar sesión
+            const authService = new AuthService();
+            const sesion = await authService.validarSesion();
+
+            if (!sesion.success) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Mostrar nombre de usuario
+            if (sesion.data && sesion.data.nombre) {
+                const userNameEl = document.getElementById('userName');
+                if (userNameEl) {
+                    userNameEl.textContent = sesion.data.nombre;
+                }
+            }
+
+            // Configurar logout
+            const btnCerrarSesion = document.getElementById('btnCerrarSesion');
+            if (btnCerrarSesion) {
+                btnCerrarSesion.addEventListener('click', async () => {
+                    const resultado = await authService.logout();
+                    if (resultado.success) {
+                        window.location.href = '../login.html';
+                    }
+                });
+            }
+
+            // Inicializar módulo de galpones
+            window.galponesController = new GalponesController();
+
+            // Configurar toggle de filtros
+            setupToggleFiltros();
+
+            // Configurar limpiar filtros
+            const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+            const btnLimpiarFiltrosInterno = document.getElementById('btnLimpiarFiltrosInterno');
+            const btnRefreshInterno = document.getElementById('btnRefreshInterno');
+            
+            if (btnLimpiarFiltros) {
+                btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
+            }
+            
+            if (btnLimpiarFiltrosInterno) {
+                btnLimpiarFiltrosInterno.addEventListener('click', limpiarFiltros);
+            }
+            
+            if (btnRefreshInterno) {
+                btnRefreshInterno.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.cargarGalpones();
+                    }
+                });
+            }
+            
+            function limpiarFiltros() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('filterGranja').value = '';
+                document.getElementById('filterFechaDesde').value = '';
+                document.getElementById('filterFechaHasta').value = '';
+                if (window.galponesController) {
+                    window.galponesController.aplicarFiltros();
+                }
+            }
+
+            // Configurar botones de acción del header
+            const btnNuevoGalpon = document.getElementById('btnNuevoGalpon');
+            const btnExportar = document.getElementById('btnExportar');
+            const btnExportarexcel = document.getElementById('btnExportarexcel');
+            const btnRefresh = document.getElementById('btnRefresh');
+            const btnAplicarFiltros = document.getElementById('btnAplicarFiltros');
+
+            if (btnNuevoGalpon) {
+                btnNuevoGalpon.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.mostrarFormularioNuevo();
+                    }
+                });
+            }
+
+            if (btnExportar) {
+                btnExportar.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.exportarPDF();
+                    }
+                });
+            }
+
+            if (btnExportarexcel) {
+                btnExportarexcel.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.exportarExcel();
+                    }
+                });
+            }
+
+            if (btnRefresh) {
+                btnRefresh.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.cargarGalpones();
+                    }
+                });
+            }
+
+            if (btnAplicarFiltros) {
+                btnAplicarFiltros.addEventListener('click', () => {
+                    if (window.galponesController) {
+                        window.galponesController.aplicarFiltros();
+                    }
+                });
+            }
+
+            // Buscar al presionar Enter en cualquier campo de filtro
+            const searchInput = document.getElementById('searchInput');
+            const filterFechaDesde = document.getElementById('filterFechaDesde');
+            const filterFechaHasta = document.getElementById('filterFechaHasta');
+            
+            [searchInput, filterFechaDesde, filterFechaHasta].forEach(input => {
+                if (input) {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && window.galponesController) {
+                            window.galponesController.aplicarFiltros();
+                        }
+                    });
+                }
+            });
+
+            // Inicializar Select2
+            $('.select2-basic').select2({
+                placeholder: "Seleccionar...",
+                allowClear: true,
+                width: '100%',
+                language: "es",
+                minimumResultsForSearch: 5
+            });
+        });
+
+        function setupToggleFiltros() {
+            const btnToggle = document.getElementById('btnToggleFiltros');
+            const filterContent = document.getElementById('filterContent');
+
+            if (!btnToggle || !filterContent) return;
+
+            filterContent.classList.remove('show');
+
+            btnToggle.addEventListener('click', () => {
+                const isOpen = filterContent.classList.contains('show');
+                const icon = btnToggle.querySelector('i');
+                if (isOpen) {
+                    filterContent.classList.remove('show');
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                } else {
+                    filterContent.classList.add('show');
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

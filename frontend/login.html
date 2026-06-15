@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Gestión</title>
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="assets/icons/fontawesome/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            const THEME_STORAGE_KEY = 'appTheme';
+            const THEME_MODE_STORAGE_KEY = 'appThemeMode';
+            const isManualThemeEnabled = localStorage.getItem(THEME_MODE_STORAGE_KEY) === 'manual';
+            let theme = localStorage.getItem(THEME_STORAGE_KEY);
+
+            if (!isManualThemeEnabled || (theme !== 'dark' && theme !== 'light')) {
+                try {
+                    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                        ? 'dark'
+                        : 'light';
+                } catch (error) {
+                    theme = 'light';
+                }
+            }
+
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode-bootstrap');
+            }
+        })();
+    </script>
+    
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --login-grad-start: hsl(226, 72%, 20%);
+            --login-grad-mid: hsl(221, 83%, 38%);
+            --login-grad-end: hsl(214, 89%, 58%);
+            --login-grad-text: hsl(210, 60%, 92%);
+            --login-grad-sub: hsla(210, 60%, 95%, 0.82);
+            --login-grad-orb1: hsla(0, 0%, 100%, 0.06);
+            --login-grad-orb2: hsla(0, 0%, 100%, 0.03);
+            --login-label: hsl(215, 20%, 40%);
+            --login-input-icon: hsl(215, 16%, 65%);
+            --login-input-bg: hsl(0, 0%, 100%);
+            --login-input-border: var(--border);
+            --login-input-focus: var(--ring);
+            --login-input-ring: hsla(221, 83%, 50%, 0.18);
+            --login-error-bg: hsl(0, 86%, 97%);
+            --login-error-border: hsl(0, 86%, 88%);
+            --login-error-text: hsl(0, 84%, 45%);
+            --login-btn-shadow: hsla(221, 83%, 50%, 0.28);
+            --login-logo-shadow: hsla(0, 0%, 0%, 0.22);
+        }
+
+        body.dark-mode,
+        html[data-theme="dark"] body,
+        html.dark-mode-bootstrap body {
+            --login-grad-start: hsl(226, 58%, 11%);
+            --login-grad-mid: hsl(226, 58%, 17%);
+            --login-grad-end: hsl(222, 60%, 25%);
+            --login-grad-text: hsl(210, 60%, 88%);
+            --login-grad-sub: hsla(210, 50%, 85%, 0.72);
+            --login-grad-orb1: hsla(221, 90%, 63%, 0.07);
+            --login-grad-orb2: hsla(221, 90%, 63%, 0.04);
+            --login-label: hsl(215, 20%, 62%);
+            --login-input-icon: hsl(215, 20%, 50%);
+            --login-input-bg: hsl(222, 36%, 14%);
+            --login-input-border: hsl(222, 36%, 22%);
+            --login-input-focus: var(--ring);
+            --login-input-ring: hsla(221, 90%, 63%, 0.22);
+            --login-error-bg: hsla(0, 72%, 20%, 0.35);
+            --login-error-border: hsla(0, 72%, 54%, 0.45);
+            --login-error-text: hsl(0, 84%, 72%);
+            --login-btn-shadow: hsla(221, 90%, 63%, 0.3);
+            --login-logo-shadow: hsla(0, 0%, 0%, 0.45);
+            color-scheme: dark;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            background: var(--background);
+            color: var(--foreground);
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .login-container {
+            display: grid;
+            grid-template-columns: minmax(360px, 46%) 1fr;
+            min-height: 100vh;
+            width: 100vw;
+            background: var(--card);
+        }
+
+        .branding-panel {
+            min-width: 0;
+            background: linear-gradient(135deg, var(--login-grad-start) 0%, var(--login-grad-mid) 50%, var(--login-grad-end) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .branding-panel::before {
+            content: "";
+            position: absolute;
+            top: -35%;
+            right: -14%;
+            width: 380px;
+            height: 380px;
+            background: var(--login-grad-orb1);
+            border-radius: 50%;
+        }
+
+        .branding-panel::after {
+            content: "";
+            position: absolute;
+            bottom: -25%;
+            left: -10%;
+            width: 320px;
+            height: 320px;
+            background: var(--login-grad-orb2);
+            border-radius: 50%;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-circle {
+            width: 180px;
+            background: #ffffff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.6rem;
+            box-shadow: 0 18px 50px var(--login-logo-shadow);
+            padding: 0.7rem;
+        }
+
+        .logo-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .company-name {
+            color: var(--login-grad-text);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .company-description {
+            color: var(--login-grad-sub);
+            font-size: 1rem;
+            font-weight: 300;
+            max-width: 360px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .form-panel {
+            min-width: 0;
+            background: var(--card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.75rem;
+        }
+
+        body.dark-mode .login-container,
+        html[data-theme="dark"] .login-container,
+        html.dark-mode-bootstrap .login-container {
+            background: hsl(223, 58%, 11%);
+        }
+
+        body.dark-mode .form-panel,
+        html[data-theme="dark"] .form-panel,
+        html.dark-mode-bootstrap .form-panel {
+            background: hsl(223, 58%, 11%);
+        }
+
+        body.dark-mode .login-button,
+        html[data-theme="dark"] .login-button,
+        html.dark-mode-bootstrap .login-button {
+            box-shadow: 0 10px 24px hsla(221, 90%, 63%, 0.35);
+        }
+
+        .login-form-container {
+            width: 100%;
+            max-width: 380px;
+            animation: fadeInRight 0.8s ease-out;
+        }
+
+        .welcome-text {
+            color: var(--card-foreground);
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.15rem;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--login-label);
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-bottom: 0.45rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--login-input-icon);
+            font-size: 0.98rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.75rem;
+            background: var(--login-input-bg);
+            border: 2px solid var(--login-input-border);
+            border-radius: var(--radius-xl);
+            font-size: 0.95rem;
+            color: var(--card-foreground);
+            outline: none;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .form-input::placeholder {
+            color: var(--login-input-icon);
+        }
+
+        .form-input:focus {
+            border-color: var(--login-input-focus);
+            box-shadow: 0 0 0 4px var(--login-input-ring);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--login-input-icon);
+            cursor: pointer;
+            font-size: 0.95rem;
+            padding: 0.4rem;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary);
+        }
+
+        .login-button {
+            width: 100%;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 0.9rem 1rem;
+            border-radius: var(--radius-xl);
+            font-size: 0.97rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+            margin-top: 1.6rem;
+            box-shadow: 0 4px 14px var(--login-btn-shadow);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .login-button:hover {
+            background: var(--primary-hover, var(--primary));
+            box-shadow: 0 6px 18px var(--login-btn-shadow);
+            transform: translateY(-2px);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: var(--login-error-bg);
+            border: 1px solid var(--login-error-border);
+            color: var(--login-error-text);
+            padding: 0.8rem 0.9rem;
+            border-radius: var(--radius-xl);
+            margin-top: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        body.dark-mode .loading-overlay,
+        html[data-theme="dark"] .loading-overlay,
+        html.dark-mode-bootstrap .loading-overlay {
+            background: rgba(2, 6, 23, 0.72);
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: var(--card);
+            color: var(--card-foreground);
+            border: 1px solid var(--border);
+            padding: 1.8rem 2.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-text {
+            color: var(--muted-foreground);
+            font-weight: 500;
+        }
+
+        .spinner {
+            font-size: 2.6rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .login-container {
+                grid-template-columns: minmax(320px, 42%) 1fr;
+            }
+
+            .branding-panel,
+            .form-panel {
+                padding: 2.2rem;
+            }
+
+            .logo-circle {
+                width: 160px;
+                height: 140px;
+                padding: 1.5rem;
+                border-radius: 10px;
+            }
+
+            .company-name {
+                font-size: 1.65rem;
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                overflow: auto;
+            }
+
+            .login-container {
+                grid-template-columns: 1fr;
+                min-height: 100vh;
+            }
+
+            .branding-panel {
+                min-height: 35vh;
+                padding: 2rem;
+            }
+
+            .company-description {
+                max-width: 280px;
+                font-size: 0.92rem;
+            }
+
+            .form-panel {
+                padding: 2rem 1.5rem;
+            }
+
+            .welcome-text {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Contenedor Principal de Login -->
+    <div class="login-container">
+        <!-- Panel Izquierdo - Branding -->
+        <div class="branding-panel">
+            <div class="logo-container">
+                <div class="logo-circle">
+                    <img src="assets/images/logo.png" alt="Logo Sistema">
+                </div>
+                <h1 class="company-name">Sistema de Incubación</h1>
+                <p class="company-description">
+                    Sistema de gestión comercial y control de operaciones
+                </p>
+            </div>
+        </div>
+
+        <!-- Panel Derecho - Formulario -->
+        <div class="form-panel">
+            <div class="login-form-container">
+                <h2 class="welcome-text">¡Bienvenido de nuevo!</h2>
+
+                <!-- Formulario de Login -->
+                <form id="loginForm">
+                    <!-- Campo Usuario -->
+                    <div class="form-group">
+                        <label class="form-label">Usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input
+                                type="text"
+                                id="usuario"
+                                name="usuario"
+                                class="form-input"
+                                placeholder="Ingrese su usuario"
+                                required
+                                autocomplete="username"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Campo Contraseña -->
+                    <div class="form-group">
+                        <label class="form-label">Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Ingrese su contraseña"
+                                required
+                                autocomplete="current-password"
+                            >
+                            <button type="button" id="togglePassword" class="toggle-password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Ingreso -->
+                    <button type="submit" class="login-button">
+                        <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>
+                        Ingresar al Sistema
+                    </button>
+
+                    <!-- Mensaje de Error -->
+                    <div id="errorMessage" class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Usuario o contraseña incorrectos</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-content">
+            <i class="fas fa-spinner spinner"></i>
+            <p class="loading-text">Validando credenciales...</p>
+        </div>
+    </div>
+
+    <!-- Tema global sincronizado -->
+    <script src="js/shared/utils/theme-sync.js?v=20260325"></script>
+
+    <!-- Scripts Core -->
+    <script src="js/core/Store.js"></script>
+    <script src="js/core/Service.js"></script>
+    <script src="js/core/Component.js"></script>
+    <script src="js/core/Http.js"></script>
+    
+    <!-- Config -->
+    <script src="js/config/config.js"></script>
+    
+    <!-- Inicializar Store Global -->
+    <script>
+        // Crear store global antes de cargar los módulos
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({
+                user: null,
+                isAuthenticated: false,
+                loading: false
+            });
+        }
+    </script>
+    
+    <!-- Módulo Auth -->
+    <script src="js/modules/auth/auth.service.js"></script>
+    <script src="js/modules/auth/login.controller.js"></script>
+
+</body>
+
+</html>
+

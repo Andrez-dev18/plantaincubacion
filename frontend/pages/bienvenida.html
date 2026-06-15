@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenida</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <style>
+        :root {
+            --ink: #0b1220;
+            --muted: #52607a;
+            --card: #ffffff;
+            --accent: #facc15;
+            --accent-deep: #f59e0b;
+            --blue: #2563eb;
+            --slate: #0f172a;
+        }
+
+        body {
+            font-family: "Sora", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--page-bg);
+            min-height: 100vh;
+        }
+
+        .panel-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-wrap::before,
+        .panel-wrap::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(0);
+            opacity: 0.4;
+            z-index: 0;
+        }
+
+        .panel-wrap::before {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa);
+            top: -60px;
+            right: -80px;
+        }
+
+        .panel-wrap::after {
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle at 70% 70%, #fde68a, #f59e0b);
+            bottom: -120px;
+            left: -120px;
+        }
+
+        .panel-card {
+            max-width: 720px;
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+            padding: 2.75rem 2.25rem;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-title {
+            font-size: clamp(1.9rem, 2.6vw, 2.4rem);
+            font-weight: 700;
+            color: var(--ink);
+            margin-top: 0.5rem;
+        }
+
+        .panel-title[class*="panel"] {
+            font-size: 3rem !important;
+            margin-top: 2rem !important;
+        }
+
+        .panel-subtitle {
+            margin-top: 0.75rem;
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .panel-subtitle[class*="panel"] {
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+            margin-top: 1.5rem !important;
+            color: var(--muted) !important;
+        }
+
+        .panel-note {
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--muted);
+        }
+
+        .panel-note[class*="panel"] {
+            margin-top: 2rem !important;
+            font-size: 1rem !important;
+            color: var(--muted) !important;
+        }
+
+        /* Estilos para elementos con estilos inline */
+        .panel-subtitle[style*="color"] {
+            color: var(--muted) !important;
+        }
+
+        .panel-note[style*="font-size"] {
+            color: var(--muted) !important;
+        }
+
+        /* ========================================
+           ESTILOS PARA MODO OSCURO EN BIENVENIDA
+           ======================================== */
+
+        body.dark-mode {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .panel-wrap::before,
+        body.dark-mode .panel-wrap::after {
+            opacity: 0.2 !important;
+        }
+
+        body.dark-mode .panel-card {
+            background: #1f2937 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .panel-title {
+            color: #f1f5f9 !important;
+            font-size: 3rem !important;
+            margin-top: 2rem !important;
+        }
+
+        body.dark-mode .panel-subtitle {
+            color: #cbd5e1 !important;
+            font-size: 1.5rem !important;
+            margin-top: 1.5rem !important;
+            font-weight: 600 !important;
+        }
+
+        body.dark-mode .panel-note {
+            color: #94a3b8 !important;
+            font-size: 1rem !important;
+            margin-top: 2rem !important;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="panel-wrap">
+        <section class="panel-card">
+            <h1 class="panel-title">Bienvenido</h1>
+            <p class="panel-subtitle">Granja Rinconada del Sur S.A</p>
+            <p class="panel-note">Seleccione una opción del menú para comenzar.</p>
+        </section>
+    </main>
+
+    <script src="../js/shared/utils/theme-sync.js"></script>
+</body>
+
+</html>

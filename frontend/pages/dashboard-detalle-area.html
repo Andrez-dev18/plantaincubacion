@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Detalle por Área</title>
+
+    <link rel="stylesheet" href="../css/output.css">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../assets/css/datatables.min.css">
+    <link rel="stylesheet" href="../assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="../css/dashboard-responsive.css">
+    <link rel="stylesheet" href="../css/dashboard-styles.objetivos.css">
+
+    <style>
+        .table-scroll {
+            max-height: calc(100vh - 450px);
+            min-height: 650px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+
+        .table-scroll table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-scroll th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-scroll th,
+        .table-scroll td {
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .table-scroll tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .filter-group {
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-hover-scale:hover {
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-down {
+            animation: slideDown 0.4s ease;
+        }
+
+        .dropdown-columns {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 300px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            z-index: 1000;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .column-toggle {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .column-toggle:hover {
+            background-color: #f3f4f6;
+        }
+
+        .column-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .dropdown-header {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        /* Select2 estilo nativo (igual a tu select original) */
+        .select2-container--default .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            background-color: white !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px !important;
+            padding-left: 12px !important;
+            padding-right: 40px !important;
+            color: #374151 !important;
+            font-size: 0.875rem !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ca3af !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 8px !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: #6b7280 transparent transparent transparent !important;
+            border-width: 5px 4px 0 4px !important;
+        }
+
+        /* Focus ring purple */
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            outline: none !important;
+            border-color: #a855f7 !important;
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+        }
+
+        /* Dropdown estilo limpio */
+        .select2-dropdown {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div class="container mx-auto px-4 py-4">
+
+        <!-- Acciones -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-tools text-purple-600"></i>
+                Acciones - Agentes Causales
+            </h2>
+            <div class="flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex flex-wrap gap-3">
+                    <button id="btnNuevo"
+                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Registro
+                    </button>
+                    <button id="btnExportar"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fas fa-file-excel mr-2"></i>
+                        Exportar Excel
+                    </button>
+                </div>
+
+                <!-- Combobox para Mostrar/Ocultar Columnas -->
+                <div class="dropdown-columns">
+                    <button id="btnToggleColumns"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale flex items-center gap-2">
+                        <i class="fas fa-columns"></i>
+                        Mostrar/Ocultar columnas
+                        <i class="fas fa-chevron-down text-sm"></i>
+                    </button>
+
+                    <div id="columnDropdown" class="dropdown-content">
+                        <div class="dropdown-header">
+                            <span>Seleccionar Columnas</span>
+                            <button id="btnCloseDropdown" class="text-white hover:text-gray-200">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="p-2">
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="0" checked>
+                                <span>#</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="1" checked>
+                                <span>Fecha</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="2" checked>
+                                <span>Provincia</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="3" checked>
+                                <span>Área</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="4" checked>
+                                <span>Código Motivo</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="5" checked>
+                                <span>Motivo</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="6" checked>
+                                <span>Reportado Por</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="7">
+                                <span>Usuario Registro</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="8">
+                                <span>Fecha Registro</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="9">
+                                <span>Usuario Transferencia</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="10">
+                                <span>Fecha Transferencia</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="11">
+                                <span>Usuario Edición</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="12">
+                                <span>Fecha Edición</span>
+                            </label>
+                            <label class="column-toggle">
+                                <input type="checkbox" class="column-checkbox" data-column="13" checked disabled>
+                                <span>Opciones (siempre visible)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section id="filterSection" class="bg-white rounded-lg card-shadow p-3 mb-6 slide-down">
+
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-purple-600"></i>
+                    Filtros
+                </h2>
+                <!--<div class="flex gap-3">-->
+                <button id="btnToggleFiltros" class="text-gray-500 hover:text-purple-600 transition">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+                <button id="btnLimpiarFiltros" class="text-purple-600 hover:text-purple-700 font-semibold">
+                    <i class="fas fa-times-circle mr-1"></i>
+                    Limpiar filtros
+                </button>
+                <!--</div>-->
+            </div>
+            <div id="filterContent" class="flex flex-wrap items-end gap-4 transition-all duration-300 ease-in-out overflow-hidden show">
+                <!-- Periodo -->
+                <div class="min-w-[130px] flex-grow">
+                    <label for="periodoTipo"
+                        class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                        <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Periodo
+                    </label>
+                    <select id="periodoTipo"
+                        class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="TODOS">Todos</option>
+                        <option value="ULTIMA_SEMANA">Última Semana</option>
+                        <option value="POR_MES">Por mes</option>
+                        <option value="ENTRE_MESES">Entre meses</option>
+                        <option value="POR_FECHA" selected>Por fecha</option>
+                        <option value="ENTRE_FECHAS">Entre fechas</option>
+                    </select>
+                </div>
+
+                <!-- Por fecha -->
+                <div id="periodoPorFecha" class="min-w-[140px] flex-grow">
+                    <label for="fechaUnica"
+                        class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                        <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Fecha
+                    </label>
+                    <input id="fechaUnica" type="date"
+                        class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                </div>
+
+                <!-- Entre fechas -->
+                <div id="periodoEntreFechas" class="hidden min-w-[280px] sm:min-w-[300px] flex-grow">
+                    <div class="flex flex-row gap-3">
+                        <div class="w-1/2">
+                            <label for="fechaInicio"
+                                class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                                <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Desde
+                            </label>
+                            <input id="fechaInicio" type="date"
+                                class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="fechaFin"
+                                class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                                <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Hasta
+                            </label>
+                            <input id="fechaFin" type="date"
+                                class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Por mes -->
+                <div id="periodoPorMes" class="hidden min-w-[140px] flex-grow">
+                    <label for="mesUnico"
+                        class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                        <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Mes
+                    </label>
+                    <input id="mesUnico" type="month"
+                        class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                </div>
+
+                <!-- Entre meses -->
+                <div id="periodoEntreMeses" class="hidden min-w-[280px] sm:min-w-[300px] flex-grow">
+                    <div class="flex flex-row gap-3">
+                        <div class="w-1/2">
+                            <label for="mesInicio"
+                                class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                                <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Desde
+                            </label>
+                            <input id="mesInicio" type="month"
+                                class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="mesFin"
+                                class="text-sm font-medium text-gray-700 block flex items-center gap-1 mb-1 h-[24px]">
+                                <i class="fas fa-calendar-alt text-purple-600 w-4 text-center"></i> Hasta
+                            </label>
+                            <input id="mesFin" type="month"
+                                class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-map-marker-alt mr-1 text-purple-600"></i>
+                        Provincia
+                    </label>
+                    <select id="filterProvincia"
+                        class="select2-basic w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="">Todas las provincias</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-layer-group mr-1 text-purple-600"></i>
+                        Área
+                    </label>
+                    <select id="filterArea"
+                        class="select2-basic w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="">Todas las áreas</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="btnAplicarFiltros"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fa-solid fa-filter"></i>
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-table text-purple-600"></i>
+                Registros de Agentes Causales
+            </h2>
+            <div class="table-scroll">
+                <table class="min-w-full">
+                    <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">#</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">FECHA</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">PROVINCIA
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">PROCESO</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">COD. MOTIVO
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">MOTIVO</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">REPORTADO POR
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">USUARIO REGISTRO</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">FECHA REGISTRO</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">USUARIO TRANSFERENCIA</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">FECHA TRANSFERENCIA</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">USUARIO EDICIÓN</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">FECHA EDICIÓN</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">OPCIONES
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="14" class="text-center py-8 text-gray-500">Cargando datos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+        style="display: none; overflow-y: auto;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8" style="max-height: calc(100vh - 4rem);">
+            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 rounded-t-2xl sticky top-0 z-10">
+                <h3 id="modalTitle" class="text-2xl font-bold text-white">Nuevo Registro</h3>
+            </div>
+            <form id="modalForm" class="p-6" style="max-height: calc(100vh - 12rem); overflow-y: auto;">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+                        <input type="date" id="modalFecha" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
+                        <select id="modalProvincia" required
+                            class=select2-basic "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proceso *</label>
+                        <select id="modalArea" required
+                            class="select2-basic w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Usuario que Reporta *</label>
+                        <input type="text" id="modalUsuarioReporte" required placeholder="Nombre del usuario"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
+                        <textarea id="modalMotivo" required rows="4" placeholder="Describe el motivo del detalle..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="btnCancelar"
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button type="button" id="btnGuardar"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-6 rounded-lg">
+                        <i class="fas fa-save mr-2"></i>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+        style="display: none;">
+        <div class="bg-white p-6 rounded-xl shadow-2xl">
+            <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-2"></i>
+            <p class="text-gray-700">Cargando...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+
+    <!-- select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script src="../js/config/"></script>
+    <script src="detallearea.service.js"></script>
+    <script src="detallearea.controller.js"></script>
+    <script src="js/utils/funcionesVarias.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            detalleAreaController.init();
+
+            // Lógica del filtro de periodo
+            const periodoTipo = document.getElementById('periodoTipo');
+            const periodoPorFecha = document.getElementById('periodoPorFecha');
+            const periodoEntreFechas = document.getElementById('periodoEntreFechas');
+            const periodoPorMes = document.getElementById('periodoPorMes');
+            const periodoEntreMeses = document.getElementById('periodoEntreMeses');
+
+            const togglePeriodos = () => {
+                const tipo = periodoTipo.value;
+                periodoPorFecha.classList.add('hidden');
+                periodoEntreFechas.classList.add('hidden');
+                periodoPorMes.classList.add('hidden');
+                periodoEntreMeses.classList.add('hidden');
+
+                if (tipo === 'POR_FECHA') periodoPorFecha.classList.remove('hidden');
+                else if (tipo === 'ENTRE_FECHAS') periodoEntreFechas.classList.remove('hidden');
+                else if (tipo === 'POR_MES') periodoPorMes.classList.remove('hidden');
+                else if (tipo === 'ENTRE_MESES') periodoEntreMeses.classList.remove('hidden');
+            };
+
+            periodoTipo.addEventListener('change', togglePeriodos);
+            togglePeriodos();
+        });
+
+         $(document).ready(function () {
+            // Inicializar TODOS los selects con clase 'select2-basic'
+            $('.select2-basic').select2({
+                placeholder: "Seleccionar...",
+                allowClear: true, // Permite limpiar con X
+                width: '100%',
+                language: "es", // Mensajes en español
+                minimumResultsForSearch: 5 // Muestra buscador solo si hay 5+ opciones (opcional)
+            });
+        });
+
+    </script>
+</body>
+
+</html>

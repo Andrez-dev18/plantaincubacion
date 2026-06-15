@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Gestión de Pollo - Múltiples Dashboards">
+    <title>Sistema de Gestión - Dashboard</title>
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="css/output.css">
+
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="assets/icons/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/dashboard-styles.css">
+    <link rel="stylesheet" href="css/index-styles.css">
+
+    <!-- Tema Oscuro Global -->
+    <link rel="stylesheet" href="css/dark-theme.css?v=20260328a">
+
+</head>
+
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <!-- Logo/Header -->
+        <div class="p-6 border-b border-blue-700 sidebar-header">
+            <!-- Logo completo (visible cuando está expandido) -->
+            <div class="sidebar-header-content flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-bold text-lg">Sistema</h2>
+                        <p class="text-blue-300 text-xs">Gestión </p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebarCollapse()" class="lg:hidden text-white hover:text-blue-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Logo compacto (visible cuando está colapsado) -->
+            <div class="sidebar-logo-icon">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu -->
+        <nav class="p-4 space-y-2 overflow-y-auto" style="max-height: calc(100vh - 130px);">
+            <div class="mb-4">
+                <p class="text-blue-300 text-xs uppercase font-semibold mb-2 px-3">Dashboards</p>
+            </div>
+            <div id="sidebarMenu"></div>
+        </nav>
+
+        <script>
+            function toggleSubmenu(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('hidden');
+            }
+
+            const DASHBOARD_PROGRAMA = 'Planta de Incubacion';
+
+            const slugify = (value) => {
+                return value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+            };
+
+            const buildSubmenuId = (value) => {
+                return `submenu-${slugify(value)}`;
+            };
+
+            const buildMenuText = (fullText, shortHtml) => {
+                const wrapper = document.createElement('span');
+                wrapper.className = 'menu-text font-medium';
+
+                const fullSpan = document.createElement('span');
+                fullSpan.className = 'text-full';
+                fullSpan.textContent = fullText || '';
+
+                const shortSpan = document.createElement('span');
+                shortSpan.className = 'text-short';
+                if (shortHtml) {
+                    shortSpan.innerHTML = shortHtml;
+                } else {
+                    shortSpan.textContent = fullText || '';
+                }
+
+                wrapper.appendChild(fullSpan);
+                wrapper.appendChild(shortSpan);
+
+                return wrapper;
+            };
+
+            const renderSidebarMenu = (items) => {
+                const container = document.getElementById('sidebarMenu');
+                if (!container) return;
+
+                container.innerHTML = '';
+
+                const groups = items
+                    .filter(item => item.tipo === 'group')
+                    .sort((a, b) => a.orden - b.orden);
+
+                const children = items
+                    .filter(item => item.tipo === 'item')
+                    .sort((a, b) => a.orden - b.orden);
+
+                groups.forEach((group, groupIndex) => {
+                    const menuGroup = document.createElement('div');
+                    menuGroup.className = 'menu-group';
+
+                    const submenuId = buildSubmenuId(group.cod_mod || group.nom_mod || 'menu');
+
+                    const button = document.createElement('button');
+                    button.className = 'menu-item flex items-center justify-between w-full px-4 py-3 text-white rounded-lg';
+                    
+                    // Eliminar prefijo numérico del nombre original y agregar número calculado
+                    const cleanName = (group.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
+                    const displayName = `${groupIndex + 1}. ${cleanName}`;
+                    button.setAttribute('data-tooltip', displayName);
+                    button.addEventListener('click', () => toggleSubmenu(submenuId));
+
+                    const left = document.createElement('span');
+                    left.className = 'flex items-center gap-3';
+
+                    const icon = document.createElement('i');
+                    icon.className = `${group.icono || 'fas fa-seedling'} w-5`;
+
+                    left.appendChild(icon);
+                    left.appendChild(buildMenuText(displayName, group.label_short));
+
+                    const chevron = document.createElement('i');
+                    chevron.className = 'fas fa-chevron-down text-sm';
+
+                    button.appendChild(left);
+                    button.appendChild(chevron);
+
+                    const submenu = document.createElement('div');
+                    submenu.id = submenuId;
+                    submenu.className = 'submenu hidden pl-10 mt-2 space-y-2';
+
+                    const groupChildren = children.filter(child => child.parent_cod === group.cod_mod);
+                    
+                    groupChildren.forEach((child, childIndex) => {
+                            const link = document.createElement('a');
+                            link.href = '#';
+                            link.className = 'menu-link block text-gray-400 hover:text-white';
+
+                            if (child.permiso) {
+                                link.setAttribute('data-permiso', child.permiso);
+                            }
+
+                            link.addEventListener('click', (event) => {
+                                event.preventDefault();
+                                const url = child.url || 'pages/trabajando.html';
+                                const tipo = child.tipo_param || 'trabajando';
+                                const titulo = child.titulo || child.nom_mod || 'Dashboard';
+                                activateAndLoad(link, url, tipo, titulo);
+                            });
+
+                            const linkIcon = document.createElement('i');
+                            linkIcon.className = `${child.icono || 'fas fa-chart-pie'} mr-2`;
+
+                            const textWrapper = document.createElement('span');
+                            textWrapper.className = 'menu-text';
+
+                            // Eliminar prefijo numérico y agregar número calculado
+                            const cleanChildName = (child.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
+                            const displayChildName = `${groupIndex + 1}.${childIndex + 1}. ${cleanChildName}`;
+
+                            const fullSpan = document.createElement('span');
+                            fullSpan.className = 'text-full';
+                            fullSpan.textContent = displayChildName;
+
+                            const shortSpan = document.createElement('span');
+                            shortSpan.className = 'text-short';
+                            if (child.label_short) {
+                                shortSpan.innerHTML = child.label_short;
+                            } else {
+                                shortSpan.textContent = displayChildName;
+                            }
+
+                            textWrapper.appendChild(fullSpan);
+                            textWrapper.appendChild(shortSpan);
+
+                            link.appendChild(linkIcon);
+                            link.appendChild(textWrapper);
+                            submenu.appendChild(link);
+                        });
+
+                    menuGroup.appendChild(button);
+                    menuGroup.appendChild(submenu);
+                    container.appendChild(menuGroup);
+                });
+            };
+
+            // Hacer disponible globalmente para el MenuController
+            window.renderSidebarMenu = renderSidebarMenu;
+
+            const loadSidebarMenu = async () => {
+                try {
+                    console.log('🔍 Cargando menú del sidebar...');
+                    window.disableIAMMenu = true;
+                    const baseUrl = window.AppConfig?.API?.BASE_URL || 'http://localhost/plantaincubacion/backend';
+                    const endpoint = window.AppConfig?.API?.ENDPOINTS?.DASHBOARD_MODULOS?.LISTAR || '/dashboard-modulos';
+                    const url = `${baseUrl}${endpoint}?programa=${encodeURIComponent(DASHBOARD_PROGRAMA)}`;
+                    
+                    console.log('📡 URL:', url);
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+                    console.log('📦 Datos recibidos:', data);
+                    
+                    if (!data || !data.success || !Array.isArray(data.data)) {
+                        console.error('❌ Datos inválidos');
+                        return;
+                    }
+
+                    console.log(`✅ Total módulos: ${data.data.length}`);
+                    renderSidebarMenu(data.data);
+                    window.menuLoadedFromDashboard = true;
+                    
+                    console.log('🔐 Aplicando filtro de permisos...');
+                    PermisosManager.filtrarMenuPorPermisos();
+                    console.log('✅ Filtro aplicado');
+                } catch (error) {
+                    console.error('❌ Error al cargar menu:', error);
+                }
+            };
+        </script>
+
+    </aside>
+
+
+    <!-- Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebarCollapse()"></div>
+
+    <!-- Main Content -->
+    <div class="content-wrapper">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <div class="px-4 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+
+                    <!-- Botón PARA DESKTOP (ocultar sidebar) -->
+                    <button class="menu-toggle-desktop" onclick="toggleSidebarCollapse()" aria-label="Mostrar u ocultar sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1 id="" class="text-2xl font-bold text-gray-800">Planta de Incubacion</h1>
+                        <p id="dashboardTitle" class="text-sm text-gray-500"></p>
+                    </div>
+
+                </div>
+
+                <!-- User Dropdown -->
+                <details class="relative">
+                    <summary class="flex items-center gap-3 cursor-pointer select-none list-none">
+                        <div class="text-right">
+                            <p id="userName" class="text-sm font-semibold text-gray-700">Usuario Admin</p>
+                            <p id="rolUser" class="text-xs text-gray-500">Administrador</p>
+                        </div>
+                        <div
+                            class="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center"
+                            style="background: linear-gradient(135deg, #3b82f6, #4f46e5);">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                    </summary>
+
+                    <div class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-user text-gray-500 mr-2"></i> Perfil
+                        </a>
+
+                        <!-- Botón de cambio de tema -->
+                        <button type="button" id="btn-theme-toggle" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center" aria-label="Cambiar tema">
+                            <span id="theme-icon" class="mr-2">🌙</span>
+                            <span id="theme-text">Oscuro</span>
+                        </button>
+
+                        <hr class="border-gray-200 my-1" />
+                        <a id="btnCerrarSesion" href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Cerrar sesión
+                        </a>
+                    </div>
+                </details>
+            </div>
+        </header>
+
+
+        <!-- Dashboard Content -->
+        <main class="p-6 relative">
+            <div id="loadingIndicator" class="loading hidden">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+
+            <iframe id="dashboardFrame" src="pages/bienvenida.html" onload="hideLoading()">
+            </iframe>
+        </main>
+    </div>
+
+    <script>
+        // Toggle Sidebar
+
+
+        // Load Dashboard
+        function loadDashboard(url, element) {
+            // Prevenir comportamiento por defecto del enlace
+            event.preventDefault();
+
+            // Mostrar loading
+            showLoading();
+
+            // Actualizar menu activo
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+
+            // Cargar dashboard
+            const frame = document.getElementById('dashboardFrame');
+            frame.src = url;
+
+            // Actualizar título
+            const titles = {
+                'dashboard-capturas.html': 'Capturas de Pantalla',
+                'dashboard-comercializacion.html': 'Información del Mercado'
+            };
+            document.getElementById('dashboardTitle').textContent = titles[url] || 'Dashboard';
+
+            // Cerrar sidebar en móvil
+            if (window.innerWidth < 1024) {
+                toggleSidebarCollapse();
+            }
+        }
+
+        //FUNCION CLAVE PARA CARGAR LAS VENTANAS 
+        //SE LE PASA EL NOMBRE DEL ARCHIVO QUE SE DESEA CARGAR Y SI TIENE SUB TIPOS LE VAMOS EL TIPO
+        //COMO POR EJEMPLO ('DASHBOARD-COMERCIO', 'TIPOCOMERCIO')
+        function loadDashboardAndData(dashboardUrl, tipo, title) {
+            const frame = document.getElementById('dashboardFrame');
+            const titulo = document.getElementById('dashboardTitle');
+            //se adiciona el dashboard al array de titulos para cargar el titulo
+            const titles = {
+                'dashboard-capturas.html': 'Gestion ' + title,
+                //'dashboard-comercializacion.html': title,
+                //'dashboard-vivo-arequipa.html': 'Gestion Provincia',
+                //'dashboard-vivo-provincia.html': 'Gestion Arequipa',
+
+                //'dashboard_tamanoMercado.html': 'Gestion Tamaño de Mercado',
+                'dashboard-control-objetivos.html': title,
+                'dashboard-timeline-objetivos.html': title,
+                'dashboard-confirmacion-objetivos.html': title,
+                'dashboard-tareas.html': title,
+                'pages/trabajando.html': title
+
+            };
+
+            titulo.textContent = titles[dashboardUrl] || title || 'Dashboard';
+            showLoading();
+
+            /*Aqui tener en cuenta que el dashboard cargado debe tener la funcion
+                "cargarDatos()" esta se encarga de cargar la tabla y demas data que se
+                desea mostrar, tener en cuenta la esctructua de JS
+                dashboarh.html -> controller -> service-> config
+            */
+
+            const run = () => {
+                try {
+                    if (frame.contentWindow && typeof frame.contentWindow.cargarDatos === 'function') {
+                        frame.contentWindow.cargarDatos(tipo);
+                    } else {
+                        /*console.error("La función cargarDatos no existe en el iframe.");*/
+                    }
+                } finally {
+                    hideLoading();
+                }
+            };
+
+            if (frame.src.includes(dashboardUrl)) {
+                // ya está cargado ese dashboard
+                run();
+            } else {
+                // esperar a que el nuevo dashboard se cargue
+                frame.onload = run;
+                frame.src = dashboardUrl;
+            }
+
+            if (window.innerWidth < 1024) toggleSidebarCollapse();
+        }
+
+        // Loading functions
+        function showLoading() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').classList.add('hidden');
+        }
+
+        // Responsive: cerrar sidebar al hacer clic fuera
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1024) {
+                document.getElementById('sidebar').classList.add('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            }
+        });
+
+        // Inicializar sidebar abierto en desktop
+        if (window.innerWidth >= 1024) {
+            document.getElementById('sidebar').classList.add('open');
+        }
+
+        // limpia y marca el elemento activo y su posible padre toggle
+        function markActiveElement(element) {
+            // quitar active de todos
+            document.querySelectorAll('.menu-link.active, .menu-item.active, .submenu-toggle.active')
+                .forEach(el => el.classList.remove('active'));
+
+            if (!element) return;
+
+            // marca el elemento clickeado (si es link o botón)
+            element.classList.add('active');
+
+            // si el elemento es un link dentro de un submenu, marcar también el botón padre que abre ese submenu
+            const parentToggle = findParentToggleButton(element);
+            if (parentToggle) parentToggle.classList.add('active');
+
+            // además marcar el menu-group superior (si existe un .menu-item dentro del grupo)
+            const menuGroup = element.closest('.menu-group');
+            if (menuGroup) {
+                const topMenuItem = menuGroup.querySelector('.menu-item');
+                if (topMenuItem) topMenuItem.classList.add('active');
+            }
+        }
+
+        // buscar el botón toggle que controla el submenu donde está el elemento
+        function findParentToggleButton(el) {
+            let node = el;
+            while (node && node !== document) {
+                // si el padre más cercano es un submenu, intentamos buscar un botón anterior en ese mismo contenedor
+                if (node.classList && node.classList.contains('submenu')) {
+                    // buscar botón previo (por ejemplo: <button ...> </button> seguido por <div class="submenu">)
+                    let prev = node.previousElementSibling;
+                    if (prev && prev.tagName === 'BUTTON') return prev;
+                }
+                node = node.parentElement;
+            }
+
+            // alternativa: buscar un botón con clase .submenu-toggle dentro el ancestro directo
+            node = el.closest('.menu-group');
+            if (node) {
+                const innerToggle = node.querySelector('.submenu-toggle');
+                if (innerToggle) return innerToggle;
+            }
+
+            return null;
+        }
+
+        // función que usan tus links (ya la tenías, la adaptamos a markActiveElement)
+        function selectMenuItem(element) {
+            markActiveElement(element);
+        }
+
+        // función que usaremos en botones que cargan dashboard directamente
+        function activateAndLoad(buttonOrLink, dashboardUrl, tipo, title) {
+            // marcar UI
+            markActiveElement(buttonOrLink);
+
+            // llamar a tu función existente que carga el iframe
+            loadDashboardAndData(dashboardUrl, tipo, title);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const contentWrapper = document.querySelector('.content-wrapper');
+
+            // Inicializar estado del sidebar según tamaño de pantalla
+            if (window.innerWidth >= 1024) {
+                // En desktop: iniciar colapsado para expandir/contraer con hover
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('pinned');
+                sidebar.classList.add('open');
+                contentWrapper.classList.add('sidebar-collapsed');
+                overlay.classList.remove('active');
+            } else {
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('pinned');
+                sidebar.classList.remove('open');
+                contentWrapper.classList.add('sidebar-collapsed');
+                overlay.classList.remove('active');
+            }
+
+            // ========================================
+            // EFECTO HOVER (Solo Desktop)
+            // ========================================
+            (function () {
+                let enterTimer = null;
+                let leaveTimer = null;
+
+                sidebar.addEventListener('mouseenter', () => {
+                    if (window.innerWidth < 1024) return;
+                    if (!sidebar.classList.contains('collapsed')) return;
+                    clearTimeout(leaveTimer);
+                    // Delay natural antes de expandir (evita aperturas accidentales)
+                    enterTimer = setTimeout(() => {
+                        sidebar.classList.add('hover-expanded');
+                    }, 280);
+                });
+
+                sidebar.addEventListener('mouseleave', () => {
+                    clearTimeout(enterTimer);
+                    if (!sidebar.classList.contains('hover-expanded')) return;
+                    // Delay al cerrar para evitar parpadeo al moverse entre elementos
+                    leaveTimer = setTimeout(() => {
+                        sidebar.classList.remove('hover-expanded');
+                    }, 200);
+                });
+            })();
+
+            // ✅ INICIALIZAR SISTEMA DE PERMISOS PRIMERO
+            PermisosManager.init();
+            loadSidebarMenu();
+
+            // MODIFICAR DASHBOARD POR DEFECTO
+
+            // loadDashboardAndData('dashboard-comercializacion.html', 'vivo-aqp');
+            // loadDashboardAndData('dashboard-comercializacion.html', 'vivo-provincia');
+            // loadDashboardAndData('dashboard-huevo.html', 'huevo');
+
+            // Criaderos Emprendedores:
+            //loadDashboardAndData('dashboard-criadores-emprendedores.html', 'criador');
+
+            // Tamaño de Mercado:
+            // loadDashboardAndData('dashboard_tamanoMercado.html', 'tamanoMercado');
+
+            // Potencial de Venta:
+            // loadDashboardAndData('dashboard-capturas.html', 'vivo-arequipa');
+
+            const frame = document.getElementById('dashboardFrame');
+            frame.src = 'pages/bienvenida.html';
+            document.getElementById('dashboardTitle').textContent = 'Bienvenido';
+
+            // Ocultar loading cuando cargue
+            frame.onload = () => {
+                hideLoading();
+            };
+        });
+        function toggleSidebarCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            const contentWrapper = document.querySelector('.content-wrapper');
+            const overlay = document.getElementById('sidebarOverlay');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+
+            // ========================================
+            // MÓVIL: Toggle normal open/closed
+            // ========================================
+            if (window.innerWidth < 1024) {
+                if (isCollapsed) {
+                    sidebar.classList.remove('collapsed');
+                    sidebar.classList.add('open');
+                    overlay.classList.add('active');
+                } else {
+                    sidebar.classList.add('collapsed');
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                }
+
+                contentWrapper.classList.toggle('sidebar-collapsed', !isCollapsed);
+                return;
+            }
+
+            // ========================================
+            // DESKTOP: Toggle pin (fijar/desfijar)
+            // ========================================
+            sidebar.classList.toggle('pinned');
+            
+            if (sidebar.classList.contains('pinned')) {
+                // Fijado: expandir y mantener abierto
+                sidebar.classList.remove('collapsed');
+                contentWrapper.classList.remove('sidebar-collapsed');
+            } else {
+                // Desfijado: colapsar (hover lo expandirá)
+                sidebar.classList.add('collapsed');
+                contentWrapper.classList.add('sidebar-collapsed');
+            }
+            
+            overlay.classList.remove('active');
+        }
+    </script>
+
+    <!-- Scripts Core -->
+    <script src="js/core/Store.js"></script>
+    <script src="js/core/Service.js"></script>
+    <script src="js/core/Component.js"></script>
+    <script src="js/core/Http.js"></script>
+    
+    <!-- Config -->
+    <script src="js/config/config.js"></script>
+    
+    <!-- Inicializar Store Global -->
+    <script>
+        // Crear store global antes de cargar los módulos
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({
+                user: null,
+                isAuthenticated: false,
+                loading: false
+            });
+        }
+    </script>
+    
+    <!-- Módulo Auth -->
+    <script src="js/modules/auth/auth.service.js"></script>
+
+    <!-- SweetAlert2 + Helpers compartidos -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/shared/utils/swal-helpers.js"></script>
+
+    <script src="js/modules/auth/session.controller.js"></script>
+    
+    <!-- Servicios IAM -->
+    <script src="js/shared/services/IAMMenuService.js"></script>
+    
+    <!-- Controladores -->
+    <script src="js/shared/controllers/MenuController.js"></script>
+    
+    <!-- Utilidades -->
+    <script src="js/shared/utils/permisos.js"></script>
+
+    <!-- Validación de Sesión para Index.html -->
+    <script>
+        // Validar sesión al cargar el index.html
+        (function() {
+            // Verificar si hay sesión activa
+            const isAuthenticated = sessionStorage.getItem('isAuthenticated');
+            const usuario = sessionStorage.getItem('usuario');
+            
+            if (!isAuthenticated || !usuario || isAuthenticated !== 'true') {
+                // No hay sesión válida, redirigir al login silenciosamente
+                try {
+                    if (window.top && window.top !== window) {
+                        window.top.location.replace('/plantaincubacion/login.html');
+                    } else {
+                        window.location.replace('/plantaincubacion/login.html');
+                    }
+                } catch (e) {
+                    window.location.replace('/plantaincubacion/login.html');
+                }
+                return;
+            }
+
+            // Escuchar mensajes del iframe sobre expiración de sesión
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'SESSION_EXPIRED') {
+                    // El iframe detectó sesión expirada, limpiar y redirigir
+                    sessionStorage.clear();
+                    localStorage.removeItem('lastActivity');
+                    try {
+                        if (window.top && window.top !== window) {
+                            window.top.location.replace('/plantaincubacion/login.html');
+                        } else {
+                            window.location.replace('/plantaincubacion/login.html');
+                        }
+                    } catch (e) {
+                        window.location.replace('/plantaincubacion/login.html');
+                    }
+                }
+            });
+
+            // Verificar la sesión periódicamente (cada 30 segundos)
+            setInterval(function() {
+                const stillAuth = sessionStorage.getItem('isAuthenticated');
+                if (!stillAuth || stillAuth !== 'true') {
+                    // Sesión expiró, limpiar y redirigir
+                    sessionStorage.clear();
+                    localStorage.removeItem('lastActivity');
+                    try {
+                        if (window.top && window.top !== window) {
+                            window.top.location.replace('/plantaincubacion/login.html');
+                        } else {
+                            window.location.replace('/plantaincubacion/login.html');
+                        }
+                    } catch (e) {
+                        window.location.replace('/plantaincubacion/login.html');
+                    }
+                }
+            }, 30000); // Cada 30 segundos
+        })();
+    </script>
+
+    <!-- Funcionalidad del botón de cambio de tema -->
+    <script>
+        (function() {
+            const themeToggleBtn = document.getElementById('btn-theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            const body = document.body;
+            const THEME_STORAGE_KEY = 'appTheme'; // Clave común para toda la aplicación
+            const THEME_MODE_STORAGE_KEY = 'appThemeMode';
+
+            function isManualThemeEnabled() {
+                return localStorage.getItem(THEME_MODE_STORAGE_KEY) === 'manual';
+            }
+
+            function getSystemTheme() {
+                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark'
+                    : 'light';
+            }
+
+            function resolveInitialTheme() {
+                const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+                if (isManualThemeEnabled() && (storedTheme === 'dark' || storedTheme === 'light')) {
+                    return storedTheme;
+                }
+
+                return getSystemTheme();
+            }
+
+            // Función para aplicar el tema
+            function applyTheme(theme) {
+                const isDark = theme === 'dark';
+                body.classList.toggle('dark-mode', isDark);
+                body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+                if (themeIcon) {
+                    themeIcon.textContent = isDark ? '☀️' : '🌙';
+                }
+                if (themeText) {
+                    themeText.textContent = isDark ? 'Claro' : 'Oscuro';
+                }
+            }
+
+            // Aplicar tema directamente dentro del iframe (fallback robusto)
+            function applyThemeToIframe(theme) {
+                const iframe = document.getElementById('dashboardFrame');
+                if (!iframe) return;
+
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                    if (!doc || !doc.body) return;
+
+                    const isDark = theme === 'dark';
+                    doc.body.classList.toggle('dark-mode', isDark);
+                    doc.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    if (doc.documentElement) {
+                        doc.documentElement.classList.toggle('dark-mode', isDark);
+                        doc.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    }
+                } catch (error) {
+                    // Si no se puede acceder al iframe, se mantiene postMessage como respaldo.
+                }
+            }
+
+            // Función para notificar a los iframes sobre el cambio de tema
+            function notifyIframesThemeChange(theme) {
+                // 1) Aplicación directa para asegurar el estado visual
+                applyThemeToIframe(theme);
+
+                // 2) Notificación para que scripts del iframe reaccionen
+                const iframe = document.getElementById('dashboardFrame');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: 'THEME_CHANGE',
+                        theme: theme
+                    }, '*');
+                }
+            }
+
+            // Función para cambiar el tema
+            function toggleTheme() {
+                const currentTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                // Aplicar tema en el index
+                applyTheme(newTheme);
+
+                // Guardar en localStorage
+                localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+                localStorage.setItem(THEME_MODE_STORAGE_KEY, 'manual');
+
+                // Notificar a los iframes
+                notifyIframesThemeChange(newTheme);
+            }
+
+            // Cargar el tema guardado en localStorage
+            const savedTheme = resolveInitialTheme();
+            applyTheme(savedTheme);
+            notifyIframesThemeChange(savedTheme);
+
+            // Agregar evento al botón
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', toggleTheme);
+            }
+
+            // Cuando se carga un nuevo iframe, aplicarle el tema actual
+            const dashboardFrame = document.getElementById('dashboardFrame');
+            if (dashboardFrame) {
+                dashboardFrame.addEventListener('load', function() {
+                    const currentTheme = resolveInitialTheme();
+                    notifyIframesThemeChange(currentTheme);
+                    setTimeout(() => notifyIframesThemeChange(currentTheme), 100);
+                });
+            }
+
+            // Mientras no exista override manual, seguir tema del sistema operativo.
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleSystemThemeChange = function(event) {
+                    if (isManualThemeEnabled()) {
+                        return;
+                    }
+
+                    const systemTheme = event.matches ? 'dark' : 'light';
+                    applyTheme(systemTheme);
+                    notifyIframesThemeChange(systemTheme);
+                };
+
+                if (typeof mediaQuery.addEventListener === 'function') {
+                    mediaQuery.addEventListener('change', handleSystemThemeChange);
+                } else if (typeof mediaQuery.addListener === 'function') {
+                    mediaQuery.addListener(handleSystemThemeChange);
+                }
+            }
+
+            // Escuchar cambios de tema desde los iframes
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'THEME_CHANGE_FROM_IFRAME') {
+                    const newTheme = event.data.theme;
+
+                    // Aplicar tema en el index
+                    applyTheme(newTheme);
+
+                    // Guardar en localStorage
+                    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+                    localStorage.setItem(THEME_MODE_STORAGE_KEY, 'manual');
+                }
+            });
+        })();
+    </script>
+
+
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,64 @@
+/* 
+ * Archivo CSS principal
+ * Importa todos los estilos en el orden correcto
+ */
+
+/* 1. Base - Variables y reset */
+@import './base/variables.css';
+@import './base/reset.css';
+
+/* 2. Tailwind CSS - Si se usa */
+@import './output.css';
+
+/* 3. Componentes reutilizables */
+/* Se importarán cuando se creen */
+
+/* 4. Layouts específicos */
+/* Se importarán cuando se creen */
+
+/* 5. Vistas/páginas específicas */
+/* index.html, login.html, etc. */
+
+/* Estilos globales adicionales */
+body {
+    background-color: var(--gray-50);
+    color: var(--gray-900);
+}
+
+.container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+    .container {
+        max-width: 640px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        max-width: 768px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1024px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .container {
+        max-width: 1280px;
+    }
+}
+
+@media (min-width: 1536px) {
+    .container {
+        max-width: 1536px;
+    }
+}

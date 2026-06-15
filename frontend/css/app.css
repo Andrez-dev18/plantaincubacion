@@ -1,0 +1,374 @@
+/* ==========================================================
+   app.css — Sistema de Gestión · Planta Incubación
+   Ruta: frontend/css/app.css
+   ========================================================== */
+
+/* ── RESET / BASE ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Paleta de colores modernizada (inspirada en Tailwind/Material) */
+  --color-primary:   #2563eb; /* Blue 600 */
+  --color-primary-h: #1d4ed8; /* Blue 700 */
+  --color-danger:    #ef4444; /* Red 500 (Más suave que el anterior) */
+  --color-danger-h:  #dc2626; /* Red 600 */
+  --color-warning:   #f59e0b; /* Amber 500 */
+  --color-warning-h: #d97706; /* Amber 600 */
+  --color-secondary: #6b7280; /* Gray 500 */
+  --color-secondary-h:#4b5563;/* Gray 600 */
+  --color-success:   #10b981; /* Emerald 500 */
+  
+  --radius:          8px; /* Bordes ligeramente más redondeados y modernos */
+  --shadow-sm:       0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow:          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md:       0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-focus:    0 0 0 3px rgba(37, 99, 235, 0.2); /* Sombra azul para el focus */
+  
+  --font:            'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --transition:      all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Transición global suave */
+}
+
+html { font-size: 14px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background-color: #f8fafc; /* Gris ligeramente más azulado/limpio */
+  color: #1e293b; /* Texto oscuro suave, no negro puro */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased; /* Mejora la lectura en pantallas modernas */
+}
+
+a { color: var(--color-primary); text-decoration: none; transition: var(--transition); }
+a:hover { color: var(--color-primary-h); text-decoration: underline; }
+
+/* ── UTILIDADES BÁSICAS (Las que tenías, mantenidas para compatibilidad) ─────────────────────────────────── */
+.block         { display: block; }
+.inline        { display: inline; }
+.inline-block  { display: inline-block; }
+.flex          { display: flex; }
+.inline-flex   { display: inline-flex; }
+.grid          { display: grid; }
+.hidden        { display: none !important; }
+.relative      { position: relative; }
+.absolute      { position: absolute; }
+.sticky        { position: sticky; }
+
+.flex-wrap       { flex-wrap: wrap; }
+.flex-col        { flex-direction: column; }
+.items-center    { align-items: center; }
+.items-start     { align-items: flex-start; }
+.items-end       { align-items: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-end     { justify-content: flex-end; }
+.justify-center  { justify-content: center; }
+.gap-1  { gap: .25rem; }
+.gap-2  { gap: .5rem; }
+.gap-3  { gap: .75rem; }
+.gap-4  { gap: 1rem; }
+
+/* ── COMPONENTES PERSONALIZADOS MEJORADOS ───────────────────────────── */
+
+/* Label */
+.label-field {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569; /* Gris más legible */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+/* Input / Select genérico - MEJORADO */
+.input-field {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.75rem; /* Un poco más de aire interior */
+  font-size: 0.875rem;
+  font-family: var(--font);
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1; /* Borde sutil */
+  border-radius: var(--radius);
+  outline: none;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.input-field:hover:not([readonly]):not(:disabled) {
+  border-color: #94a3b8; /* Borde oscurece al pasar el ratón */
+}
+
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Estilos claros para campos de solo lectura o deshabilitados */
+.input-field[readonly],
+.input-field.bg-gray-50,
+.input-field.bg-gray-100 {
+  background-color: #f1f5f9; /* Gris fondo */
+  color: #64748b; /* Texto atenuado */
+  border-color: #e2e8f0;
+  box-shadow: none;
+  cursor: default;
+}
+
+.input-field:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+select.input-field { 
+  cursor: pointer; 
+  appearance: none; /* Limpia el estilo por defecto del SO */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem; /* Espacio para la flecha */
+}
+
+/* Botones - MEJORADOS (Efecto "Levantamiento") */
+.btn-primary, .btn-secondary, .btn-danger, .btn-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary { 
+  background-color: var(--color-primary); 
+  color: #ffffff; 
+}
+.btn-primary:hover { 
+  background-color: var(--color-primary-h); 
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn-secondary { 
+  background-color: #ffffff; 
+  color: #475569;
+  border-color: #cbd5e1;
+}
+.btn-secondary:hover { 
+  background-color: #f8fafc; 
+  color: #0f172a;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn-danger { 
+  background-color: #ffffff; 
+  color: var(--color-danger);
+  border-color: #fecaca;
+}
+.btn-danger:hover { 
+  background-color: #fef2f2; 
+  color: var(--color-danger-h);
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.btn-warning { 
+  background-color: #ffffff; 
+  color: var(--color-warning);
+  border-color: #fde68a;
+}
+.btn-warning:hover { 
+  background-color: #fffbeb; 
+  color: var(--color-warning-h);
+  border-color: #fcd34d;
+  transform: translateY(-1px);
+}
+
+/* Efecto al hacer clic en los botones */
+button:active:not(:disabled) {
+  transform: translateY(1px) !important;
+  box-shadow: none !important;
+}
+
+button:disabled, .btn-primary:disabled, .btn-secondary:disabled,
+.btn-danger:disabled, .btn-warning:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── TARJETAS / PANELES ───────────────────────────────────── */
+.card {
+  background: #ffffff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+}
+
+/* ── TABLAS - MEJORADAS ───────────────────────────────────────────────── */
+table { 
+  width: 100%; 
+  border-collapse: separate; /* Permite bordes más limpios */
+  border-spacing: 0;
+  font-size: 0.875rem; 
+}
+thead tr { 
+  background-color: #f8fafc; 
+}
+thead th {
+  padding: 0.75rem 1rem; /* Más espacio para leer mejor */
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0; /* Limita superiormente */
+}
+tbody tr { 
+  transition: background-color 0.15s ease;
+}
+tbody tr td { 
+  border-bottom: 1px solid #f1f5f9; 
+  padding: 0.6rem 1rem; 
+  color: #334155; 
+}
+tbody tr:hover { 
+  background-color: #f1f5f9; /* Hover más evidente */
+}
+tfoot tr { 
+  background-color: #f8fafc; 
+}
+tfoot td { 
+  padding: 0.75rem 1rem; 
+  font-weight: 700; 
+  border-top: 2px solid #e2e8f0;
+  color: #0f172a;
+}
+.text-right, th.text-right, td.text-right { text-align: right; }
+.text-center, th.text-center, td.text-center { text-align: center; }
+
+/* ── BUSCADOR DE PRODUCTO (dropdown) ─────────────────────── */
+#lista-productos {
+  top: calc(100% + 4px); /* Separación sutil del input */
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  max-height: 14rem; /* Un poco más alto */
+  overflow-y: auto;
+  z-index: 50;
+}
+.producto-item {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  transition: var(--transition);
+}
+.producto-item:last-child {
+  border-bottom: none;
+}
+.producto-item:hover { 
+  background-color: #eff6ff; 
+  padding-left: 1.25rem; /* Pequeño efecto visual al pasar el ratón */
+}
+.producto-item strong { color: var(--color-primary-h); }
+
+/* ── MENSAJES / ALERTAS ───────────────────────────────────── */
+.msg-error   { color: var(--color-danger); font-size: 0.75rem; margin-top: 0.25rem; font-weight: 500;}
+.msg-success { color: var(--color-success); font-size: 0.75rem; margin-top: 0.25rem; font-weight: 500;}
+
+.alert {
+  padding: 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+
+/* ── SPINNER / LOADING ────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 1.25rem; height: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; /* Giro más fluido */
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SCROLLBAR PERSONALIZADO - Más fino y elegante ──────────────────────────────── */
+::-webkit-scrollbar { 
+  width: 8px; 
+  height: 8px; 
+}
+::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 10px; 
+  border: 2px solid transparent; /* Efecto de padding interno */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: padding-box;
+}
+
+/* ── CAMPOS DESHABILITADOS CONDICIONALES ────────────────────────────── */
+.campo-deshabilitado {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.campo-deshabilitado::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(241, 245, 249, 0.4); /* Overlay ligero */
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+.campo-deshabilitado input,
+.campo-deshabilitado select,
+.campo-deshabilitado textarea {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  border-color: #e2e8f0 !important;
+}
+
+.campo-deshabilitado label {
+  color: #94a3b8 !important;
+}

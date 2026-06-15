@@ -1,0 +1,197 @@
+<!--<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Sistema de Gestion</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --ink: #0f172a;
+            --slate: #475569;
+            --brand: #1d4ed8;
+            --brand-dark: #1e3a8a;
+            --glow: #93c5fd;
+            --paper: #ffffff;
+            --bg: #eef2ff;
+        }
+
+        body {
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top left, #e2e8f0, #eef2ff 40%, #f8fafc 85%);
+            min-height: 100vh;
+            color: var(--ink);
+        }
+
+        .page-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2.5rem 1.75rem 3.5rem;
+        }
+
+        .hero {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: #f8fafc;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -80px;
+            top: -60px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(147, 197, 253, 0.35), rgba(30, 64, 175, 0));
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .hero p {
+            margin: 0;
+            color: #cbd5f5;
+            max-width: 520px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+
+        .card {
+            background: var(--paper);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand-dark);
+            font-size: 1.2rem;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--slate);
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn.secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+            box-shadow: none;
+        }
+
+        .note {
+            margin-top: 1.5rem;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                padding: 1.5rem;
+            }
+
+            .hero h1 {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-wrap">
+        <section class="hero">
+            <h1>Panel de reportes</h1>
+            <p>Acceso rapido a los reportes principales. Selecciona el reporte que necesitas y abrelo en una vista dedicada.</p>
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <div class="card-icon">
+                    <i class="fas fa-file-medical"></i>
+                </div>
+                <h2>Reporte comparativo de necropsia</h2>
+                <p>Comparativo por cenco, galpones y periodos con filtros avanzados.</p>
+                <a class="btn" href="../../backend/libraries/dashboard-reporte-comparativo.php">Abrir reporte</a>
+            </article>
+
+            <article class="card">
+                <div class="card-icon">
+                    <i class="fas fa-warehouse"></i>
+                </div>
+                <h2>Reporte de galpones</h2>
+                <p>Genera reportes de galpones con filtros por fecha y granja.</p>
+                <a class="btn" href="../../backend/libraries/dashboard-reporte-galpones.php">Abrir reporte</a>
+            </article>
+
+            <article class="card">
+                <div class="card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h2>Reportes en construccion</h2>
+                <p>Nuevos reportes estaran disponibles en esta seccion.</p>
+                <a class="btn secondary" href="trabajando.html">Ver panel</a>
+            </article>
+        </section>
+
+        <p class="note">Si necesitas otro reporte en este panel, indicalo y lo agrego.</p>
+    </main>
+</body>
+
+</html>
+-->

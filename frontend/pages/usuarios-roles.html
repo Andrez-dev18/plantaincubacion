@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignación de Roles a Usuarios</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+        .container-fluid { padding: 20px; }
+        .table-card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08); overflow: hidden;
+        }
+        .table-card-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .table-card-body { padding: 16px 20px; }
+        table.dataTable thead th {
+            background: #3b82f6 !important; color: white !important;
+            font-size: 12.5px; font-weight: 600; padding: 9px 10px;
+        }
+        table.dataTable tbody td { font-size: 13px; padding: 7px 10px; vertical-align: middle; }
+        .action-btn { padding: 3px 8px; font-size: 12px; border-radius: 5px; }
+        .form-label { font-size: 12.5px; font-weight: 600; color: #495057; margin-bottom: 3px; }
+        .form-control { font-size: 13px; border-radius: 6px; }
+
+        /* Lista de roles */
+        .roles-list { max-height: 320px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; }
+        .role-check-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 8px 4px; border-bottom: 1px solid #f0f0f0;
+        }
+        .role-check-item:last-child { border-bottom: none; }
+        .role-check-item input[type="checkbox"] { margin-top: 2px; accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+        .role-check-item label { cursor: pointer; font-size: 13px; line-height: 1.3; }
+        .role-name  { font-weight: 600; color: #1a1f36; display: block; }
+        .role-desc  { font-size: 11.5px; color: #6c757d; display: block; margin-top: 1px; }
+
+        .role-badge { display: inline-block; background: #dbeafe; color: #1d4ed8; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 600; margin: 2px 2px 0 0; }
+        .no-roles   { color: #9ca3af; font-style: italic; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+
+    <div class="table-card">
+        <div class="table-card-header">
+            <span style="font-size:14px;font-weight:600;"><i class="fas fa-user-tag me-2"></i>Usuarios y roles asignados</span>
+            <span id="lblTotal" class="small opacity-75">Cargando...</span>
+        </div>
+        <div class="table-card-body">
+            <div class="table-responsive">
+                <table id="tablaUsuarioRol" class="table table-hover table-bordered w-100">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Roles asignados</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL ASIGNAR ROLES ────────────────────────────────── -->
+<div class="modal fade" id="modalAsignar" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;">
+                <h5 class="modal-title"><i class="fas fa-user-tag me-2"></i>Asignar Roles</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Usuario</label>
+                    <p id="asignarNombre" class="fw-bold fs-6 mb-0 text-dark"></p>
+                    <small id="asignarCodigo" class="text-muted"></small>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Roles disponibles <span class="text-muted fw-normal">(selecciona los que aplican)</span></label>
+                    <div id="listaRoles" class="roles-list">
+                        <div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Cargando roles...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="guardarAsignacion()">
+                    <i class="fas fa-save me-1"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="../js/config/config.js"></script>
+
+<script>
+'use strict';
+
+const BASE = AppConfig.API.BASE_URL;
+const EP   = AppConfig.API.ENDPOINTS.USUARIO_ROL;
+
+let tabla            = null;
+let rolesDisponibles = [];
+let codigoActual     = null;
+
+async function fetchJSON(url, opts = {}) {
+    const r = await fetch(url, opts);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+}
+
+// ── Tabla principal ──────────────────────────────────────────────────────────
+async function cargarTabla() {
+    try {
+        const res = await fetchJSON(`${BASE}${EP.USUARIOS_CON_ROLES}`);
+        if (!res.success) throw new Error(res.message || 'Error al cargar datos');
+
+        const data = res.data || [];
+        document.getElementById('lblTotal').textContent = `${data.length} usuario(s)`;
+
+        if (tabla) { tabla.destroy(); tabla = null; }
+        document.querySelector('#tablaUsuarioRol tbody').innerHTML = '';
+
+        tabla = $('#tablaUsuarioRol').DataTable({
+            data: data,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json' },
+            pageLength: 25,
+            order: [[2, 'asc']],
+            columns: [
+                { data: null, render: (d,t,r,m) => m.row+1, orderable:false, width:'40px', className:'text-center' },
+                { data: 'codigo', width: '110px' },
+                { data: 'nombre' },
+                {
+                    data: 'nombres_roles',
+                    render: roles => (Array.isArray(roles) && roles.length)
+                        ? roles.map(r => `<span class="role-badge">${escHtml(r)}</span>`).join('')
+                        : '<span class="no-roles">Sin roles asignados</span>'
+                },
+                {
+                    data: null, orderable:false, width:'90px', className:'text-center',
+                    render: (d,t,row) => `<button class="btn btn-primary action-btn"
+                                onclick='abrirModalAsignar(${JSON.stringify(row)})'>
+                                <i class="fas fa-edit me-1"></i>Editar</button>`
+                }
+            ]
+        });
+    } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+    }
+}
+
+// ── Modal asignar roles ───────────────────────────────────────────────────────
+async function abrirModalAsignar(row) {
+    codigoActual = row.codigo;
+    document.getElementById('asignarNombre').textContent = row.nombre || '-';
+    document.getElementById('asignarCodigo').textContent = `Código: ${row.codigo}`;
+
+    const lista = document.getElementById('listaRoles');
+    lista.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</div>';
+
+    const modal = new bootstrap.Modal(document.getElementById('modalAsignar'));
+    modal.show();
+
+    try {
+        const [resRoles, resCodigo] = await Promise.all([
+            fetchJSON(`${BASE}${EP.ROLES_ACTIVOS}`),
+            fetchJSON(`${BASE}${EP.ROLES_CODIGO}?codigo=${encodeURIComponent(row.codigo)}`)
+        ]);
+
+        if (!resRoles.success) throw new Error(resRoles.message || 'Error al cargar roles');
+
+        rolesDisponibles = resRoles.data || [];
+        const rolesActuales = new Set((resCodigo.data || []).map(id => String(id)));
+
+        lista.innerHTML = '';
+        if (!rolesDisponibles.length) {
+            lista.innerHTML = '<p class="text-center text-muted py-3">No hay roles activos disponibles.</p>';
+            return;
+        }
+
+        rolesDisponibles.forEach(rol => {
+            const checked = rolesActuales.has(String(rol.id)) ? 'checked' : '';
+            const item = document.createElement('div');
+            item.className = 'role-check-item';
+            item.innerHTML = `
+                <input type="checkbox" id="rol_${rol.id}" value="${rol.id}" ${checked}>
+                <label for="rol_${rol.id}">
+                    <span class="role-name">${escHtml(rol.nom_rol)}</span>
+                    ${rol.descripcion ? `<span class="role-desc">${escHtml(rol.descripcion)}</span>` : ''}
+                </label>`;
+            lista.appendChild(item);
+        });
+    } catch (err) {
+        lista.innerHTML = `<p class="text-center text-danger py-3">${escHtml(err.message)}</p>`;
+    }
+}
+
+// ── Guardar asignación ────────────────────────────────────────────────────────
+async function guardarAsignacion() {
+    if (!codigoActual) return;
+
+    const idsRol = Array.from(document.querySelectorAll('#listaRoles input[type="checkbox"]:checked'))
+                        .map(cb => parseInt(cb.value, 10));
+
+    try {
+        const res = await fetchJSON(`${BASE}${EP.GUARDAR}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo: codigoActual, ids_rol: idsRol })
+        });
+
+        if (!res.success) throw new Error(res.message || 'Error al guardar');
+
+        bootstrap.Modal.getInstance(document.getElementById('modalAsignar'))?.hide();
+        await Swal.fire({ icon: 'success', title: 'Guardado', text: res.message || 'Roles asignados correctamente.', timer: 1800, showConfirmButton: false });
+        await cargarTabla();
+    } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+    }
+}
+
+// ── Util ─────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(str || ''));
+    return d.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', cargarTabla);
+</script>
+</body>
+</html>

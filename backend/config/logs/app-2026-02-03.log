@@ -1,0 +1,5 @@
+[10:44:04] [INFO] Application initialized
+[10:44:04] [INFO] Request: POST /plantaincubacion/backend/usuario/login
+[10:44:04] [INFO] Login exitoso: USER2
+[10:44:05] [INFO] Application initialized
+[10:44:05] [INFO] Request: GET /plantaincubacion/backend/usuario/validarSesion

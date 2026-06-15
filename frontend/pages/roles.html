@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles y Permisos</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+        .container-fluid { padding: 20px; }
+        .table-card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08); overflow: hidden;
+        }
+        .table-card-header {
+            background: linear-gradient(135deg, #6f42c1, #4a148c);
+            color: white; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .table-card-body { padding: 16px 20px; }
+        table.dataTable thead th {
+            background: #6f42c1 !important; color: white !important;
+            font-size: 12.5px; font-weight: 600; padding: 9px 10px;
+        }
+        table.dataTable tbody td { font-size: 13px; padding: 7px 10px; vertical-align: middle; }
+        .action-btn { padding: 3px 8px; font-size: 12px; border-radius: 5px; }
+        .badge-active   { background: #198754; color: white; font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+        .badge-inactive { background: #6c757d; color: white; font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+        .cnt-badge { font-size: 11px; background: #6f42c1; color: white; border-radius: 20px; padding: 2px 8px; }
+
+        /* ── Árbol de menús ── */
+        .menu-tree { max-height: 380px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; background: #fafafa; }
+        .menu-group-header {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 700; color: #4a148c;
+            padding: 6px 4px 4px; border-bottom: 1px solid #e0d7f5; margin-bottom: 4px; margin-top: 8px;
+        }
+        .menu-group-header:first-child { margin-top: 2px; }
+        .menu-item-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 4px 8px 4px 20px; border-radius: 5px; font-size: 12.5px; cursor: pointer;
+            transition: background .15s;
+        }
+        .menu-item-row:hover { background: #ede7f6; }
+        .menu-item-row input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: #6f42c1; }
+        .menu-item-row label { cursor: pointer; margin: 0; }
+        .group-select-all { font-size: 11px; color: #6f42c1; cursor: pointer; margin-left: auto; text-decoration: underline; }
+
+        .form-label { font-size: 12.5px; font-weight: 600; color: #495057; margin-bottom: 3px; }
+        .form-control, .form-select { font-size: 13px; border-radius: 6px; }
+        .form-control:focus { border-color: #6f42c1; box-shadow: 0 0 0 3px rgba(111,66,193,.15); }
+        .modal-header { background: linear-gradient(135deg, #6f42c1, #4a148c); color: white; }
+        .modal-header .btn-close { filter: invert(1) brightness(2); }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+
+    <div class="table-card">
+        <div class="table-card-header">
+            <span style="font-size:14px;font-weight:600;">
+                <i class="fas fa-shield-alt me-2"></i>Roles y Permisos
+                <span id="cntRoles" class="ms-2" style="font-size:12px;opacity:.85"></span>
+            </span>
+            <button class="btn btn-sm btn-light" onclick="abrirModalCrear()">
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Rol
+            </button>
+        </div>
+        <div class="table-card-body">
+            <table id="tblRoles" class="table table-hover table-bordered w-100">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Código</th>
+                        <th>Nombre del Rol</th>
+                        <th>Descripción</th>
+                        <th>Módulos</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL CREAR ──────────────────────────────────────────── -->
+<div class="modal fade" id="modalCrear" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nuevo Rol</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Código <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                            <input type="text" id="crCodRol" class="form-control text-uppercase"
+                                   placeholder="Ej: SUPERVISOR" maxlength="30">
+                        </div>
+                        <div class="form-text">Sin espacios, solo letras y guiones bajos.</div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Nombre del Rol <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+                            <input type="text" id="crNomRol" class="form-control" placeholder="Nombre descriptivo" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción</label>
+                        <textarea id="crDescripcion" class="form-control" rows="2" maxlength="255"
+                                  placeholder="Describe brevemente qué puede hacer este rol..."></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i class="fas fa-desktop me-1"></i>Programa <span class="text-danger">*</span></label>
+                        <select id="crIdPrograma" class="form-select" onchange="onCrProgramaChange()">
+                            <option value="">— Selecciona un programa —</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i class="fas fa-sitemap me-1"></i>Módulos permitidos</label>
+                        <div class="menu-tree" id="crMenuTree">
+                            <div class="text-center text-muted py-3">Selecciona un programa primero.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm" style="background:#6f42c1;color:white;" onclick="guardarCrear()">
+                    <i class="fas fa-save me-1"></i> Crear Rol
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL EDITAR ─────────────────────────────────────────── -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Rol</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edId">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Código</label>
+                        <input type="text" id="edCodRol" class="form-control bg-light" disabled>
+                        <div class="form-text">El código no puede modificarse.</div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Nombre del Rol <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+                            <input type="text" id="edNomRol" class="form-control" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción</label>
+                        <textarea id="edDescripcion" class="form-control" rows="2" maxlength="255"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i class="fas fa-desktop me-1"></i>Programa</label>
+                        <select id="edIdPrograma" class="form-select" onchange="onEdProgramaChange()">
+                            <option value="">— Selecciona un programa —</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i class="fas fa-sitemap me-1"></i>Módulos permitidos</label>
+                        <div class="menu-tree" id="edMenuTree">
+                            <div class="text-center text-muted py-3">Selecciona un programa para ver sus módulos.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm" style="background:#6f42c1;color:white;" onclick="guardarEditar()">
+                    <i class="fas fa-save me-1"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="../js/config/config.js"></script>
+
+<script>
+const BASE = AppConfig.API.BASE_URL;
+const EP   = AppConfig.API.ENDPOINTS.ROL;
+
+let tabla          = null;
+let menusCache     = {};
+let programasCache = [];
+let rolesMap       = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+    cargarProgramas().then(() => cargarTabla());
+    document.getElementById('crCodRol').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    });
+});
+
+// ─── Programas ──────────────────────────────────────────────────────────────
+async function cargarProgramas() {
+    try {
+        const r = await fetch(`${BASE}${EP.PROGRAMAS}`);
+        const j = await r.json();
+        if (!j.success) return;
+        programasCache = j.data;
+        const opts = programasCache.map(p =>
+            `<option value="${p.id_programa}">${p.nombre}</option>`
+        ).join('');
+        const blank = '<option value="">— Selecciona un programa —</option>';
+        document.getElementById('crIdPrograma').innerHTML = blank + opts;
+        document.getElementById('edIdPrograma').innerHTML = blank + opts;
+    } catch (e) { console.error('Error cargando programas:', e); }
+}
+
+// ─── Menús (con caché) ───────────────────────────────────────────────────────
+async function cargarMenusDePrograma(idPrograma) {
+    if (menusCache[idPrograma]) return menusCache[idPrograma];
+    try {
+        const r = await fetch(`${BASE}${EP.MENUS_DISPONIBLES}?id_programa=${encodeURIComponent(idPrograma)}`);
+        const j = await r.json();
+        if (j.success) menusCache[idPrograma] = j.data;
+        return menusCache[idPrograma] || [];
+    } catch (e) { return []; }
+}
+
+async function onCrProgramaChange() {
+    const idProg = document.getElementById('crIdPrograma').value;
+    if (!idProg) return;
+    document.getElementById('crMenuTree').innerHTML =
+        '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+    const menus = await cargarMenusDePrograma(idProg);
+    construirArbolMenus('crMenuTree', menus, []);
+}
+
+async function onEdProgramaChange() {
+    const idProg = document.getElementById('edIdPrograma').value;
+    const idRol  = parseInt(document.getElementById('edId').value || 0);
+    if (!idProg) return;
+    document.getElementById('edMenuTree').innerHTML =
+        '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+    const [menus, resModulos] = await Promise.all([
+        cargarMenusDePrograma(idProg),
+        idRol > 0
+            ? fetch(`${BASE}${EP.MODULOS}?id_rol=${idRol}&id_programa=${encodeURIComponent(idProg)}`).then(r => r.json()).catch(() => ({ success: false }))
+            : Promise.resolve({ success: false })
+    ]);
+    const seleccionados = (resModulos.success && Array.isArray(resModulos.data))
+        ? resModulos.data.map(s => String(s).trim()) : [];
+    construirArbolMenus('edMenuTree', menus, seleccionados);
+}
+
+// ─── Árbol de checkboxes ────────────────────────────────────────────────────
+function construirArbolMenus(containerId, menus, seleccionados) {
+    const container = document.getElementById(containerId);
+    if (!menus || !menus.length) {
+        container.innerHTML = '<p class="text-muted text-center py-2">No hay módulos disponibles.</p>';
+        return;
+    }
+    const grupos = menus.filter(m => m.tipo === 'group');
+    const items  = menus.filter(m => m.tipo === 'item');
+    let html = '';
+    for (const grp of grupos) {
+        const hijos = items.filter(i => i.parent_cod === grp.cod_mod);
+        if (!hijos.length) continue;
+        html += `<div class="menu-group-header">
+                    <i class="fas fa-folder-open me-1"></i><span>${grp.nom_mod}</span>
+                    <span class="group-select-all" onclick="toggleGrupo('${containerId}','${grp.cod_mod}',this)">Sel. todo</span>
+                 </div>`;
+        for (const item of hijos) {
+            const cod = String(item.cod_mod).trim();
+            const chk = seleccionados.some(s => String(s).trim() === cod) ? 'checked' : '';
+            const ico = item.icono ? `<i class="${item.icono} me-1" style="width:14px;color:#6f42c1"></i>` : '';
+            html += `<div class="menu-item-row" onclick="toggleCheck('chk_${containerId}_${item.cod_mod}')">
+                        <input type="checkbox" id="chk_${containerId}_${item.cod_mod}"
+                               data-group="${grp.cod_mod}" value="${item.cod_mod}" ${chk}
+                               onclick="event.stopPropagation()">
+                        <label for="chk_${containerId}_${item.cod_mod}">${ico}${item.nom_mod}</label>
+                     </div>`;
+        }
+    }
+    container.innerHTML = html || '<p class="text-muted text-center py-2">Sin ítems de menú disponibles.</p>';
+}
+
+function toggleCheck(id) {
+    const el = document.getElementById(id);
+    if (el) el.checked = !el.checked;
+}
+function toggleGrupo(containerId, grupoCod, btn) {
+    const checks = document.querySelectorAll(`#${containerId} input[data-group="${grupoCod}"]`);
+    const todosOn = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => c.checked = !todosOn);
+    btn.textContent = todosOn ? 'Sel. todo' : 'Quitar todo';
+}
+function obtenerSeleccionados(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`))
+               .map(c => c.value);
+}
+
+// ─── Tabla ───────────────────────────────────────────────────────────────────
+function cargarTabla() {
+    fetch(`${BASE}${EP.LISTAR}`)
+        .then(r => r.json())
+        .then(j => {
+            if (!j.success) { Swal.fire('Error', 'Error al cargar roles.', 'error'); return; }
+            const data = j.data;
+            document.getElementById('cntRoles').textContent =
+                `${data.length} rol${data.length !== 1 ? 'es' : ''}`;
+            rolesMap = {};
+            data.forEach(row => { rolesMap[row.id] = row; });
+            if (tabla) { tabla.destroy(); }
+            tabla = $('#tblRoles').DataTable({
+                data,
+                destroy: true,
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json' },
+                pageLength: 25,
+                order: [[0, 'asc']],
+                columns: [
+                    { data: null, render: (d,t,r,m) => m.row+1, orderable:false, searchable:false, width:'40px', className:'text-center' },
+                    { data: 'cod_rol', width: '120px', render: v => `<code style="background:#f3e8ff;color:#6f42c1;padding:2px 6px;border-radius:4px;font-size:12px">${v}</code>` },
+                    { data: 'nom_rol' },
+                    { data: 'descripcion', render: v => v || '<span class="text-muted">—</span>' },
+                    { data: 'total_modulos', width:'90px', className:'text-center', render: v => `<span class="cnt-badge"><i class="fas fa-puzzle-piece me-1"></i>${v}</span>` },
+                    { data: 'activo', width:'80px', className:'text-center',
+                      render: v => parseInt(v) === 1
+                          ? '<span class="badge-active"><i class="fas fa-circle-check me-1"></i>Activo</span>'
+                          : '<span class="badge-inactive"><i class="fas fa-circle-xmark me-1"></i>Inactivo</span>' },
+                    {
+                        data: null, orderable:false, searchable:false, width:'150px', className:'text-center',
+                        render: (d,t,r) => `
+                            <button class="btn btn-outline-primary action-btn me-1" title="Editar" onclick="abrirModalEditar(${r.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn action-btn me-1 ${parseInt(r.activo)===1?'btn-outline-warning':'btn-outline-success'}"
+                                    title="${parseInt(r.activo)===1?'Desactivar':'Activar'}"
+                                    onclick="toggleActivo(${r.id},'${r.nom_rol}',${r.activo})">
+                                <i class="fas ${parseInt(r.activo)===1?'fa-user-slash':'fa-user-check'}"></i>
+                            </button>
+                            <button class="btn btn-outline-danger action-btn" title="Eliminar" onclick="eliminarRol(${r.id},'${r.nom_rol}')">
+                                <i class="fas fa-trash"></i>
+                            </button>`
+                    }
+                ]
+            });
+        })
+        .catch(() => Swal.fire('Error', 'Error de conexión al cargar roles.', 'error'));
+}
+
+// ─── CREAR ───────────────────────────────────────────────────────────────────
+function abrirModalCrear() {
+    document.getElementById('crCodRol').value      = '';
+    document.getElementById('crNomRol').value      = '';
+    document.getElementById('crDescripcion').value = '';
+    document.getElementById('crIdPrograma').value  = '';
+    document.getElementById('crMenuTree').innerHTML = '<div class="text-center text-muted py-3">Selecciona un programa primero.</div>';
+    new bootstrap.Modal(document.getElementById('modalCrear')).show();
+}
+
+async function guardarCrear() {
+    const codRol     = document.getElementById('crCodRol').value.trim();
+    const nomRol     = document.getElementById('crNomRol').value.trim();
+    const desc       = document.getElementById('crDescripcion').value.trim();
+    const idPrograma = document.getElementById('crIdPrograma').value;
+    const mods       = obtenerSeleccionados('crMenuTree');
+
+    if (!codRol)     { Swal.fire('Validación', 'El código del rol es obligatorio.', 'warning'); return; }
+    if (!nomRol)     { Swal.fire('Validación', 'El nombre del rol es obligatorio.', 'warning'); return; }
+    if (!idPrograma) { Swal.fire('Validación', 'Selecciona un programa.', 'warning'); return; }
+
+    try {
+        const r1 = await fetch(`${BASE}${EP.CREAR}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cod_rol: codRol, nom_rol: nomRol, descripcion: desc })
+        });
+        const j1 = await r1.json();
+        if (!j1.success) { Swal.fire('Error', j1.message, 'error'); return; }
+
+        const r2 = await fetch(`${BASE}${EP.GUARDAR_MODULOS}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_rol: j1.id, id_programa: idPrograma, cod_mods: mods })
+        });
+        const j2 = await r2.json();
+        if (!j2.success) { Swal.fire('Error al guardar módulos', j2.message, 'error'); return; }
+
+        bootstrap.Modal.getInstance(document.getElementById('modalCrear')).hide();
+        const progNom = programasCache.find(p => String(p.id_programa) === String(idPrograma))?.nombre || idPrograma;
+        Swal.fire({ icon: 'success', title: 'Rol creado', text: `«${nomRol}» con ${mods.length} módulo(s) en ${progNom}.`, timer: 2500, showConfirmButton: false });
+        cargarTabla();
+    } catch (e) { Swal.fire('Error', 'Error de conexión.', 'error'); }
+}
+
+// ─── EDITAR ───────────────────────────────────────────────────────────────────
+async function abrirModalEditar(rolId) {
+    const rol = rolesMap[rolId];
+    if (!rol) return;
+    document.getElementById('edId').value          = rol.id;
+    document.getElementById('edCodRol').value      = rol.cod_rol;
+    document.getElementById('edNomRol').value      = rol.nom_rol;
+    document.getElementById('edDescripcion').value = rol.descripcion || '';
+    document.getElementById('edIdPrograma').value  = '';
+    document.getElementById('edMenuTree').innerHTML = '<div class="text-center text-muted py-3">Selecciona un programa para ver sus módulos.</div>';
+    new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+
+async function guardarEditar() {
+    const id         = parseInt(document.getElementById('edId').value);
+    const nom        = document.getElementById('edNomRol').value.trim();
+    const desc       = document.getElementById('edDescripcion').value.trim();
+    const idPrograma = document.getElementById('edIdPrograma').value;
+    const mods       = obtenerSeleccionados('edMenuTree');
+
+    if (!nom) { Swal.fire('Validación', 'El nombre es obligatorio.', 'warning'); return; }
+
+    try {
+        const r1 = await fetch(`${BASE}${EP.ACTUALIZAR}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, nom_rol: nom, descripcion: desc })
+        });
+        const j1 = await r1.json();
+        if (!j1.success) { Swal.fire('Error', j1.message, 'error'); return; }
+
+        if (idPrograma) {
+            const r2 = await fetch(`${BASE}${EP.GUARDAR_MODULOS}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_rol: id, id_programa: idPrograma, cod_mods: mods })
+            });
+            const j2 = await r2.json();
+            if (!j2.success) { Swal.fire('Error al guardar módulos', j2.message, 'error'); return; }
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+        Swal.fire({ icon: 'success', title: 'Cambios guardados', text: `${idPrograma ? mods.length + ' módulo(s) asignado(s).' : 'Datos del rol actualizados.'}`, timer: 2200, showConfirmButton: false });
+        cargarTabla();
+    } catch (e) { Swal.fire('Error', 'Error de conexión.', 'error'); }
+}
+
+// ─── TOGGLE ACTIVO ───────────────────────────────────────────────────────────
+async function toggleActivo(id, nombre, activoActual) {
+    const nuevo  = parseInt(activoActual) === 1 ? 0 : 1;
+    const accion = nuevo === 1 ? 'activar' : 'desactivar';
+    const { isConfirmed } = await Swal.fire({
+        title: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} rol?`,
+        text: `Rol «${nombre}»`,
+        icon: nuevo === 1 ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonText: `Sí, ${accion}`,
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: nuevo === 1 ? '#198754' : '#dc3545',
+    });
+    if (!isConfirmed) return;
+    try {
+        const r = await fetch(`${BASE}${EP.TOGGLE}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, activo: nuevo })
+        });
+        const j = await r.json();
+        if (j.success) {
+            Swal.fire({ icon: 'success', title: j.message, timer: 1800, showConfirmButton: false });
+            cargarTabla();
+        } else { Swal.fire('Error', j.message, 'error'); }
+    } catch (e) { Swal.fire('Error', 'Error de conexión.', 'error'); }
+}
+
+// ─── ELIMINAR ────────────────────────────────────────────────────────────────
+async function eliminarRol(id, nombre) {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Eliminar rol permanentemente?',
+        html: `El rol <strong>«${nombre}»</strong> y todas sus asignaciones serán eliminados.<br><span style="color:#dc3545;font-size:13px"><i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.</span>`,
+        icon: 'warning', showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545', focusCancel: true
+    });
+    if (!isConfirmed) return;
+    try {
+        const r = await fetch(`${BASE}${EP.ELIMINAR}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const j = await r.json();
+        if (j.success) {
+            Swal.fire({ icon: 'success', title: 'Rol eliminado', text: `«${nombre}» fue eliminado.`, timer: 2200, showConfirmButton: false });
+            cargarTabla();
+        } else { Swal.fire('Error', j.message, 'error'); }
+    } catch (e) { Swal.fire('Error', 'Error de conexión.', 'error'); }
+}
+</script>
+</body>
+</html>

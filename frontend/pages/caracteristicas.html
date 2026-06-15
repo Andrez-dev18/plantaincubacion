@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Características - Sistema de Gestión</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/scroller/2.3.0/css/scroller.dataTables.min.css">
+
+    <style>
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+        }
+
+        .container-page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card-shadow {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-hover-scale:hover {
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-down {
+            animation: slideDown 0.4s ease;
+        }
+
+        .table-scroll {
+            max-height: calc(100vh - 250px);
+            min-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background-color: var(--card);
+        }
+
+        .table-scroll table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-scroll th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--primary);
+        }
+
+        .table-scroll th,
+        .table-scroll td {
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .table-scroll tbody tr:hover {
+            background-color: var(--accent);
+        }
+
+        /* DataTables customization */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 12px;
+            padding: 8px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 4px 10px !important;
+            margin: 0 2px;
+            font-size: 11px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--primary) !important;
+            color: var(--primary-foreground) !important;
+            border: 1px solid var(--primary) !important;
+        }
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--foreground);
+        }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            color: var(--muted-foreground);
+        }
+
+        table.dataTable tbody tr {
+            background-color: var(--card) !important;
+        }
+
+        table.dataTable.stripe tbody tr.odd,
+        table.dataTable.display tbody tr.odd {
+            background-color: var(--muted) !important;
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: var(--accent) !important;
+        }
+        table.dataTable tbody tr {
+            will-change: transform;
+        }
+
+        /* Animación para filtros */
+        #filterContent {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            opacity: 0;
+        }
+
+        #filterContent.show {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        body.dark-mode {
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode .card-shadow {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: var(--muted-foreground) !important;
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--accent) !important;
+            color: var(--accent-foreground) !important;
+            border-color: var(--border) !important;
+        }
+
+        #btnNuevaCaracteristica {
+            background-color: var(--success) !important;
+            color: var(--success-foreground) !important;
+        }
+
+        #btnNuevaCaracteristica:hover {
+            filter: brightness(0.93);
+        }
+
+        #btnAplicarFiltros {
+            background-color: var(--primary) !important;
+            color: var(--primary-foreground) !important;
+        }
+
+        #btnAplicarFiltros:hover {
+            background-color: var(--primary-hover, var(--primary)) !important;
+        }
+
+        #btnLimpiarFiltros {
+            color: var(--primary) !important;
+        }
+
+        #btnLimpiarFiltros:hover,
+        #btnToggleFiltros:hover {
+            color: var(--accent-foreground) !important;
+        }
+
+        .text-purple-600 {
+            color: var(--primary) !important;
+        }
+
+        .hover\:text-purple-600:hover,
+        .hover\:text-purple-700:hover,
+        .hover\:text-purple-800:hover {
+            color: var(--primary-hover, var(--primary)) !important;
+        }
+
+        .focus\:ring-purple-500:focus {
+            --tw-ring-color: var(--ring) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header 
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <div class="container-page">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center gap-4">
+                    <a href="../index.html" class="text-purple-600 hover:text-purple-800 transition">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                        Gestión de Características
+                    </h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="userName" class="text-gray-700 font-medium"></span>
+                    <button id="btnCerrarSesion" class="text-red-600 hover:text-red-800 transition font-semibold">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>-->
+
+    <!-- Contenido Principal -->
+    <main class="container-page">
+        <!-- Acciones -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-tools text-blue-600"></i>
+                Acciones
+            </h2>
+            <div class="flex flex-wrap gap-3">
+                <button id="btnNuevaCaracteristica"
+                    class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-plus mr-2"></i>
+                    Nueva Característica
+                </button>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section id="filterSection" class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-blue-600"></i>
+                    Filtros
+                </h2>
+                <button id="btnToggleFiltros" class="text-gray-500 hover:text-blue-600 transition">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="flex gap-3">
+                    <button id="btnLimpiarFiltros" class="text-blue-600 hover:text-blue-700 font-semibold">
+                        <i class="fas fa-times-circle mr-1"></i>
+                        Limpiar filtros
+                    </button>
+                </div>
+            </div>
+            <div id="filterContent" class="transition-all duration-300 ease-in-out overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Búsqueda por texto -->
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-search text-blue-600 mr-1"></i>
+                            Buscar
+                        </label>
+                        <input type="text" id="searchInput" placeholder="Nombre, tipo..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+
+                    <!-- Filtro por Tipo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-list text-blue-600 mr-1"></i>
+                            Tipo de Dato
+                        </label>
+                        <select id="filterTipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="">Todos los tipos</option>
+                            <option value="Texto">Texto</option>
+                            <option value="Número">Número</option>
+                            <option value="Decimal">Decimal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botones de acción de filtros -->
+                <div class="flex gap-2 mt-4">
+                    <button id="btnAplicarFiltros" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fa-solid fa-filter mr-2"></i>
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-cogs text-blue-600"></i>
+                Listado de Características
+            </h2>
+
+            <div class="table-scroll">
+                <table class="min-w-full" id="caracteristicasTable">
+                    <thead class="bg-linear-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Nombre</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Tipo de Dato</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Opciones</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Creado Por</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Los datos se insertarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mensaje de vacío -->
+            <div id="emptyMessage" class="text-center py-12" style="display: none;">
+                <i class="fas fa-cogs text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-lg">No hay características registradas</p>
+                <p class="text-gray-400 text-sm">Haz clic en "Nueva Característica" para comenzar</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts Core -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/scroller/2.3.0/js/dataTables.scroller.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/core/Http.js"></script>
+
+    <!-- Config -->
+    <script src="../js/config/config.js"></script>
+
+    <!-- Inicializar Store Global -->
+    <script>
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({
+                user: null,
+                isAuthenticated: false,
+                loading: false
+            });
+        }
+    </script>
+
+    <!-- Shared Components -->
+    <script src="../js/shared/components/Modal.js"></script>
+    <script src="../js/shared/components/Notification.js"></script>
+    <script src="../js/shared/utils/swal-helpers.js"></script>
+
+    <!-- Módulo Auth -->
+    <script src="../js/modules/auth/auth.service.js"></script>
+
+    <!-- Módulo Características -->
+    <script src="../js/modules/caracteristicas/caracteristicas.service.js"></script>
+    <script src="../js/modules/caracteristicas/caracteristicas.controller.js"></script>
+    <script src="../js/shared/utils/theme-sync.js"></script>
+
+    <!-- Inicialización -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Validar sesión
+            const authService = new AuthService();
+            const sesion = await authService.validarSesion();
+
+            if (!sesion.success) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Mostrar nombre de usuario
+            if (sesion.data && sesion.data.nombre) {
+                const userNameEl = document.getElementById('userName');
+                if (userNameEl) {
+                    userNameEl.textContent = sesion.data.nombre;
+                }
+            }
+
+            // Configurar logout
+            const btnCerrarSesion = document.getElementById('btnCerrarSesion');
+            if (btnCerrarSesion) {
+                btnCerrarSesion.addEventListener('click', async () => {
+                    const resultado = await authService.logout();
+                    if (resultado.success) {
+                        window.location.href = '../login.html';
+                    }
+                });
+            }
+
+            // Inicializar módulo de características
+            window.caracteristicasController = new CaracteristicasController();
+
+            // Esperar a que se carguen los datos y luego configurar eventos
+            setTimeout(() => {
+                // Cargar tipos de datos en selector
+                const filterTipo = document.getElementById('filterTipo');
+                if (filterTipo && window.caracteristicasController.tiposDatos && window.caracteristicasController.tiposDatos.length > 0) {
+                    window.caracteristicasController.tiposDatos.forEach(tipo => {
+                        if (!Array.from(filterTipo.options).some(opt => opt.value === tipo)) {
+                            const option = document.createElement('option');
+                            option.value = tipo;
+                            option.textContent = tipo;
+                            filterTipo.appendChild(option);
+                        }
+                    });
+                }
+
+                // Botón nueva característica
+                const btnNuevaCaracteristica = document.getElementById('btnNuevaCaracteristica');
+                if (btnNuevaCaracteristica) {
+                    btnNuevaCaracteristica.addEventListener('click', () => {
+                        if (window.caracteristicasController) {
+                            window.caracteristicasController.mostrarFormularioNuevo();
+                        }
+                    });
+                }
+
+                // Toggle de filtros
+                const btnToggleFiltros = document.getElementById('btnToggleFiltros');
+                const filterContent = document.getElementById('filterContent');
+                if (btnToggleFiltros && filterContent) {
+                    // Asegurar que inicie cerrado
+                    filterContent.classList.remove('show');
+                    
+                    btnToggleFiltros.addEventListener('click', () => {
+                        const isOpen = filterContent.classList.contains('show');
+                        const icon = btnToggleFiltros.querySelector('i');
+                        
+                        if (isOpen) {
+                            filterContent.classList.remove('show');
+                            if (icon) {
+                                icon.classList.remove('fa-chevron-up');
+                                icon.classList.add('fa-chevron-down');
+                            }
+                        } else {
+                            filterContent.classList.add('show');
+                            if (icon) {
+                                icon.classList.remove('fa-chevron-down');
+                                icon.classList.add('fa-chevron-up');
+                            }
+                        }
+                    });
+                }
+
+                // Limpiar filtros
+                const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+                if (btnLimpiarFiltros) {
+                    btnLimpiarFiltros.addEventListener('click', () => {
+                        const searchInput = document.getElementById('searchInput');
+                        const filterTipo = document.getElementById('filterTipo');
+                        if (searchInput) searchInput.value = '';
+                        if (filterTipo) filterTipo.value = '';
+                        if (window.caracteristicasController) {
+                            window.caracteristicasController.cargarCaracteristicas();
+                        }
+                    });
+                }
+
+                // Aplicar filtros
+                const btnAplicarFiltros = document.getElementById('btnAplicarFiltros');
+                if (btnAplicarFiltros) {
+                    btnAplicarFiltros.addEventListener('click', () => {
+                        const searchInput = document.getElementById('searchInput');
+                        const filterTipo = document.getElementById('filterTipo');
+                        const searchTerm = searchInput ? searchInput.value : '';
+                        const tipo = filterTipo ? filterTipo.value : '';
+                        
+                        if (window.caracteristicasController) {
+                            window.caracteristicasController.aplicarFiltros(searchTerm, tipo);
+                        }
+                    });
+                }
+
+                // Buscar en tiempo real
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('keyup', (e) => {
+                        const filterTipo = document.getElementById('filterTipo');
+                        const tipo = filterTipo ? filterTipo.value : '';
+                        if (window.caracteristicasController) {
+                            window.caracteristicasController.aplicarFiltros(e.target.value, tipo);
+                        }
+                    });
+                }
+
+                // Filtro por tipo
+                const filterTipo2 = document.getElementById('filterTipo');
+                if (filterTipo2) {
+                    filterTipo2.addEventListener('change', () => {
+                        const searchInput = document.getElementById('searchInput');
+                        const searchTerm = searchInput ? searchInput.value : '';
+                        if (window.caracteristicasController) {
+                            window.caracteristicasController.aplicarFiltros(searchTerm, filterTipo2.value);
+                        }
+                    });
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,899 @@
+<?php
+/**
+ * MovimientoAlmacenRepository
+ * Tablas: guia, imov, mzon, alma, coal, conempre, indi, dola, ccos, tdoc
+ *         reg_costoabc_proceso/subproceso/actividad/tarea
+ */
+class MovimientoAlmacenRepository {
+    private $db;
+    private $mark    = 'J';    // Zona La Joya  — usado en guia
+    private $markImov  = 'CW1'; // Marca imov para movimientos principales
+    private $markImovE = 'CW2'; // Marca imov para contra-asientos auto-generados
+
+    /** Marcas válidas de imov (incluye legacy 'J' para datos históricos) */
+    private function imovMarks(): array {
+        return [$this->markImov, $this->markImovE, $this->mark];
+    }
+
+    public function __construct($db) {
+        $this->db = $db;
+    }
+
+    // ─── VALIDACIONES DE FECHA ────────────────────────────────────────────────
+
+    public function getAnoSistema(): string {
+        $stmt = $this->db->prepare("SELECT eano FROM conempre LIMIT 1");
+        $stmt->execute();
+        return $stmt->fetchColumn() ?? '';
+    }
+
+    public function getMesCerrado(string $fechaMes): bool {
+        // fechaMes formato: 'yyyy/mm'
+        $stmt = $this->db->prepare("SELECT cierre FROM indi WHERE fecha = ?");
+        $stmt->execute([$fechaMes]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row && $row['cierre'] === 'C';
+    }
+
+    public function getDiaCerradoJoya(string $fechaDia): bool {
+        // fechaDia formato: 'yyyy/mm/dd'
+        $stmt = $this->db->prepare("SELECT cerrajoya FROM dola WHERE fecha = ?");
+        $stmt->execute([$fechaDia]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row && $row['cerrajoya'] === 'C';
+    }
+
+    public function getTipoCambioPorFecha(string $fecha): ?array {
+        $stmt = $this->db->prepare("SELECT fecha, lib_compra, lib_venta FROM dola WHERE fecha = ?");
+        $stmt->execute([$fecha]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // ─── MAESTROS / COMBOS ────────────────────────────────────────────────────
+
+    public function getAlmacenes(): array {
+        $stmt = $this->db->prepare(
+            "SELECT codalm, descri, COALESCE(libro, 'AL') AS libro, moneda FROM alma ORDER BY codalm"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAlmacenById(string $codalm): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT codalm, descri, COALESCE(libro, 'AL') AS libro, moneda FROM alma WHERE codalm = ?"
+        );
+        $stmt->execute([$codalm]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function getTransacciones(): array {
+        $stmt = $this->db->prepare(
+            "SELECT codtra, descri, emidoc, precio, cencos, gragui, pidemotivo,
+                    pmoned, observ, ordcom, gentsa, merma, palmde
+             FROM coal ORDER BY codtra"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTransaccionById(string $codtra): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT codtra, descri, emidoc, precio, cencos, gragui, pidemotivo,
+                    pmoned, observ, ordcom, gentsa, merma, palmde
+             FROM coal WHERE codtra = ?"
+        );
+        $stmt->execute([$codtra]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function getTiposDocumento(): array {
+        $stmt = $this->db->prepare(
+            "SELECT tipdoc, descri, moneda FROM tdoc ORDER BY tipdoc"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getCentrosCosto(): array {
+        $stmt = $this->db->prepare(
+            "SELECT codigo, nombre FROM ccos WHERE swac IS NULL OR swac != 'I' ORDER BY codigo"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getClientesProveedores(string $termino = ''): array {
+        $cleanFn = "TRIM(REPLACE(codigo, CHAR(9), ''))";
+        if ($termino !== '') {
+            $like = "%{$termino}%";
+            $stmt = $this->db->prepare(
+                "SELECT
+                    {$cleanFn} AS tprocli,
+                    COALESCE(NULLIF(TRIM(MAX(nombre)), ''), 'SIN NOMBRE') AS nombre
+                 FROM ccte
+                 WHERE codigo IS NOT NULL
+                   AND {$cleanFn} <> ''
+                   AND ({$cleanFn} LIKE ? OR TRIM(nombre) LIKE ?)
+                 GROUP BY {$cleanFn}
+                 ORDER BY {$cleanFn}
+                 LIMIT 100"
+            );
+            $stmt->execute([$like, $like]);
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT
+                    {$cleanFn} AS tprocli,
+                    COALESCE(NULLIF(TRIM(MAX(nombre)), ''), 'SIN NOMBRE') AS nombre
+                 FROM ccte
+                 WHERE codigo IS NOT NULL
+                   AND {$cleanFn} <> ''
+                 GROUP BY {$cleanFn}
+                 ORDER BY {$cleanFn}
+                 LIMIT 200"
+            );
+            $stmt->execute();
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getProductos(int $limit = 200, int $offset = 0, string $alma = ''): array {
+        $limit = max(1, min(500, (int)$limit));
+        $offset = max(0, (int)$offset);
+
+        if ($alma !== '') {
+            $stmt = $this->db->prepare(
+                "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
+                        m.peso AS tpeso, m.cuenta AS tcuenta,
+                        COALESCE(z.qstock, 0) AS tstock
+                 FROM (
+                     SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
+                            MIN(peso) AS peso, MIN(cuenta) AS cuenta
+                     FROM mitm
+                     WHERE alma IN ('010','018')
+                     GROUP BY codigo
+                 ) AS m
+                 LEFT JOIN (
+                     SELECT codigo, alma, SUM(qstock) AS qstock
+                     FROM mzon
+                     GROUP BY codigo, alma
+                 ) z ON z.codigo = m.codigo AND z.alma = ?
+                 ORDER BY m.descri
+                 LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute([$alma]);
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT codigo AS tcodigo, MIN(descri) AS tdescri, MIN(unidad) AS tunidad,
+                        MIN(peso) AS tpeso, MIN(cuenta) AS tcuenta, 0 AS tstock
+                 FROM mitm
+                 WHERE alma IN ('010','018')
+                 GROUP BY codigo
+                 ORDER BY MIN(descri)
+                 LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute();
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function buscarProductos(string $termino, int $limit = 200, int $offset = 0, string $alma = ''): array {
+        $limit = max(1, min(500, (int)$limit));
+        $offset = max(0, (int)$offset);
+        $like = "%{$termino}%";
+
+        if ($alma !== '') {
+            $stmt = $this->db->prepare(
+                "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
+                        m.peso AS tpeso, m.cuenta AS tcuenta,
+                        COALESCE(z.qstock, 0) AS tstock
+                 FROM (
+                     SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
+                            MIN(peso) AS peso, MIN(cuenta) AS cuenta
+                     FROM mitm
+                     WHERE (codigo LIKE ? OR descri LIKE ?)
+                       AND alma IN ('010','018')
+                     GROUP BY codigo
+                 ) AS m
+                 LEFT JOIN (
+                     SELECT codigo, alma, SUM(qstock) AS qstock
+                     FROM mzon
+                     GROUP BY codigo, alma
+                 ) z ON z.codigo = m.codigo AND z.alma = ?
+                 ORDER BY m.codigo
+                 LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute([$like, $like, $alma]);
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT codigo AS tcodigo, MIN(descri) AS tdescri, MIN(unidad) AS tunidad,
+                        MIN(peso) AS tpeso, MIN(cuenta) AS tcuenta, 0 AS tstock
+                 FROM mitm
+                 WHERE (codigo LIKE ? OR descri LIKE ?)
+                   AND alma IN ('010','018')
+                 GROUP BY codigo
+                 ORDER BY MIN(codigo)
+                 LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute([$like, $like]);
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getLotes(string $alma = '', string $codigo = '', string $fecha = ''): array {
+        // Modo condicional solicitado: almacén + producto + fecha de corte.
+        if ($alma !== '' && $codigo !== '' && $fecha !== '') {
+            $stmt = $this->db->prepare(
+                "SELECT frm1.codigo,
+                        frm1.lote,
+                        SUM(frm1.cantidad) AS cantidad,
+                        SUM(frm1.peso) AS peso,
+                        SUM(frm1.valor) AS valor
+                 FROM (
+                    SELECT 1 AS a,
+                           codigo AS codigo,
+                           lote,
+                           qiniano AS cantidad,
+                           piniano AS peso,
+                           viniano AS valor
+                    FROM mzon USE INDEX(PRIMARY)
+                    WHERE alma = :alma_mzon AND codigo = :codigo_mzon
+                    GROUP BY codigo, lote
+
+                    UNION ALL
+
+                    SELECT 2 AS a,
+                           tcodigo AS codigo,
+                           tlote AS lote,
+                           SUM(IF(LEFT(tcodtra, 1) = 'E', tcantid, (-1) * tcantid)) AS cantidad,
+                           SUM(IF(LEFT(tcodtra, 1) = 'E', tpeso, (-1) * tpeso)) AS peso,
+                           SUM(IF(LEFT(tcodtra, 1) = 'E', tkardex, (-1) * tkardex)) AS valor
+                    FROM imov USE INDEX(PRIMARY)
+                    WHERE talm = :alma_imov
+                      AND tcodigo = :codigo_imov
+                      AND tfectra <= :fecha_imov
+                    GROUP BY tcodigo, tlote
+                 ) AS frm1
+                 GROUP BY frm1.codigo, frm1.lote
+                 ORDER BY frm1.lote"
+            );
+
+            $stmt->execute([
+                'alma_mzon' => $alma,
+                'codigo_mzon' => $codigo,
+                'alma_imov' => $alma,
+                'codigo_imov' => $codigo,
+                'fecha_imov' => $fecha,
+            ]);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $params = [];
+        $where = [];
+
+        if ($alma !== '') {
+            $where[] = 'm.alma = ?';
+            $params[] = $alma;
+        }
+
+        $sqlWhere = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $stmt = $this->db->prepare(
+            "SELECT m.codigo, m.lote
+             FROM mzon m
+             {$sqlWhere}
+             GROUP BY m.codigo, m.lote
+             ORDER BY m.codigo, m.lote
+             LIMIT 1000"
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getProductoById(string $codigo): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT codigo AS tcodigo, descri AS tdescri, unidad AS tunidad,
+                    peso AS tpeso, cuenta AS tcuenta
+             FROM mitm WHERE codigo = ?"
+        );
+        $stmt->execute([$codigo]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function getClientePorCodigo(string $codigo): ?array {
+        $codigoTrimmed = trim($codigo);
+        if ($codigoTrimmed === '') return null;
+        // REPLACE(CHAR(9)) + TRIM para manejar codigos con tabs/espacios en la BD
+        // MySQL TRIM() solo quita espacios, no tabs (ASCII 9)
+        $stmt = $this->db->prepare(
+            "SELECT TRIM(REPLACE(codigo, CHAR(9), '')) AS codigo,
+                    COALESCE(NULLIF(TRIM(MAX(nombre)), ''), '') AS nombre
+             FROM ccte
+             WHERE TRIM(REPLACE(codigo, CHAR(9), '')) = ?
+             GROUP BY TRIM(REPLACE(codigo, CHAR(9), ''))
+             LIMIT 1"
+        );
+        $stmt->execute([$codigoTrimmed]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+
+    // ─── ABC COSTING ─────────────────────────────────────────────────────────
+
+    public function getProcesos(): array {
+        $stmt = $this->db->prepare(
+            "SELECT tcod_proceso, tnom_proceso FROM reg_costoabc_proceso
+             WHERE testado = 'A' ORDER BY torden"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getSubprocesos(string $codProceso): array {
+        $stmt = $this->db->prepare(
+            "SELECT tcod_subproc, tnom_subproc FROM reg_costoabc_subproceso
+             WHERE tcod_proceso = ? AND testado = 'A' ORDER BY torden"
+        );
+        $stmt->execute([$codProceso]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getActividades(string $codProceso, string $codSubproc): array {
+        $stmt = $this->db->prepare(
+            "SELECT tcod_acti, tnom_acti FROM reg_costoabc_actividad
+             WHERE tcod_proc = ? AND tcod_subproc = ? AND testado = 'A' ORDER BY torden"
+        );
+        $stmt->execute([$codProceso, $codSubproc]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTareas(string $codProceso, string $codSubproc, string $codActi): array {
+        $stmt = $this->db->prepare(
+            "SELECT tcod_tarea, tnom_tarea FROM reg_costoabc_tarea
+             WHERE tcod_proc = ? AND tcod_subproc = ? AND tcod_acti = ?
+             AND testado = 'A' ORDER BY torden"
+        );
+        $stmt->execute([$codProceso, $codSubproc, $codActi]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ─── NÚMERO DE REGISTRO ──────────────────────────────────────────────────
+
+    public function getNuevoReg(): int {
+        // MAX global sin filtro mark (igual al VBA original)
+        $stmtGuia = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM guia");
+        $maxGuia = (int)$stmtGuia->fetchColumn();
+
+        $stmtImov = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM imov");
+        $maxImov = (int)$stmtImov->fetchColumn();
+
+        return max($maxGuia, $maxImov) + 1;
+    }
+
+    public function validarConsistenciaReg(int $treg): bool {
+        $stmtGuia = $this->db->prepare(
+            "SELECT COUNT(*) FROM guia WHERE treg = ? AND mark = ?"
+        );
+        $stmtGuia->execute([$treg, $this->mark]);
+        $enGuia = (int)$stmtGuia->fetchColumn();
+
+        $stmtImov = $this->db->prepare(
+            "SELECT COUNT(*) FROM imov WHERE treg = ? AND mark IN (?,?,?)"
+        );
+        $stmtImov->execute(array_merge([$treg], $this->imovMarks()));
+        $enImov = (int)$stmtImov->fetchColumn();
+
+        return $enGuia === 0 && $enImov === 0;
+    }
+
+    // ─── CABECERA (guia) ─────────────────────────────────────────────────────
+
+    public function listarMovimientos(array $filtros = []): array {
+        $where = ["g.mark = ?"];
+        $params = [$this->mark, $this->mark];
+
+        if (!empty($filtros['talm']))    { $where[] = "g.talm = ?";    $params[] = $filtros['talm']; }
+        if (!empty($filtros['fecini']))  { $where[] = "g.tfectra >= ?"; $params[] = $filtros['fecini']; }
+        if (!empty($filtros['fecfin']))  { $where[] = "g.tfectra <= ?"; $params[] = $filtros['fecfin']; }
+        if (!empty($filtros['tcodtra'])) { $where[] = "g.tcodtra = ?"; $params[] = $filtros['tcodtra']; }
+
+         $sql = "SELECT g.treg, g.tfectra, g.tcodtra, g.tdoc, g.tserie, g.tnumfac,
+                  g.talm, d.talr, g.tprocli, g.tmon, g.tlib, g.tordcom,
+                  g.tfecfac, d.tcencos_dest, g.tglosa, g.tcostmin, g.tpesotot,
+                  g.timport, g.tcod_conductor, g.tplaca, g.tmotivo_traslado,
+                  g.tuser, g.tdate, g.ttime,
+                       a.descri AS nom_almacen, c.descri AS nom_transaccion
+                FROM guia g
+              LEFT JOIN (
+                  SELECT i.treg,
+                      MIN(i.talr) AS talr,
+                      MIN(i.tcencos) AS tcencos_dest
+                  FROM imov i
+                  WHERE i.mark = ?
+                  GROUP BY i.treg
+              ) d ON d.treg = g.treg
+                LEFT JOIN alma a ON g.talm = a.codalm
+                LEFT JOIN coal c ON g.tcodtra = c.codtra
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY g.tfectra DESC, g.treg DESC
+                LIMIT 200";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function listarMovimientosDashboard(array $filtros = []): array {
+        $page = max(1, (int)($filtros['page'] ?? 1));
+        $perPage = max(10, min(100, (int)($filtros['per_page'] ?? 25)));
+        $offset = ($page - 1) * $perPage;
+
+        $joins = "\n            LEFT JOIN (\n                SELECT i.treg,\n                       MIN(i.talr) AS talr,\n                       MIN(i.tcencos) AS tcencos_dest\n                FROM imov i\n                WHERE i.mark = ?\n                GROUP BY i.treg\n            ) d ON d.treg = g.treg\n            LEFT JOIN alma a ON g.talm = a.codalm\n            LEFT JOIN coal c ON g.tcodtra = c.codtra\n        ";
+
+        $where = ["g.mark = ?"];
+        $params = [$this->mark, $this->mark];
+
+        if (!empty($filtros['talm'])) {
+            $where[] = 'g.talm = ?';
+            $params[] = trim((string)$filtros['talm']);
+        }
+
+        if (!empty($filtros['tcodtra'])) {
+            $where[] = 'g.tcodtra = ?';
+            $params[] = trim((string)$filtros['tcodtra']);
+        }
+
+        if (!empty($filtros['fecini'])) {
+            $where[] = 'g.tfectra >= ?';
+            $params[] = trim((string)$filtros['fecini']);
+        }
+
+        if (!empty($filtros['fecfin'])) {
+            $where[] = 'g.tfectra <= ?';
+            $params[] = trim((string)$filtros['fecfin']);
+        }
+
+        $search = trim((string)($filtros['q'] ?? ''));
+        if ($search !== '') {
+            $like = "%{$search}%";
+            $where[] = "(\n                CAST(g.treg AS CHAR) LIKE ?\n                OR g.tprocli LIKE ?\n                OR g.tdoc LIKE ?\n                OR g.tserie LIKE ?\n                OR CAST(g.tnumfac AS CHAR) LIKE ?\n                OR g.tglosa LIKE ?\n                OR a.descri LIKE ?\n                OR c.descri LIKE ?\n            )";
+
+            for ($i = 0; $i < 8; $i++) {
+                $params[] = $like;
+            }
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) AS total\n                     FROM guia g\n                     {$joins}\n                     WHERE {$whereSql}";
+        $stmtCount = $this->db->prepare($sqlCount);
+        $stmtCount->execute($params);
+        $total = (int)($stmtCount->fetchColumn() ?: 0);
+
+        $sqlResumen = "SELECT COUNT(*) AS total_movimientos,\n                              COALESCE(SUM(g.timport), 0) AS total_importe,\n                              COALESCE(SUM(g.tpesotot), 0) AS total_peso\n                       FROM guia g\n                       {$joins}\n                       WHERE {$whereSql}";
+        $stmtResumen = $this->db->prepare($sqlResumen);
+        $stmtResumen->execute($params);
+        $resumen = $stmtResumen->fetch(PDO::FETCH_ASSOC) ?: [
+            'total_movimientos' => 0,
+            'total_importe' => 0,
+            'total_peso' => 0,
+        ];
+
+        $sqlRows = "SELECT g.treg, g.tfectra, g.tcodtra, g.talm,\n                           g.tprocli, g.tdoc, g.tserie, g.tnumfac,\n                           g.tglosa, g.tpesotot, g.timport, g.tuser,\n                           g.tdate, g.ttime, g.tmon,\n                           d.talr, d.tcencos_dest,\n                           a.descri AS nom_almacen,\n                           c.descri AS nom_transaccion,\n                           c.gentsa\n                    FROM guia g\n                    {$joins}\n                    WHERE {$whereSql}\n                    ORDER BY g.tfectra DESC, g.treg DESC\n                    LIMIT {$perPage} OFFSET {$offset}";
+        $stmtRows = $this->db->prepare($sqlRows);
+        $stmtRows->execute($params);
+        $rows = $stmtRows->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'rows' => $rows,
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'total_pages' => $total > 0 ? (int)ceil($total / $perPage) : 1,
+                'resumen' => [
+                    'total_movimientos' => (int)($resumen['total_movimientos'] ?? 0),
+                    'total_importe' => (float)($resumen['total_importe'] ?? 0),
+                    'total_peso' => (float)($resumen['total_peso'] ?? 0),
+                ],
+            ],
+        ];
+    }
+
+    public function getMovimientoPorReg(string $treg): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT g.*, a.descri AS nom_almacen, c.descri AS nom_transaccion,
+                    c.emidoc, c.precio, c.cencos, c.gragui, c.pidemotivo,
+                    c.pmoned, c.observ, c.ordcom, c.gentsa, c.merma
+             FROM guia g
+             LEFT JOIN alma a ON g.talm = a.codalm
+             LEFT JOIN coal c ON g.tcodtra = c.codtra
+             WHERE g.treg = ? AND g.mark = ?"
+        );
+        $stmt->execute([$treg, $this->mark]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            return $row;
+        }
+
+        // Fallback para registros históricos con mark distinto al configurado.
+        $stmt = $this->db->prepare(
+            "SELECT g.*, a.descri AS nom_almacen, c.descri AS nom_transaccion,
+                    c.emidoc, c.precio, c.cencos, c.gragui, c.pidemotivo,
+                    c.pmoned, c.observ, c.ordcom, c.gentsa, c.merma
+             FROM guia g
+             LEFT JOIN alma a ON g.talm = a.codalm
+             LEFT JOIN coal c ON g.tcodtra = c.codtra
+             WHERE g.treg = ?
+             ORDER BY g.mark ASC
+             LIMIT 1"
+        );
+        $stmt->execute([$treg]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function crearCabecera(array $data): bool {
+        $stmt = $this->db->prepare(
+            "INSERT INTO guia (
+                treg, tfectra, tcodtra, talm, tprocli, tdoc, tserie, tnumfac,
+                tfecfac, tmon, tlib, tordcom, tglosa, tcostmin, tpesotot,
+                timport, tcod_conductor, tplaca, tmotivo_traslado,
+                tuser, tdate, ttime, mark
+             ) VALUES (
+                :treg, :tfectra, :tcodtra, :talm, :tprocli, :tdoc, :tserie, :tnumfac,
+                :tfecfac, :tmon, :tlib, :tordcom, :tglosa, :tcostmin, :tpesotot,
+                :timport, :tcod_conductor, :tplaca, :tmotivo_traslado,
+                :tuser, CURDATE(), CURTIME(), :mark
+             )"
+        );
+        return $stmt->execute(array_merge($data, ['mark' => $this->mark]));
+    }
+
+    public function actualizarCabecera(int $treg, array $data): bool {
+        $data['treg']  = $treg;
+        $data['mark']  = $this->mark;
+        $stmt = $this->db->prepare(
+            "UPDATE guia SET
+                tfectra = :tfectra, tcodtra = :tcodtra, talm = :talm,
+                tprocli = :tprocli, tdoc = :tdoc, tserie = :tserie,
+                tnumfac = :tnumfac, tfecfac = :tfecfac, tmon = :tmon,
+                tlib = :tlib, tordcom = :tordcom, tglosa = :tglosa,
+                tcostmin = :tcostmin, tpesotot = :tpesotot, timport = :timport,
+                tcod_conductor = :tcod_conductor, tplaca = :tplaca,
+                tmotivo_traslado = :tmotivo_traslado
+             WHERE treg = :treg AND mark = :mark"
+        );
+        return $stmt->execute($data);
+    }
+
+    public function eliminarCabecera(int $treg): bool {
+        $stmt = $this->db->prepare(
+            "DELETE FROM guia WHERE treg = ? AND mark = ?"
+        );
+        return $stmt->execute([$treg, $this->mark]);
+    }
+
+    // ─── DETALLE (imov) ──────────────────────────────────────────────────────
+
+    public function getDetallePorReg(string $treg): array {
+        // Buscar incluyendo todas las marcas imov válidas
+        $stmt = $this->db->prepare(
+            "SELECT i.*, m.descri AS nom_producto, m.unidad AS tunidad
+             FROM imov i
+             LEFT JOIN mitm m ON i.tcodigo = m.codigo
+             WHERE i.treg = ? AND i.mark IN (?,?,?)
+             ORDER BY i.count"
+        );
+        $stmt->execute(array_merge([$treg], $this->imovMarks()));
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMaxCount(int $treg): int {
+        $stmt = $this->db->prepare(
+            "SELECT COALESCE(MAX(count), 0) FROM imov WHERE treg = ? AND mark IN (?,?,?)"
+        );
+        $stmt->execute(array_merge([$treg], $this->imovMarks()));
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Inserta una línea en imov.
+     * @param array  $data         Campos del item
+     * @param string|null $markOverride  Marca a usar ('CW1' por defecto, 'CW2' para contra-asientos)
+     */
+    public function agregarDetalle(array $data, string $markOverride = null): bool {
+        $markValue = $markOverride ?? $this->markImov;
+        $stmt = $this->db->prepare(
+            "INSERT INTO imov (
+                treg, count, tcodigo, tfectra, tcodtra, talm, talr,
+                tcantid, tpreuni, timport, tpeso, tkardex, tmon,
+                tcencos, tsacos, tnumlot, tlote, tdf, tctabal,
+                tfecfac, tcodproc, tcodsubproc, tcodacti, tcodtarea,
+                ttoneladas, tprod, tglosa, tuser, tdate, ttime, mark,
+                tlib, tnumreg, tdoc, tserie, tnumfac
+             ) VALUES (
+                :treg, :count, :tcodigo, :tfectra, :tcodtra, :talm, :talr,
+                :tcantid, :tpreuni, :timport, :tpeso, :tkardex, :tmon,
+                :tcencos, :tsacos, :tnumlot, :tlote, :tdf, :tctabal,
+                :tfecfac, :tcodproc, :tcodsubproc, :tcodacti, :tcodtarea,
+                :ttoneladas, :tprod, :tglosa, :tuser, CURDATE(), CURTIME(), :mark,
+                :tlib, :tnumreg, :tdoc, :tserie, :tnumfac
+             )"
+        );
+        return $stmt->execute(array_merge($data, ['mark' => $markValue]));
+    }
+
+    public function eliminarDetalle(int $treg, int $count): bool {
+        $stmt = $this->db->prepare(
+            "DELETE FROM imov WHERE treg = ? AND count = ? AND mark IN (?,?,?)"
+        );
+        return $stmt->execute(array_merge([$treg, $count], $this->imovMarks()));
+    }
+
+    public function eliminarDetalleCompleto(int $treg): bool {
+        $stmt = $this->db->prepare(
+            "DELETE FROM imov WHERE treg = ? AND mark IN (?,?,?)"
+        );
+        return $stmt->execute(array_merge([$treg], $this->imovMarks()));
+    }
+
+    // ─── SALIDAS RÁPIDAS ────────────────────────────────────────────────────
+
+    public function getLineas(): array {
+        $stmt = $this->db->prepare(
+            "SELECT l.linea AS codigo, l.descri
+             FROM linea l
+             INNER JOIN mitm mt ON mt.lin = l.linea
+             WHERE mt.alma IN ('010','018')
+             GROUP BY l.linea, l.descri
+             ORDER BY l.linea"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getProductosStockSalida(string $alma, string $linea = ''): array {
+        $lineaSql = $linea !== '' ? ' AND mt.lin = ?' : '';
+        $params   = $linea !== '' ? [$alma, $linea] : [$alma];
+        $stmt = $this->db->prepare(
+            "SELECT mz.alma AS alm, mz.codigo, mt.descri AS descripcion,
+                    mt.unidad, mz.lote, mt.lin AS linea,
+                    COALESCE(mz.qstock, 0) AS stock,
+                    COALESCE(mz.pstock, 0) AS peso_stock
+             FROM mzon mz
+             INNER JOIN mitm mt ON mt.codigo = mz.codigo
+             WHERE mz.alma = ?
+               AND mt.alma IN ('010','018')
+               AND mz.qstock > 0
+               {$lineaSql}
+             ORDER BY mt.descri, mz.lote
+             LIMIT 1000"
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function buscarProductosStockSalida(string $alma, string $termino, string $linea = ''): array {
+        $like     = "%{$termino}%";
+        $lineaSql = $linea !== '' ? ' AND mt.lin = ?' : '';
+        $params   = $linea !== '' ? [$alma, $like, $like, $linea] : [$alma, $like, $like];
+        $stmt = $this->db->prepare(
+            "SELECT mz.alma AS alm, mz.codigo, mt.descri AS descripcion,
+                    mt.unidad, mz.lote, mt.lin AS linea,
+                    COALESCE(mz.qstock, 0) AS stock,
+                    COALESCE(mz.pstock, 0) AS peso_stock
+             FROM mzon mz
+             INNER JOIN mitm mt ON mt.codigo = mz.codigo
+             WHERE mz.alma = ?
+               AND mt.alma IN ('010','018')
+               AND mz.qstock > 0
+               AND (mz.codigo LIKE ? OR mt.descri LIKE ?)
+               {$lineaSql}
+             ORDER BY mt.descri, mz.lote
+             LIMIT 500"
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMisSalidasUsuario(string $fecha, string $usuario): array {
+        $stmt = $this->db->prepare(
+            "SELECT g.treg, g.tfectra, g.tcodtra, g.talm, g.tprocli,
+                    g.tdoc, g.tserie, g.tnumfac, g.tglosa,
+                    COALESCE(g.tpesotot, 0) AS tpesotot,
+                    COALESCE(g.timport, 0) AS timport,
+                    g.tuser, g.ttime,
+                    c.descri AS nom_transaccion,
+                    a.descri AS nom_almacen,
+                    COALESCE(cc.nombre, g.tprocli) AS nom_solicitante
+             FROM guia g
+             LEFT JOIN coal c ON c.codtra = g.tcodtra
+             LEFT JOIN alma a ON a.codalm = g.talm
+             LEFT JOIN (
+                 SELECT codigo, MAX(nombre) AS nombre FROM ccte GROUP BY codigo
+             ) cc ON cc.codigo = g.tprocli
+             WHERE g.mark = ?
+               AND (g.tuser = ? OR g.tuser IS NULL OR g.tuser = '')
+               AND g.tfectra = ?
+               AND LEFT(g.tcodtra, 1) = 'S'
+             ORDER BY g.ttime DESC, g.treg DESC"
+        );
+        $stmt->execute([$this->mark, $usuario, $fecha]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ─── STOCK / KARDEX (mzon) ───────────────────────────────────────────────
+
+    public function getKardex(string $codigo, string $lote, string $alma): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT qiniano, piniano, viniano, qingre, qsalid, qstock,
+                    cosuni, vstock, pingre, psalid, pstock
+             FROM mzon WHERE codigo = ? AND lote = ? AND alma = ?"
+        );
+        $stmt->execute([$codigo, $lote, $alma]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function getResumenHastaFecha(string $codigo, string $lote, string $alma, string $fecha): ?array {
+        $sql = "SELECT frm1.codigo,
+                       frm1.lote,
+                       SUM(frm1.cantidad) AS cantidad,
+                       SUM(frm1.peso) AS peso,
+                       SUM(frm1.valor) AS valor
+                FROM (
+                    SELECT m.codigo AS codigo,
+                           m.lote AS lote,
+                           m.qiniano AS cantidad,
+                           m.piniano AS peso,
+                           m.viniano AS valor
+                    FROM mzon m
+                    WHERE m.alma = :alma
+                      AND m.codigo = :codigo
+                      AND m.lote = :lote
+
+                    UNION ALL
+
+                    SELECT i.tcodigo AS codigo,
+                           i.tlote AS lote,
+                           SUM(IF(LEFT(i.tcodtra, 1) = 'E', i.tcantid, (-1) * i.tcantid)) AS cantidad,
+                           SUM(IF(LEFT(i.tcodtra, 1) = 'E', i.tpeso,   (-1) * i.tpeso))   AS peso,
+                           SUM(IF(LEFT(i.tcodtra, 1) = 'E', i.tkardex, (-1) * i.tkardex)) AS valor
+                    FROM imov i
+                    WHERE i.mark IN ('J','CW1','CW2')
+                      AND i.talm = :alma
+                      AND i.tcodigo = :codigo
+                      AND i.tfectra <= :fecha
+                      AND i.tlote = :lote
+                    GROUP BY i.tcodigo, i.tlote
+                ) AS frm1
+                GROUP BY frm1.codigo, frm1.lote";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'alma' => $alma,
+            'codigo' => $codigo,
+            'lote' => $lote,
+            'fecha' => $fecha,
+        ]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function getStockPorAlmacen(string $alma): array {
+        $stmt = $this->db->prepare(
+            "SELECT m.codigo, m.lote, m.qstock, m.pstock, m.vstock,
+                    m.cosuni, mt.tdescri AS descripcion, mt.tunidad
+             FROM mzon m
+             LEFT JOIN mitm mt ON m.codigo = mt.tcodigo
+             WHERE m.alma = ? AND m.qstock > 0
+             ORDER BY m.codigo"
+        );
+        $stmt->execute([$alma]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getKardexMovimientosReporte(array $filtros): array {
+        $alma = (string)($filtros['alma'] ?? '');
+        if ($alma === '') {
+            return [];
+        }
+
+        $where = [
+            "i.mark IN ('J','CW1','CW2')",
+            'g.mark = ?',
+            'i.talm = ?'
+        ];
+        $params = [$this->mark, $alma];
+
+        if (!empty($filtros['fecha_desde'])) {
+            $where[] = 'g.tfectra >= ?';
+            $params[] = $filtros['fecha_desde'];
+        }
+
+        if (!empty($filtros['fecha_hasta'])) {
+            $where[] = 'g.tfectra <= ?';
+            $params[] = $filtros['fecha_hasta'];
+        }
+
+        if (!empty($filtros['codigo_desde'])) {
+            $where[] = 'i.tcodigo >= ?';
+            $params[] = $filtros['codigo_desde'];
+        }
+
+        if (!empty($filtros['codigo_hasta'])) {
+            $where[] = 'i.tcodigo <= ?';
+            $params[] = $filtros['codigo_hasta'];
+        }
+
+        $sql = "SELECT
+                    g.tfectra,
+                    i.tcodigo,
+                    COALESCE(m.descri, '') AS descripcion,
+                    COALESCE(g.tdoc, '') AS tdoc,
+                    COALESCE(g.tserie, '') AS tserie,
+                    COALESCE(g.tnumfac, '') AS tnumfac,
+                    COALESCE(g.tprocli, '') AS clipro,
+                    COALESCE(i.tcantid, 0) AS tcantid,
+                    COALESCE(i.timport, 0) AS timport,
+                    COALESCE(i.tpreuni, 0) AS tpreuni,
+                    COALESCE(c.gentsa, 0) AS gentsa,
+                    i.treg,
+                    i.count
+                FROM imov i
+                INNER JOIN guia g ON g.treg = i.treg AND g.mark = i.mark
+                LEFT JOIN mitm m ON m.codigo = i.tcodigo
+                LEFT JOIN coal c ON c.codtra = g.tcodtra
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY i.tcodigo, g.tfectra, i.treg, i.count";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Actualizar mzon al grabar un movimiento (entrada/salida)
+    public function actualizarStock(
+        string $codigo, string $lote, string $alma,
+        float $cantidad, float $peso, float $valor,
+        string $tipo // 'E'=entrada, 'S'=salida
+    ): bool {
+        $existe = $this->getKardex($codigo, $lote, $alma);
+
+        if (!$existe) {
+            // Crear registro en mzon
+            $stmt = $this->db->prepare(
+                "INSERT INTO mzon (codigo, lote, alma, qingre, qsalid, qstock,
+                                   pingre, psalid, pstock, vingre, vsalid, vstock, cosuni)
+                 VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)"
+            );
+            $stmt->execute([$codigo, $lote, $alma]);
+        }
+
+        if ($tipo === 'E') {
+            $sql = "UPDATE mzon SET
+                        qingre = qingre + :cant, qstock = qstock + :cant,
+                        pingre = pingre + :peso, pstock = pstock + :peso,
+                        vingre = vingre + :valor, vstock = vstock + :valor
+                    WHERE codigo = :cod AND lote = :lote AND alma = :alma";
+        } else {
+            $sql = "UPDATE mzon SET
+                        qsalid = qsalid + :cant, qstock = qstock - :cant,
+                        psalid = psalid + :peso, pstock = pstock - :peso,
+                        vsalid = vsalid + :valor, vstock = vstock - :valor
+                    WHERE codigo = :cod AND lote = :lote AND alma = :alma";
+        }
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'cant'  => $cantidad,
+            'peso'  => $peso,
+            'valor' => $valor,
+            'cod'   => $codigo,
+            'lote'  => $lote,
+            'alma'  => $alma
+        ]);
+    }
+}
+

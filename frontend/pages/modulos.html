@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerarquia de Modulos - Sistema de Gestion</title>
+
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+
+    <style>
+        body {
+            background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
+            min-height: 100vh;
+        }
+
+        .container-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-down {
+            animation: slideDown 0.4s ease;
+        }
+
+        .table-scroll {
+            max-height: calc(100vh - 360px);
+            min-height: 360px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #ffffff;
+        }
+
+        .table-scroll table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-scroll th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: inherit;
+        }
+
+        .table-scroll th,
+        .table-scroll td {
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .table-scroll tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .row-name {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .depth-1 { padding-left: 0; }
+        .depth-2 { padding-left: 1rem; }
+        .depth-3 { padding-left: 2rem; }
+        .depth-4 { padding-left: 3rem; }
+
+        .depth-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            background: #93c5fd;
+            flex: 0 0 auto;
+        }
+
+        .nivel-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.15rem 0.6rem;
+            border-radius: 9999px;
+            background: #e0f2fe;
+            color: #075985;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .cod-mod {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .state-box {
+            border: 1px dashed #cbd5f5;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            color: #475569;
+        }
+
+        .order-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d4ed8;
+            background: #eff6ff;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .order-btn:hover {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .order-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-hover-scale:hover {
+            transform: translateY(-2px);
+        }
+
+        .is-hidden {
+            display: none;
+        }
+
+        /* Estilos adicionales para el formulario del modal */
+        .modal-body input[type="text"],
+        .modal-body input[type="number"],
+        .modal-body select {
+            font-size: 0.875rem;
+        }
+
+        .modal-body label {
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-body .grid {
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container-page">
+        <!-- Acciones -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-tools text-purple-600"></i>
+                Acciones
+            </h2>
+            <div class="flex flex-wrap gap-3">
+                <button id="btnNuevoModulo"
+                    class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-plus mr-2"></i>
+                    Nuevo Módulo
+                </button>
+                <button id="btnRefreshDashboard"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Actualizar
+                </button>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down is-hidden">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-purple-600"></i>
+                    Filtros
+                </h2>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500">Total de modulos</p>
+                    <p id="totalModulos" class="text-base font-semibold text-gray-800">-</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-layer-group text-purple-600 mr-1"></i>
+                        Programa
+                    </label>
+                    <select id="programaSelect"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                        <option value="produccion">produccion</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-search text-purple-600 mr-1"></i>
+                        Buscar por nombre
+                    </label>
+                    <input id="buscarNombre" type="text" placeholder="Escribe el nombre del modulo"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down is-hidden">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-sitemap text-purple-600"></i>
+                Jerarquia de modulos
+            </h2>
+
+            <div class="table-scroll">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr class="text-left">
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Nivel</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Modulo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modulosBody"></tbody>
+                </table>
+            </div>
+
+            <div id="stateMessage" class="state-box mt-4 hidden"></div>
+        </section>
+
+        <!-- Panel de Filtros -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-purple-600"></i>
+                    Filtros
+                </h2>
+                <button id="btnLimpiarFiltros" class="text-purple-600 hover:text-purple-800 flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-times-circle"></i>
+                    Limpiar filtros
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-search text-purple-600 mr-1"></i>
+                        Buscar por nombre
+                    </label>
+                    <input id="dashboardSearch" type="text" placeholder="Escribe el nombre del modulo"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-layer-group text-purple-600 mr-1"></i>
+                        Programa
+                    </label>
+                    <select id="dashboardProgramaSelect"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                        <option value="">Todos los programas</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla del Dashboard -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <div class="mb-4">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-table-list text-purple-600"></i>
+                    Jerarquia del dashboard
+                </h2>
+                <p class="text-sm text-gray-600">Modulos del sistema organizados por programa</p>
+            </div>
+
+            <div class="table-scroll">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr class="text-left">
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Nivel</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Modulo</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Programa</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">cod_mod</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">tipo</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">parent_cod</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">label_short</th>
+                            <!-- <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">icono</th> -->
+                            <!-- <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">url</th> -->
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">tipo_param</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">titulo</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">orden</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Mover</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Opciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardBody"></tbody>
+                </table>
+            </div>
+
+            <div id="dashboardState" class="state-box mt-4 hidden"></div>
+        </section>
+    </main>
+
+    <script src="../js/config/config.js"></script>
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/core/Component.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Modal Component -->
+    <script src="../js/shared/components/Modal.js"></script>
+
+    <script>
+        const stateMessage = document.getElementById('stateMessage');
+        const modulosBody = document.getElementById('modulosBody');
+        const totalModulos = document.getElementById('totalModulos');
+        const programaSelect = document.getElementById('programaSelect');
+        const buscarNombre = document.getElementById('buscarNombre');
+        const dashboardBody = document.getElementById('dashboardBody');
+        const dashboardState = document.getElementById('dashboardState');
+        const dashboardProgramaSelect = document.getElementById('dashboardProgramaSelect');
+        const dashboardSearch = document.getElementById('dashboardSearch');
+        let allModulos = [];
+        let allDashboardModulos = [];
+        let allDashboardProgramas = [];
+        let dashboardProgramaActual = '';
+
+        const buildNivel = (modulo) => {
+            const niveles = [modulo.nivel0, modulo.nivel1, modulo.nivel2, modulo.nivel3]
+                .filter((value) => value !== null && value !== undefined && value !== '');
+            return niveles.join('.');
+        };
+
+        const buildDepth = (modulo) => {
+            return [modulo.nivel0, modulo.nivel1, modulo.nivel2, modulo.nivel3]
+                .filter((value) => value !== null && value !== undefined && value !== '').length;
+        };
+
+        const clearTable = () => {
+            while (modulosBody.firstChild) {
+                modulosBody.removeChild(modulosBody.firstChild);
+            }
+        };
+
+        const renderEmpty = (message) => {
+            clearTable();
+            stateMessage.textContent = message;
+            stateMessage.classList.remove('hidden');
+        };
+
+        const renderRows = (items) => {
+            clearTable();
+            stateMessage.classList.add('hidden');
+
+            items.forEach((modulo) => {
+                const nivel = buildNivel(modulo) || '-';
+                const depth = Math.min(buildDepth(modulo), 4);
+
+                const row = document.createElement('tr');
+
+                const nivelCell = document.createElement('td');
+                nivelCell.className = 'px-4 py-3';
+                const nivelPill = document.createElement('span');
+                nivelPill.className = 'nivel-pill';
+                nivelPill.textContent = nivel;
+                nivelCell.appendChild(nivelPill);
+
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 py-3';
+
+                const rowName = document.createElement('div');
+                rowName.className = `row-name depth-${depth}`;
+
+                const dot = document.createElement('span');
+                dot.className = 'depth-dot';
+
+                const nameText = document.createElement('span');
+                nameText.className = 'text-gray-800 font-medium';
+                nameText.textContent = modulo.nom_mod || 'Sin nombre';
+
+                rowName.appendChild(dot);
+                rowName.appendChild(nameText);
+
+                const codMod = document.createElement('div');
+                codMod.className = 'cod-mod';
+                codMod.textContent = modulo.cod_mod ? `Pagina: ${modulo.cod_mod}` : 'Pagina: -';
+
+                nameCell.appendChild(rowName);
+                nameCell.appendChild(codMod);
+
+                row.appendChild(nivelCell);
+                row.appendChild(nameCell);
+
+                modulosBody.appendChild(row);
+            });
+        };
+
+        const clearDashboardTable = () => {
+            while (dashboardBody.firstChild) {
+                dashboardBody.removeChild(dashboardBody.firstChild);
+            }
+        };
+
+        const renderDashboardEmpty = (message) => {
+            clearDashboardTable();
+            dashboardState.textContent = message;
+            dashboardState.classList.remove('hidden');
+        };
+
+        const renderDashboardRows = (items) => {
+            clearDashboardTable();
+            dashboardState.classList.add('hidden');
+
+            // Calcular números visuales para grupos e items
+            const groupIndexMap = {};
+            let groupCounter = 0;
+            const childCountMap = {};
+
+            items.forEach(modulo => {
+                if (modulo.tipo === 'group') {
+                    groupCounter++;
+                    groupIndexMap[modulo.cod_mod] = groupCounter;
+                    childCountMap[modulo.cod_mod] = 0;
+                } else if (modulo.tipo === 'item' && modulo.parent_cod) {
+                    if (!childCountMap[modulo.parent_cod]) {
+                        childCountMap[modulo.parent_cod] = 0;
+                    }
+                    childCountMap[modulo.parent_cod]++;
+                }
+            });
+
+            // Contadores para resetear en cada grupo
+            let currentGroupIndex = 0;
+            const groupChildCounter = {};
+
+            items.forEach((modulo, index) => {
+                // Calcular nivel visual
+                let displayNivel = '';
+                let depth = 1;
+                
+                if (modulo.tipo === 'group') {
+                    currentGroupIndex++;
+                    displayNivel = currentGroupIndex.toString();
+                    groupChildCounter[modulo.cod_mod] = 0;
+                    depth = 1;
+                } else if (modulo.tipo === 'item' && modulo.parent_cod) {
+                    const parentIndex = groupIndexMap[modulo.parent_cod];
+                    if (!groupChildCounter[modulo.parent_cod]) {
+                        groupChildCounter[modulo.parent_cod] = 0;
+                    }
+                    groupChildCounter[modulo.parent_cod]++;
+                    displayNivel = `${parentIndex}.${groupChildCounter[modulo.parent_cod]}`;
+                    depth = 2;
+                } else {
+                    displayNivel = '-';
+                    depth = 1;
+                }
+
+                const row = document.createElement('tr');
+                row.dataset.codMod = modulo.cod_mod || '';
+                row.dataset.parentCod = modulo.parent_cod || '';
+                row.dataset.tipo = modulo.tipo || '';
+
+                // Nivel
+                const nivelCell = document.createElement('td');
+                nivelCell.className = 'px-4 py-3';
+                const nivelPill = document.createElement('span');
+                nivelPill.className = 'nivel-pill';
+                nivelPill.textContent = displayNivel;
+                nivelCell.appendChild(nivelPill);
+                row.appendChild(nivelCell);
+
+                // Modulo (nombre) - Eliminar prefijo numérico y agregar número calculado
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 py-3';
+                const rowName = document.createElement('div');
+                rowName.className = `row-name depth-${depth}`;
+                const dot = document.createElement('span');
+                dot.className = 'depth-dot';
+                const nameText = document.createElement('span');
+                nameText.className = 'text-gray-800 font-medium';
+                
+                // Eliminar prefijo numérico del nombre original (ej: "1. ", "2. ", "1.1. ")
+                let cleanName = (modulo.nom_mod || 'Sin nombre').replace(/^\d+(\.\d+)*\.\s*/, '');
+                nameText.textContent = `${displayNivel}. ${cleanName}`;
+                
+                rowName.appendChild(dot);
+                rowName.appendChild(nameText);
+                nameCell.appendChild(rowName);
+                row.appendChild(nameCell);
+
+                // Programa
+                const programaCell = document.createElement('td');
+                programaCell.className = 'px-4 py-3';
+                const programaBadge = document.createElement('span');
+                programaBadge.className = 'px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium';
+                programaBadge.textContent = modulo.programa || 'N/A';
+                programaCell.appendChild(programaBadge);
+                row.appendChild(programaCell);
+
+                // cod_mod
+                const codModCell = document.createElement('td');
+                codModCell.className = 'px-4 py-3';
+                codModCell.textContent = modulo.cod_mod || '-';
+                row.appendChild(codModCell);
+
+                // tipo
+                const tipoCell = document.createElement('td');
+                tipoCell.className = 'px-4 py-3';
+                tipoCell.textContent = modulo.tipo || '-';
+                row.appendChild(tipoCell);
+
+                // parent_cod
+                const parentCodCell = document.createElement('td');
+                parentCodCell.className = 'px-4 py-3';
+                parentCodCell.textContent = modulo.parent_cod || '-';
+                row.appendChild(parentCodCell);
+
+                // label_short
+                const labelShortCell = document.createElement('td');
+                labelShortCell.className = 'px-4 py-3';
+                labelShortCell.innerHTML = modulo.label_short || '-';
+                row.appendChild(labelShortCell);
+
+                // icono (oculto)
+                // url (oculto)
+
+                // tipo_param
+                const tipoParamCell = document.createElement('td');
+                tipoParamCell.className = 'px-4 py-3';
+                tipoParamCell.textContent = modulo.tipo_param || '-';
+                row.appendChild(tipoParamCell);
+
+                // titulo
+                const tituloCell = document.createElement('td');
+                tituloCell.className = 'px-4 py-3';
+                tituloCell.textContent = modulo.titulo || '-';
+                row.appendChild(tituloCell);
+
+                // orden
+                const ordenCell = document.createElement('td');
+                ordenCell.className = 'px-4 py-3';
+                ordenCell.textContent = modulo.orden || '-';
+                row.appendChild(ordenCell);
+
+                // Mover (botones)
+                const orderCell = document.createElement('td');
+                orderCell.className = 'px-4 py-3 text-center';
+                const upBtn = document.createElement('button');
+                upBtn.className = 'order-btn mr-2';
+                upBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                upBtn.disabled = index === 0;
+                upBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    moverDashboard(modulo.cod_mod, 'up');
+                });
+                const downBtn = document.createElement('button');
+                downBtn.className = 'order-btn';
+                downBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                downBtn.disabled = index === items.length - 1;
+                downBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    moverDashboard(modulo.cod_mod, 'down');
+                });
+                orderCell.appendChild(upBtn);
+                orderCell.appendChild(downBtn);
+                row.appendChild(orderCell);
+
+                // Opciones (botones de editar y eliminar)
+                const opcionesCell = document.createElement('td');
+                opcionesCell.className = 'px-4 py-3 text-center';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'text-blue-600 hover:text-blue-800 mx-1';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.title = 'Editar';
+                editBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    editarModulo(modulo);
+                });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-600 hover:text-red-800 mx-1';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteBtn.title = 'Eliminar';
+                deleteBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    eliminarModulo(modulo.cod_mod, modulo.nom_mod);
+                });
+                
+                opcionesCell.appendChild(editBtn);
+                opcionesCell.appendChild(deleteBtn);
+                row.appendChild(opcionesCell);
+
+                if (modulo.tipo === 'group') {
+                    row.dataset.collapsed = 'true';
+                    row.style.cursor = 'pointer';
+                    row.addEventListener('click', (event) => {
+                        if (event.target.closest('button')) {
+                            return;
+                        }
+
+                        const isCollapsed = row.dataset.collapsed === 'true';
+                        row.dataset.collapsed = (!isCollapsed).toString();
+
+                        const selector = `tr[data-parent-cod="${modulo.cod_mod}"]`;
+                        document.querySelectorAll(selector).forEach((childRow) => {
+                            childRow.style.display = isCollapsed ? '' : 'none';
+                        });
+                    });
+                }
+
+                if (modulo.parent_cod) {
+                    row.style.display = 'none';
+                }
+
+                dashboardBody.appendChild(row);
+            });
+        };
+
+        const aplicarFiltroDashboard = () => {
+            const searchValue = dashboardSearch.value.trim().toLowerCase();
+            const programaValue = dashboardProgramaActual;
+            
+            let filtered = allDashboardModulos;
+            
+            // Filtrar por programa si se seleccionó uno
+            if (programaValue && programaValue !== '') {
+                filtered = filtered.filter((modulo) => modulo.programa === programaValue);
+            }
+            
+            // Filtrar por búsqueda de texto
+            if (searchValue) {
+                filtered = filtered.filter((modulo) => {
+                    const nombre = (modulo.nom_mod || '').toLowerCase();
+                    const codigo = (modulo.cod_mod || '').toLowerCase();
+                    const titulo = (modulo.titulo || '').toLowerCase();
+                    return nombre.includes(searchValue) || codigo.includes(searchValue) || titulo.includes(searchValue);
+                });
+            }
+
+            if (!filtered.length) {
+                const mensaje = programaValue 
+                    ? 'No hay módulos para el programa seleccionado.'
+                    : 'No hay modulos que coincidan con la busqueda.';
+                renderDashboardEmpty(mensaje);
+                return;
+            }
+
+            renderDashboardRows(filtered);
+        };
+
+        const aplicarFiltroNombre = () => {
+            const searchValue = buscarNombre.value.trim().toLowerCase();
+            const filtered = allModulos.filter((modulo) => {
+                const nombre = (modulo.nom_mod || '').toLowerCase();
+                return nombre.includes(searchValue);
+            });
+
+            totalModulos.textContent = String(filtered.length);
+
+            if (!filtered.length) {
+                renderEmpty('No hay modulos que coincidan con la busqueda.');
+                return;
+            }
+
+            renderRows(filtered);
+        };
+
+        const cargarModulos = async () => {
+            try {
+                totalModulos.textContent = '...';
+                stateMessage.classList.add('hidden');
+
+                const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.MODULOS.LISTAR}`;
+            const response = await Http.get(url, { programa: programaSelect.value });
+
+                if (!response || !response.success) {
+                    renderEmpty('No se pudo cargar la jerarquia de modulos.');
+                    totalModulos.textContent = '0';
+                    return;
+                }
+
+                allModulos = response.data || [];
+                totalModulos.textContent = String(allModulos.length);
+
+                if (!allModulos.length) {
+                    renderEmpty('No hay modulos para mostrar.');
+                    return;
+                }
+
+                renderRows(allModulos);
+            } catch (error) {
+                renderEmpty('Error al conectar con el servidor.');
+                totalModulos.textContent = '0';
+            }
+        };
+
+        const cargarProgramas = async () => {
+            try {
+                const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.MODULOS.PROGRAMAS}`;
+                const response = await Http.get(url);
+
+                if (!response || !response.success) {
+                    return;
+                }
+
+                const programas = response.data || [];
+                programaSelect.innerHTML = '';
+                
+                // Guardar programas para el dashboard
+                allDashboardProgramas = programas;
+                
+                // Cargar en select de módulos oculto
+                programas.forEach((item) => {
+                    const option = document.createElement('option');
+                    option.value = item.programa;
+                    option.textContent = item.programa;
+                    programaSelect.appendChild(option);
+                });
+
+                if (programaSelect.options.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = 'produccion';
+                    option.textContent = 'produccion';
+                    programaSelect.appendChild(option);
+                }
+                
+                // Cargar en select de dashboard
+                cargarProgramasEnDashboard();
+            } catch (error) {
+                if (programaSelect.options.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = 'produccion';
+                    option.textContent = 'produccion';
+                    programaSelect.appendChild(option);
+                }
+            }
+        };
+        
+        const cargarProgramasEnDashboard = () => {
+            if (!allDashboardProgramas || allDashboardProgramas.length === 0) return;
+            
+            dashboardProgramaSelect.innerHTML = '<option value="">Todos los programas</option>';
+            
+            allDashboardProgramas.forEach((item) => {
+                const option = document.createElement('option');
+                option.value = item.programa;
+                option.textContent = item.programa;
+                dashboardProgramaSelect.appendChild(option);
+            });
+        };
+
+        const slugify = (value) => {
+            return value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        };
+
+        const parseNivelFromText = (text) => {
+            const match = text.match(/^\s*(\d+(?:\.\d+)*)\.?\s*/);
+            if (!match) {
+                return { levels: [], name: text.trim() };
+            }
+
+            const levels = match[1].split('.').map((value) => parseInt(value, 10));
+            const name = text.replace(match[0], '').trim();
+
+            return { levels, name };
+        };
+
+        const extractOnClickData = (el) => {
+            const handler = el.getAttribute('onclick') || '';
+            const match = handler.match(/activateAndLoad\([^,]+,\s*'([^']+)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'/i);
+            if (!match) {
+                return { url: '', tipo: '', titulo: '' };
+            }
+
+            return {
+                url: match[1],
+                tipo: match[2],
+                titulo: match[3]
+            };
+        };
+
+        const getDashboardOrderFromIndex = () => {
+            try {
+                if (!window.parent || !window.parent.document) {
+                    return [];
+                }
+
+                const parentDoc = window.parent.document;
+                const groups = parentDoc.querySelectorAll('.menu-group');
+                const items = [];
+
+                groups.forEach((group) => {
+                    const groupButton = group.querySelector('.menu-item');
+                    if (groupButton) {
+                        const fullLabel = groupButton.querySelector('.text-full');
+                        const shortLabel = groupButton.querySelector('.text-short');
+                        const iconEl = groupButton.querySelector('span i');
+                        const text = fullLabel ? fullLabel.textContent : '';
+                        const parsed = parseNivelFromText(text);
+                        const submenu = group.querySelector('.submenu');
+                        const codMod = submenu && submenu.id ? submenu.id : `group:${slugify(parsed.name || text)}`;
+
+                        items.push({
+                            cod_mod: codMod,
+                            tipo: 'group',
+                            parent_cod: null,
+                            nom_mod: parsed.name || text.trim(),
+                            label_short: shortLabel ? shortLabel.innerHTML.trim() : null,
+                            icono: iconEl ? iconEl.className : null,
+                            url: null,
+                            tipo_param: null,
+                            titulo: null,
+                            permiso: null,
+                            nivel0: parsed.levels[0] ?? null,
+                            nivel1: parsed.levels[1] ?? null,
+                            nivel2: parsed.levels[2] ?? null,
+                            nivel3: parsed.levels[3] ?? null
+                        });
+                    }
+
+                    const links = group.querySelectorAll('.submenu .menu-link');
+                    links.forEach((link) => {
+                        const fullLabel = link.querySelector('.text-full');
+                        const shortLabel = link.querySelector('.text-short');
+                        const iconEl = link.querySelector('i');
+                        const text = fullLabel ? fullLabel.textContent : '';
+                        const parsed = parseNivelFromText(text);
+                        const data = extractOnClickData(link);
+                        const codMod = data.url || `item:${slugify(parsed.name || text)}`;
+
+                        items.push({
+                            cod_mod: codMod,
+                            tipo: 'item',
+                            parent_cod: group.querySelector('.submenu')?.id || null,
+                            nom_mod: parsed.name || text.trim(),
+                            label_short: shortLabel ? shortLabel.innerHTML.trim() : null,
+                            icono: iconEl ? iconEl.className : null,
+                            url: data.url || null,
+                            tipo_param: data.tipo || null,
+                            titulo: data.titulo || null,
+                            nivel0: parsed.levels[0] ?? null,
+                            nivel1: parsed.levels[1] ?? null,
+                            nivel2: parsed.levels[2] ?? null,
+                            nivel3: parsed.levels[3] ?? null
+                        });
+                    });
+                });
+
+                return items;
+            } catch (error) {
+                return [];
+            }
+        };
+
+        const syncDashboardFromIndex = async () => {
+            const items = getDashboardOrderFromIndex();
+            if (!items.length) {
+                return false;
+            }
+
+            const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.SYNC}`;
+            const programa = dashboardProgramaActual || 'Planta de Incubacion';
+            const response = await Http.post(url, {
+                programa: programa,
+                items: items
+            });
+
+            return response && response.success;
+        };
+
+        const cargarDashboardModulos = async () => {
+            try {
+                const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.LISTAR}`;
+                // Siempre cargar todos los módulos, el filtro se aplica después
+                const response = await Http.get(url, {});
+
+                if (response && response.success && response.data && response.data.length) {
+                    allDashboardModulos = response.data;
+                    aplicarFiltroDashboard();
+                    return;
+                }
+
+                const synced = await syncDashboardFromIndex();
+                if (!synced) {
+                    renderDashboardEmpty('No se pudo sincronizar desde el menu del dashboard.');
+                    return;
+                }
+
+                const refreshed = await Http.get(url, {});
+                if (refreshed && refreshed.success && refreshed.data && refreshed.data.length) {
+                    allDashboardModulos = refreshed.data;
+                    aplicarFiltroDashboard();
+                } else {
+                    renderDashboardEmpty('No hay modulos del dashboard para mostrar.');
+                }
+            } catch (error) {
+                renderDashboardEmpty('Error al cargar el orden del dashboard.');
+            }
+        };
+
+        const moverDashboard = async (codMod, direction) => {
+            try {
+                const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.ORDENAR}`;
+                const programa = dashboardProgramaActual || 'Planta de Incubacion';
+                await Http.patch(url, {
+                    programa: programa,
+                    cod_mod: codMod,
+                    direction: direction
+                });
+
+                await cargarDashboardModulos();
+            } catch (error) {
+                renderDashboardEmpty('No se pudo actualizar el orden.');
+            }
+        };
+
+        let modalModulo = null;
+
+        // Función para obtener sugerencias de autocompletado
+        const getSugerencias = (tipo) => {
+            const existentes = allDashboardModulos || [];
+            
+            if (tipo === 'group') {
+                // Contar grupos existentes
+                const grupos = existentes.filter(m => m.tipo === 'group');
+                const ultimoGrupo = grupos.length > 0 ? Math.max(...grupos.map(g => {
+                    const match = g.cod_mod.match(/grp-(\d+)/);
+                    return match ? parseInt(match[1]) : 0;
+                })) : 0;
+                const siguienteNumero = ultimoGrupo + 1;
+                
+                return {
+                    cod_mod: `grp-${siguienteNumero}`,
+                    nom_mod: `${siguienteNumero}. `,
+                    tipo: 'group',
+                    parent_cod: '',
+                    label_short: 'Gest.<br>Objetivos',
+                    icono: 'fas fa-seedling',
+                    url: '',
+                    tipo_param: '',
+                    titulo: '',
+                    nivel0: siguienteNumero
+                };
+            } else {
+                // Para items, buscar el último item de cada grupo
+                const items = existentes.filter(m => m.tipo === 'item');
+                
+                return {
+                    cod_mod: 'item-',
+                    nom_mod: '',
+                    tipo: 'item',
+                    parent_cod: '',
+                    label_short: 'Panel',
+                    icono: 'fas fa-chart-pie',
+                    url: 'pages/trabajando.html',
+                    tipo_param: 'trabajando',
+                    titulo: 'Trabajando para usted',
+                    nivel0: '',
+                    nivel1: ''
+                };
+            }
+        };
+
+        // Función para actualizar campos según el tipo
+        const actualizarCamposPorTipo = (tipo) => {
+            const sugerencias = getSugerencias(tipo);
+            
+            const fields = {
+                'cod_mod': sugerencias.cod_mod,
+                'nom_mod': sugerencias.nom_mod,
+                'parent_cod': sugerencias.parent_cod,
+                'label_short': sugerencias.label_short,
+                'icono': sugerencias.icono,
+                'url': sugerencias.url,
+                'tipo_param': sugerencias.tipo_param,
+                'titulo': sugerencias.titulo
+            };
+            
+            Object.keys(fields).forEach(fieldName => {
+                const input = document.getElementById(fieldName);
+                if (input && fields[fieldName]) {
+                    input.value = fields[fieldName];
+                }
+            });
+        };
+
+        // Función para crear nuevo módulo
+        const crearModulo = async () => {
+            const sugerencias = getSugerencias('group');
+            
+            // Generar opciones de programa para el select
+            const programasOptions = allDashboardProgramas.map(p => 
+                `<option value="${p.programa}">${p.programa}</option>`
+            ).join('');
+            
+            const formContent = `
+                <form id="moduloForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-layer-group text-purple-600 mr-2"></i>
+                                Programa *
+                            </label>
+                            <select id="programa_modulo" name="programa" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                                <option value="">Seleccione un programa</option>
+                                ${programasOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-code text-purple-600 mr-2"></i>
+                                Código del Módulo *
+                            </label>
+                            <input id="cod_mod" name="cod_mod" type="text" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Ej: grp-1" value="${sugerencias.cod_mod}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-tag text-purple-600 mr-2"></i>
+                                Nombre *
+                            </label>
+                            <input id="nom_mod" name="nom_mod" type="text" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Nombre del módulo" value="${sugerencias.nom_mod}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-layer-group text-purple-600 mr-2"></i>
+                                Tipo *
+                            </label>
+                            <select id="tipo" name="tipo" required onchange="actualizarCamposPorTipo(this.value)"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                                <option value="group" selected>Group</option>
+                                <option value="item">Item</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-sitemap text-purple-600 mr-2"></i>
+                                Código Padre
+                            </label>
+                            <select id="parent_cod" name="parent_cod"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                                <option value="">Sin padre (es un grupo)</option>
+                                ${allDashboardModulos.filter(m => m.tipo === 'group').map(g => {
+                                    const numero = g.cod_mod.replace('grp-', '');
+                                    const nombre = (g.nom_mod || '').replace(/^\\d+\\.\\s*/, '');
+                                    return `<option value="${g.cod_mod}">[${numero}] ${nombre}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-bookmark text-purple-600 mr-2"></i>
+                                Label Short
+                            </label>
+                            <input id="label_short" name="label_short" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Etiqueta corta" value="${sugerencias.label_short}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-icons text-purple-600 mr-2"></i>
+                                Ícono
+                            </label>
+                            <input id="icono" name="icono" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Ej: fas fa-home" value="${sugerencias.icono}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-link text-purple-600 mr-2"></i>
+                                URL
+                            </label>
+                            <input id="url" name="url" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="URL del módulo" value="${sugerencias.url}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-cog text-purple-600 mr-2"></i>
+                                Tipo Parámetro
+                            </label>
+                            <input id="tipo_param" name="tipo_param" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Tipo de parámetro" value="${sugerencias.tipo_param}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-heading text-purple-600 mr-2"></i>
+                                Título
+                            </label>
+                            <input id="titulo" name="titulo" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Título" value="${sugerencias.titulo}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-shield-alt text-purple-600 mr-2"></i>
+                                Titulo
+                            </label>
+                            <input id="titulo" name="titulo" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Titulo del módulo" value="${sugerencias.titulo}">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                        <button type="button" id="btnCancelarModal"
+                            class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition">
+                            <i class="fas fa-save mr-2"></i>
+                            Crear
+                        </button>
+                    </div>
+                </form>
+            `;
+
+            modalModulo = new Modal({
+                title: '<i class="fas fa-plus-circle mr-2"></i> Crear Nuevo Módulo <span class="text-sm font-normal">(campos autocompletados)</span>',
+                content: formContent,
+                size: 'large',
+                onClose: () => {
+                    modalModulo = null;
+                }
+            });
+
+            modalModulo.open();
+
+            // Hacer la función de actualización global para el onchange
+            window.actualizarCamposPorTipo = actualizarCamposPorTipo;
+
+            // Eventos del formulario
+            const form = document.getElementById('moduloForm');
+            const btnCancelar = document.getElementById('btnCancelarModal');
+            const tipoSelect = document.getElementById('tipo');
+            const parentSelect = document.getElementById('parent_cod');
+
+            // Actualizar campos cuando cambia el tipo
+            if (tipoSelect) {
+                tipoSelect.addEventListener('change', (e) => {
+                    actualizarCamposPorTipo(e.target.value);
+                });
+            }
+
+            // Actualizar código de item cuando se selecciona un grupo padre
+            if (parentSelect) {
+                parentSelect.addEventListener('change', (e) => {
+                    const parentCod = e.target.value;
+                    const codModInput = document.getElementById('cod_mod');
+                    const nomModInput = document.getElementById('nom_mod');
+                    
+                    if (parentCod && codModInput) {
+                        // Extraer el número del grupo padre (ej: grp-3 -> 3)
+                        const match = parentCod.match(/grp-(\\d+)/);
+                        if (match) {
+                            const grupoNum = match[1];
+                            
+                            // Contar items existentes de este grupo
+                            const itemsDelGrupo = allDashboardModulos.filter(m => 
+                                m.tipo === 'item' && m.parent_cod === parentCod
+                            );
+                            const siguienteItem = itemsDelGrupo.length + 1;
+                            
+                            // Generar código automático
+                            codModInput.value = `item-${grupoNum}-${siguienteItem}`;
+                            
+                            // Sugerir nombre con numeración
+                            if (nomModInput && !nomModInput.value) {
+                                nomModInput.value = `${grupoNum}.${siguienteItem}. `;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (btnCancelar) {
+                btnCancelar.addEventListener('click', () => {
+                    if (modalModulo) modalModulo.close();
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const programaSeleccionado = document.getElementById('programa_modulo').value;
+                    
+                    if (!programaSeleccionado) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Programa requerido',
+                            text: 'Por favor seleccione un programa para el módulo'
+                        });
+                        return;
+                    }
+                    
+                    const formData = {
+                        cod_mod: document.getElementById('cod_mod').value,
+                        nom_mod: document.getElementById('nom_mod').value,
+                        tipo: document.getElementById('tipo').value,
+                        parent_cod: document.getElementById('parent_cod').value || null,
+                        label_short: document.getElementById('label_short').value || null,
+                        icono: document.getElementById('icono').value || null,
+                        url: document.getElementById('url').value || null,
+                        tipo_param: document.getElementById('tipo_param').value || null,
+                        titulo: document.getElementById('titulo').value || null,
+                        programa: programaSeleccionado
+                    };
+
+                    try {
+                        const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.CREAR}`;
+                        const response = await Http.post(url, formData);
+
+                        if (response && response.success) {
+                            if (modalModulo) modalModulo.close();
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Éxito',
+                                text: 'Módulo creado correctamente',
+                                confirmButtonColor: '#10b981',
+                                timer: 2000
+                            });
+                            await cargarDashboardModulos();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'No se pudo crear el módulo'
+                            });
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al crear el módulo: ' + error.message
+                        });
+                    }
+                });
+            }
+        };
+
+        // Función para editar módulo
+        const editarModulo = async (modulo) => {
+            // Función helper para valores seguros
+            const val = (v) => v !== null && v !== undefined ? v : '';
+            
+            const formContent = `
+                <form id="moduloEditForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-code text-purple-600 mr-2"></i>
+                                Código del Módulo *
+                            </label>
+                            <input id="edit_cod_mod" name="cod_mod" type="text" readonly
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                                value="${val(modulo.cod_mod)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-tag text-purple-600 mr-2"></i>
+                                Nombre *
+                            </label>
+                            <input id="edit_nom_mod" name="nom_mod" type="text" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.nom_mod)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-layer-group text-purple-600 mr-2"></i>
+                                Tipo *
+                            </label>
+                            <select id="edit_tipo" name="tipo" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                                <option value="group" ${modulo.tipo === 'group' ? 'selected' : ''}>Group</option>
+                                <option value="item" ${modulo.tipo === 'item' ? 'selected' : ''}>Item</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-sitemap text-purple-600 mr-2"></i>
+                                Código Padre
+                            </label>
+                            <input id="edit_parent_cod" name="parent_cod" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.parent_cod)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-bookmark text-purple-600 mr-2"></i>
+                                Label Short
+                            </label>
+                            <input id="edit_label_short" name="label_short" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.label_short)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-icons text-purple-600 mr-2"></i>
+                                Ícono
+                            </label>
+                            <input id="edit_icono" name="icono" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.icono)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-link text-purple-600 mr-2"></i>
+                                URL
+                            </label>
+                            <input id="edit_url" name="url" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.url)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-cog text-purple-600 mr-2"></i>
+                                Tipo Parámetro
+                            </label>
+                            <input id="edit_tipo_param" name="tipo_param" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.tipo_param)}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">
+                                <i class="fas fa-heading text-purple-600 mr-2"></i>
+                                Título
+                            </label>
+                            <input id="edit_titulo" name="titulo" type="text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                value="${val(modulo.titulo)}">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                        <button type="button" id="btnCancelarEditModal"
+                            class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition">
+                            <i class="fas fa-save mr-2"></i>
+                            Actualizar
+                        </button>
+                    </div>
+                </form>
+            `;
+
+            modalModulo = new Modal({
+                title: '<i class="fas fa-edit mr-2"></i> Editar Módulo',
+                content: formContent,
+                size: 'large',
+                onClose: () => {
+                    modalModulo = null;
+                }
+            });
+
+            modalModulo.open();
+
+            // Eventos del formulario
+            const form = document.getElementById('moduloEditForm');
+            const btnCancelar = document.getElementById('btnCancelarEditModal');
+
+            if (btnCancelar) {
+                btnCancelar.addEventListener('click', () => {
+                    if (modalModulo) modalModulo.close();
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const formData = {
+                        cod_mod: modulo.cod_mod,
+                        nom_mod: document.getElementById('edit_nom_mod').value,
+                        tipo: document.getElementById('edit_tipo').value,
+                        parent_cod: document.getElementById('edit_parent_cod').value || null,
+                        label_short: document.getElementById('edit_label_short').value || null,
+                        icono: document.getElementById('edit_icono').value || null,
+                        url: document.getElementById('edit_url').value || null,
+                        tipo_param: document.getElementById('edit_tipo_param').value || null,
+                        titulo: document.getElementById('edit_titulo').value || null,
+                        programa: dashboardProgramaActual || 'Planta de Incubacion'
+                    };
+
+                    try {
+                        const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.ACTUALIZAR}`;
+                        const response = await Http.put(url, formData);
+
+                        if (response && response.success) {
+                            if (modalModulo) modalModulo.close();
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Éxito',
+                                text: 'Módulo actualizado correctamente',
+                                confirmButtonColor: '#10b981',
+                                timer: 2000
+                            });
+                            await cargarDashboardModulos();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'No se pudo actualizar el módulo'
+                            });
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al actualizar el módulo: ' + error.message
+                        });
+                    }
+                });
+            }
+        };
+
+        // Función para eliminar módulo
+        const eliminarModulo = async (codMod, nomMod) => {
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                html: `Se eliminará el módulo: <strong>${nomMod}</strong>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.ELIMINAR}`;
+                    const response = await Http.delete(url, {
+                        cod_mod: codMod,
+                        programa: dashboardProgramaActual || 'Planta de Incubacion'
+                    });
+                    
+                    if (response && response.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: 'Módulo eliminado correctamente',
+                            confirmButtonColor: '#10b981'
+                        });
+                        await cargarDashboardModulos();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'No se pudo eliminar el módulo'
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al eliminar el módulo'
+                    });
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarProgramas();
+            await cargarModulos();
+            await cargarDashboardModulos();
+            
+            // Event listeners para botones de acción
+            const btnNuevoModulo = document.getElementById('btnNuevoModulo');
+            const btnRefreshDashboard = document.getElementById('btnRefreshDashboard');
+            
+            if (btnNuevoModulo) {
+                btnNuevoModulo.addEventListener('click', crearModulo);
+            }
+            
+            if (btnRefreshDashboard) {
+                btnRefreshDashboard.addEventListener('click', async () => {
+                    await cargarDashboardModulos();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Actualizado',
+                        text: 'Dashboard actualizado correctamente',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                });
+            }
+        });
+        
+        programaSelect.addEventListener('change', cargarModulos);
+        buscarNombre.addEventListener('input', aplicarFiltroNombre);
+        dashboardSearch.addEventListener('input', aplicarFiltroDashboard);
+        
+        // Event listener para el filtro de programa del dashboard
+        dashboardProgramaSelect.addEventListener('change', (e) => {
+            dashboardProgramaActual = e.target.value;
+            aplicarFiltroDashboard();
+        });
+        
+        // Botón limpiar filtros
+        const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+        if (btnLimpiarFiltros) {
+            btnLimpiarFiltros.addEventListener('click', () => {
+                dashboardProgramaSelect.value = '';
+                dashboardSearch.value = '';
+                dashboardProgramaActual = '';
+                aplicarFiltroDashboard();
+            });
+        }
+    </script>
+</body>
+
+</html>
+
+

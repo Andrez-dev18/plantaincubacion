@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios del Sistema</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+        .container-fluid { padding: 20px; }
+        .table-card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08); overflow: hidden;
+        }
+        .table-card-header {
+            background: linear-gradient(135deg, #6f42c1, #4a148c);
+            color: white; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .th-title { font-size: 14px; font-weight: 600; }
+        .table-card-body { padding: 16px 20px; }
+        table.dataTable thead th {
+            background: #6f42c1 !important; color: white !important;
+            font-size: 12.5px; font-weight: 600; padding: 9px 10px;
+        }
+        table.dataTable tbody td { font-size: 13px; padding: 7px 10px; vertical-align: middle; }
+        .action-btn { padding: 3px 8px; font-size: 12px; border-radius: 5px; }
+        .badge-active   { background: #198754; color: white; font-size: 12px; padding: 4px 8px; border-radius: 5px; }
+        .badge-inactive { background: #6c757d; color: white; font-size: 12px; padding: 4px 8px; border-radius: 5px; }
+        .form-label { font-size: 12.5px; font-weight: 600; color: #495057; margin-bottom: 3px; }
+        .form-control, .form-select { font-size: 13px; border-radius: 6px; }
+        .form-control:focus { border-color: #6f42c1; box-shadow: 0 0 0 3px rgba(111,66,193,.15); }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+
+    <div class="mb-3">
+        <button class="btn btn-primary" onclick="abrirModalCrear()">
+            <i class="fas fa-user-plus me-1"></i> Nuevo Usuario
+        </button>
+    </div>
+
+    <div class="table-card">
+        <div class="table-card-header">
+            <span class="th-title"><i class="fas fa-users me-2"></i>Usuarios registrados</span>
+            <span id="lblTotal" class="small opacity-75">Cargando...</span>
+        </div>
+        <div class="table-card-body">
+            <div class="table-responsive">
+                <table id="tablaUsuarios" class="table table-hover table-bordered w-100">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Roles</th>
+                            <th>Estado</th>
+                            <th>Último acceso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL CREAR ─────────────────────────────────────────── -->
+<div class="modal fade" id="modalCrear" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#6f42c1,#4a148c);color:white">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Nuevo Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Código de usuario <span class="text-danger">*</span></label>
+                    <input type="text" id="crCodigo" class="form-control" placeholder="Ej.: USR001"
+                           maxlength="20" autocomplete="off">
+                    <div id="crCodigoError" class="text-danger small mt-1" style="display:none"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nombre completo <span class="text-danger">*</span></label>
+                    <input type="text" id="crNombre" class="form-control" placeholder="Apellidos y nombres"
+                           maxlength="120" autocomplete="off">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Contraseña <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="crPassword" class="form-control"
+                               placeholder="Mínimo 4 caracteres" autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('crPassword',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirmar contraseña <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="crPassword2" class="form-control"
+                               placeholder="Repetir contraseña" autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('crPassword2',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarCrear" onclick="guardarCrear()">
+                    <i class="fas fa-save me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL EDITAR ────────────────────────────────────────── -->
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#0d6efd,#0a3e8a);color:white">
+                <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Editar Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edCodigo">
+                <div class="mb-3">
+                    <label class="form-label">Código</label>
+                    <input type="text" id="edCodigoDisplay" class="form-control bg-light" readonly>
+                    <div class="text-muted small mt-1">El código no puede modificarse.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nombre completo <span class="text-danger">*</span></label>
+                    <input type="text" id="edNombre" class="form-control" maxlength="120" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarEditar()">
+                    <i class="fas fa-save me-1"></i>Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL CONTRASEÑA ────────────────────────────────────── -->
+<div class="modal fade" id="modalPassword" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14,#a0470c);color:white">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i>Cambiar Contraseña</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pwdCodigo">
+                <p class="mb-3">Cambiando contraseña de: <strong id="pwdNombre">—</strong></p>
+                <div class="mb-3">
+                    <label class="form-label">Nueva contraseña <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="pwdNueva" class="form-control"
+                               placeholder="Mínimo 4 caracteres" autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('pwdNueva',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirmar nueva contraseña <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="pwdNueva2" class="form-control"
+                               placeholder="Repetir contraseña" autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('pwdNueva2',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning text-white" onclick="guardarPassword()">
+                    <i class="fas fa-key me-1"></i>Actualizar contraseña
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="../js/config/config.js"></script>
+
+<script>
+const BASE = AppConfig.API.BASE_URL;
+const EP   = AppConfig.API.ENDPOINTS.USUARIO_SISTEMA;
+
+let tabla = null;
+
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => { cargarTabla(); });
+
+async function cargarTabla() {
+    try {
+        const res  = await fetch(`${BASE}${EP.LISTAR}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'Error al cargar.');
+
+        const datos = json.data || [];
+        document.getElementById('lblTotal').textContent =
+            `${datos.length} usuario${datos.length !== 1 ? 's' : ''}`;
+
+        if (tabla) { tabla.destroy(); tabla = null; }
+
+        tabla = $('#tablaUsuarios').DataTable({
+            data: datos,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json' },
+            pageLength: 25,
+            order: [[2, 'asc']],
+            columns: [
+                { data: null, render: (d,t,r,m) => m.row+1, orderable:false, searchable:false, width:'40px', className:'text-center' },
+                { data: 'codigo', width: '110px' },
+                { data: 'nombre' },
+                {
+                    data: 'nombres_roles',
+                    width: '160px',
+                    render: v => (Array.isArray(v) && v.length)
+                        ? v.map(r => `<span class="badge bg-primary me-1" style="font-size:11px">${r}</span>`).join('')
+                        : '<span class="text-muted small">Sin rol</span>'
+                },
+                {
+                    data: 'activo', width: '90px', className: 'text-center',
+                    render: v => parseInt(v) === 1
+                        ? '<span class="badge-active"><i class="fas fa-circle-check me-1"></i>Activo</span>'
+                        : '<span class="badge-inactive"><i class="fas fa-circle-xmark me-1"></i>Inactivo</span>'
+                },
+                {
+                    data: 'ultimo_acceso', width: '140px', className: 'text-center',
+                    render: v => v ? v.substring(0,16).replace('T',' ') : '—'
+                },
+                {
+                    data: null, orderable:false, searchable:false, width:'130px', className:'text-center',
+                    render: (d,t,r) => `
+                        <button class="btn btn-sm btn-outline-primary action-btn me-1"
+                                title="Editar" onclick='abrirModalEditar(${JSON.stringify(r)})'>
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning action-btn me-1"
+                                title="Cambiar contraseña" onclick='abrirModalPassword(${JSON.stringify(r)})'>
+                            <i class="fas fa-key"></i>
+                        </button>
+                        ${parseInt(r.activo) === 1
+                            ? `<button class="btn btn-sm btn-outline-danger action-btn"
+                                       title="Desactivar" onclick='toggleActivo("${r.codigo}", 0)'>
+                                   <i class="fas fa-user-slash"></i>
+                               </button>`
+                            : `<button class="btn btn-sm btn-outline-success action-btn"
+                                       title="Activar" onclick='toggleActivo("${r.codigo}", 1)'>
+                                   <i class="fas fa-user-check"></i>
+                               </button>`
+                        }`
+                }
+            ]
+        });
+    } catch (e) {
+        console.error(e);
+        Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'No se pudo cargar la lista.' });
+    }
+}
+
+// ── CREAR ────────────────────────────────────────────────────
+function abrirModalCrear() {
+    ['crCodigo','crNombre','crPassword','crPassword2'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('crCodigoError').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('modalCrear')).show();
+    setTimeout(() => document.getElementById('crCodigo').focus(), 400);
+}
+
+async function guardarCrear() {
+    const codigo   = document.getElementById('crCodigo').value.trim();
+    const nombre   = document.getElementById('crNombre').value.trim();
+    const pwd1     = document.getElementById('crPassword').value;
+    const pwd2     = document.getElementById('crPassword2').value;
+    const errDiv   = document.getElementById('crCodigoError');
+    errDiv.style.display = 'none';
+
+    if (!codigo) { errDiv.textContent = 'El código es obligatorio.'; errDiv.style.display = 'block'; return; }
+    if (!nombre) { Swal.fire({icon:'warning',text:'El nombre es obligatorio.',timer:2000,showConfirmButton:false}); return; }
+    if (pwd1.length < 4) { Swal.fire({icon:'warning',text:'La contraseña debe tener al menos 4 caracteres.',timer:2500,showConfirmButton:false}); return; }
+    if (pwd1 !== pwd2) { Swal.fire({icon:'warning',text:'Las contraseñas no coinciden.',timer:2000,showConfirmButton:false}); return; }
+
+    const btn = document.getElementById('btnGuardarCrear');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+
+    try {
+        const res  = await fetch(`${BASE}${EP.CREAR}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, nombre, password: pwd1 })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'No se pudo crear el usuario.');
+
+        bootstrap.Modal.getInstance(document.getElementById('modalCrear')).hide();
+        await cargarTabla();
+        Swal.fire({ icon: 'success', title: '¡Listo!', text: 'Usuario creado correctamente.', timer: 2000, showConfirmButton: false });
+    } catch (e) {
+        if (e.message && e.message.includes('ya está registrado')) {
+            errDiv.textContent = e.message; errDiv.style.display = 'block';
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: e.message });
+        }
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar';
+    }
+}
+
+// ── EDITAR ───────────────────────────────────────────────────
+function abrirModalEditar(row) {
+    document.getElementById('edCodigo').value        = row.codigo;
+    document.getElementById('edCodigoDisplay').value = row.codigo;
+    document.getElementById('edNombre').value        = row.nombre;
+    new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+
+async function guardarEditar() {
+    const codigo = document.getElementById('edCodigo').value;
+    const nombre = document.getElementById('edNombre').value.trim();
+    if (!nombre) { Swal.fire({icon:'warning',text:'El nombre es obligatorio.',timer:2000,showConfirmButton:false}); return; }
+
+    try {
+        const res  = await fetch(`${BASE}${EP.ACTUALIZAR}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, nombre })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'No se pudo actualizar.');
+        bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+        await cargarTabla();
+        Swal.fire({ icon: 'success', text: 'Usuario actualizado.', timer: 2000, showConfirmButton: false });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: e.message });
+    }
+}
+
+// ── CONTRASEÑA ───────────────────────────────────────────────
+function abrirModalPassword(row) {
+    document.getElementById('pwdCodigo').value          = row.codigo;
+    document.getElementById('pwdNombre').textContent    = row.nombre;
+    document.getElementById('pwdNueva').value           = '';
+    document.getElementById('pwdNueva2').value          = '';
+    new bootstrap.Modal(document.getElementById('modalPassword')).show();
+}
+
+async function guardarPassword() {
+    const codigo = document.getElementById('pwdCodigo').value;
+    const pwd1   = document.getElementById('pwdNueva').value;
+    const pwd2   = document.getElementById('pwdNueva2').value;
+
+    if (pwd1.length < 4) { Swal.fire({icon:'warning',text:'La contraseña debe tener al menos 4 caracteres.',timer:2500,showConfirmButton:false}); return; }
+    if (pwd1 !== pwd2) { Swal.fire({icon:'warning',text:'Las contraseñas no coinciden.',timer:2000,showConfirmButton:false}); return; }
+
+    try {
+        const res  = await fetch(`${BASE}${EP.PASSWORD}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, password: pwd1 })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'No se pudo cambiar la contraseña.');
+        bootstrap.Modal.getInstance(document.getElementById('modalPassword')).hide();
+        Swal.fire({ icon: 'success', text: 'Contraseña actualizada correctamente.', timer: 2000, showConfirmButton: false });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: e.message });
+    }
+}
+
+// ── TOGGLE ACTIVO ────────────────────────────────────────────
+async function toggleActivo(codigo, nuevoEstado) {
+    const { isConfirmed } = await Swal.fire({
+        title: nuevoEstado === 1 ? '¿Activar usuario?' : '¿Desactivar usuario?',
+        text: `El usuario quedará ${nuevoEstado === 1 ? 'habilitado' : 'deshabilitado'} para iniciar sesión.`,
+        icon: nuevoEstado === 1 ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonText: nuevoEstado === 1 ? 'Sí, activar' : 'Sí, desactivar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: nuevoEstado === 1 ? '#198754' : '#dc3545',
+    });
+    if (!isConfirmed) return;
+
+    try {
+        const res  = await fetch(`${BASE}${EP.TOGGLE}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, activo: nuevoEstado })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'No se pudo cambiar el estado.');
+        await cargarTabla();
+        Swal.fire({ icon: 'success', text: json.message, timer: 2000, showConfirmButton: false });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: e.message });
+    }
+}
+
+// ── UTILIDADES ───────────────────────────────────────────────
+function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+</body>
+</html>

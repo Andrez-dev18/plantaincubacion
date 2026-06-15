@@ -1,0 +1,103 @@
+/* Reset CSS - Normaliza estilos entre navegadores */
+
+/* Box sizing */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Márgenes y padding por defecto */
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/* Body defaults */
+html,
+body {
+    height: 100%;
+    font-family: var(--font-sans);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mejora la renderización de imágenes */
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+/* Hereda fuentes para inputs y botones */
+input,
+button,
+textarea,
+select {
+    font: inherit;
+}
+
+/* Remueve estilos por defecto de listas */
+ul,
+ol {
+    list-style: none;
+}
+
+/* Remueve estilos de links */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Estilos de botones */
+button {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Mejora la renderización de tablas */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+/* Mejora el manejo de overflow de texto */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    overflow-wrap: break-word;
+}
+
+/* Root stacking context */
+#root,
+#__next {
+    isolation: isolate;
+}
+
+/* Clase utility para accesibilidad */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Clase utility para ocultar elementos */
+.hidden {
+    display: none !important;
+}

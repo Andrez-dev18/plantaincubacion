@@ -1,0 +1,27 @@
+Options -Indexes
+Options +FollowSymLinks
+RewriteEngine On
+RewriteBase /plantaincubacion/
+
+# Si el recurso físico existe, servirlo directo
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Frontend (rutas cortas)
+RewriteRule ^$ frontend/index.html [L,NC]
+RewriteRule ^login\.html$ frontend/login.html [L,NC]
+RewriteRule ^index\.html$ frontend/index.html [L,NC]
+RewriteRule ^([^/]+\.html)$ frontend/$1 [L,NC]
+RewriteRule ^(css|js|img|assets|fonts|views|pages)/(.*)$ frontend/$1/$2 [L,QSA,NC]
+RewriteRule ^frontend/?(.*)$ frontend/$1 [L,QSA,NC]
+
+# API alias corto (/api/*)
+RewriteRule ^api/?(.*)$ backend/index.php?/$1 [L,QSA,NC]
+
+# Backend directo (/backend/*)
+RewriteRule ^backend/?(.*)$ backend/index.php?/$1 [L,QSA,NC]
+
+DirectoryIndex frontend/index.html
+
+

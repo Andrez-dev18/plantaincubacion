@@ -1,0 +1,205 @@
+/* ══════════════════════════════════════════════════════════════════════
+   SearchableSelect - Estilos para selectores con búsqueda integrada
+   ══════════════════════════════════════════════════════════════════════ */
+
+.searchable-select {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    vertical-align: middle;
+    z-index: 1;
+}
+
+.searchable-select.open {
+    z-index: 99998;
+}
+
+/* Campo de visualización */
+.searchable-select-display {
+    position: relative;
+    padding-right: 2rem !important;
+    user-select: none;
+    text-align: center;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.searchable-select-display.placeholder {
+    color: #9ca3af;
+}
+
+.searchable-select-display::after {
+    content: '▼';
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: #6b7280;
+    pointer-events: none;
+}
+
+.searchable-select-display:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+}
+
+/* Dropdown (position: fixed aplicado por JS) */
+.searchable-select-dropdown {
+    position: fixed;
+    min-width: 350px;
+    margin-top: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 99999 !important;
+    max-height: 20rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Campo de búsqueda */
+.searchable-select-search {
+    padding: 0.75rem 0.875rem;
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    outline: none;
+    font-size: 0.875rem;
+    background: #f9fafb;
+}
+
+.searchable-select-search:focus {
+    background: white;
+    border-bottom-color: #3b82f6;
+}
+
+.searchable-select-search::placeholder {
+    color: #9ca3af;
+}
+
+/* Lista de opciones */
+.searchable-select-options {
+    overflow-y: auto;
+    max-height: 16rem;
+    padding: 0.25rem 0;
+}
+
+/* Scrollbar personalizado */
+.searchable-select-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.searchable-select-options::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
+.searchable-select-options::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+.searchable-select-options::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Item de opción */
+.searchable-select-option-item {
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #374151;
+    transition: background-color 0.1s ease;
+    line-height: 1.5;
+}
+
+.searchable-select-option-item:hover {
+    background-color: #f3f4f6;
+}
+
+.searchable-select-option-item.highlighted {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.searchable-select-option-item.selected {
+    background-color: #eff6ff;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+.searchable-select-option-item.highlighted.selected {
+    background-color: #bfdbfe;
+}
+
+.searchable-select-option-item.no-results {
+    color: #9ca3af;
+    cursor: default;
+    text-align: center;
+    padding: 1rem;
+    font-style: italic;
+}
+
+.searchable-select-option-item.no-results:hover {
+    background-color: transparent;
+}
+
+/* Animación suave al abrir */
+.searchable-select-dropdown {
+    animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .searchable-select-dropdown {
+        max-height: 60vh;
+        max-width: calc(100vw - 2rem);
+    }
+}
+
+/* Estado deshabilitado */
+.searchable-select-display[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+}
+
+/* Mejor contraste en modo oscuro (opcional) */
+@media (prefers-color-scheme: dark) {
+    .searchable-select-dropdown {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .searchable-select-search {
+        background: #111827;
+        color: #f9fafb;
+        border-bottom-color: #4b5563;
+    }
+
+    .searchable-select-option-item {
+        color: #e5e7eb;
+    }
+
+    .searchable-select-option-item:hover {
+        background-color: #374151;
+    }
+
+    .searchable-select-option-item.highlighted {
+        background-color: #1e40af;
+        color: #dbeafe;
+    }
+}

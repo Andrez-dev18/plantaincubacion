@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimiento de Almacén</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/components/searchable-select.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --page-bg: #f8fafc;
+            --text-main: #1f2937;
+        }
+
+        body {
+            background: var(--page-bg);
+            color: var(--text-main);
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Mantener alineados los selectores aunque el texto seleccionado sea largo */
+        #form-movimiento .searchable-select-display {
+            min-height: 2.625rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            justify-content: flex-start;
+            text-align: left;
+            padding-left: 0.85rem;
+        }
+
+        :root {
+            --mov-field-w: clamp(108px, 9vw, 140px);
+        }
+
+        .mov-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.375rem;
+            min-width: 0;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .mov-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+            width: var(--mov-field-w);
+            min-width: 0;
+            flex: 0 0 var(--mov-field-w);
+        }
+
+        .mov-field-product {
+            flex: 1 1 220px;
+            min-width: 220px;
+        }
+
+        #grid-abc-ruta {
+            width: 100%;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mov-label {
+            height: 14px;
+            line-height: 14px;
+            font-size: 11px;
+        }
+
+        .mov-control {
+            width: var(--mov-field-w);
+            height: 37px;
+        }
+
+        .mov-field-product .mov-control {
+            width: 100%;
+        }
+
+        .mov-helper {
+            height: 13px;
+            line-height: 13px;
+            font-size: 10px;
+        }
+
+        .mov-helper-spacer {
+            color: transparent;
+            user-select: none;
+        }
+
+        .mov-action {
+            min-width: 46px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+        }
+
+        .mov-action-btn {
+            width: 46px;
+            height: 32px;
+        }
+
+        @media (max-width: 1400px) {
+            :root {
+                --mov-field-w: 110px;
+            }
+        }
+
+        @media (max-width: 1280px) {
+            :root {
+                --mov-field-w: 82px;
+            }
+
+            .mov-field-product {
+                min-width: 180px;
+            }
+        }
+
+        .theme-toggle-btn {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #1f2937;
+            padding: 0.45rem 0.7rem;
+            border-radius: 0.625rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+        }
+
+        body.dark-mode,
+        body.dark-mode.bg-slate-50 {
+            --page-bg: #0f172a;
+            --text-main: #e2e8f0;
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode section,
+        body.dark-mode .modal-content {
+            background: #111827 !important;
+            border-color: #334155 !important;
+            color: #e5e7eb;
+        }
+
+        body.dark-mode .bg-white,
+        body.dark-mode .bg-gray-50,
+        body.dark-mode .bg-gray-100,
+        body.dark-mode .bg-blue-50\/50,
+        body.dark-mode .bg-blue-50,
+        body.dark-mode .bg-orange-50,
+        body.dark-mode .bg-red-50 {
+            background-color: #1f2937 !important;
+        }
+
+        body.dark-mode .border,
+        body.dark-mode .border-gray-100,
+        body.dark-mode .border-gray-200,
+        body.dark-mode .border-gray-300,
+        body.dark-mode .border-blue-100,
+        body.dark-mode .border-blue-200,
+        body.dark-mode .border-blue-300,
+        body.dark-mode .border-red-200,
+        body.dark-mode .border-orange-200 {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .text-gray-400,
+        body.dark-mode .text-gray-500,
+        body.dark-mode .text-gray-600,
+        body.dark-mode .text-gray-700,
+        body.dark-mode .text-gray-800 {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .text-blue-700 {
+            color: #93c5fd !important;
+        }
+
+        body.dark-mode input,
+        body.dark-mode select,
+        body.dark-mode textarea {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode option {
+            background-color: #0b1220;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .searchable-select-display {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .searchable-select-display.placeholder {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .searchable-select-display::after {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .searchable-select-dropdown {
+            background: #111827 !important;
+            border-color: #334155 !important;
+            box-shadow: 0 8px 24px rgba(2, 6, 23, 0.65);
+        }
+
+        body.dark-mode .searchable-select-search {
+            background: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode .searchable-select-search:focus {
+            background: #111827 !important;
+            border-bottom-color: #60a5fa !important;
+        }
+
+        body.dark-mode .searchable-select-options {
+            background: #111827 !important;
+        }
+
+        body.dark-mode .searchable-select-option-item {
+            color: #d1d5db !important;
+            background: transparent;
+        }
+
+        body.dark-mode .searchable-select-option-item:hover {
+            background-color: #1f2937 !important;
+        }
+
+        body.dark-mode .searchable-select-option-item.highlighted {
+            background-color: #1e3a8a !important;
+            color: #dbeafe !important;
+        }
+
+        body.dark-mode .searchable-select-option-item.selected {
+            background-color: #1e293b !important;
+            color: #bfdbfe !important;
+        }
+
+        body.dark-mode .searchable-select-option-item.highlighted.selected {
+            background-color: #1d4ed8 !important;
+            color: #dbeafe !important;
+        }
+
+        body.dark-mode input::placeholder,
+        body.dark-mode textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode tfoot,
+        body.dark-mode thead,
+        body.dark-mode #grid-tbody,
+        body.dark-mode #tabla-movimientos-body,
+        body.dark-mode .table-movimientos thead,
+        body.dark-mode .table-movimientos tbody tr:hover {
+            background-color: #172033 !important;
+        }
+
+        body.dark-mode table thead,
+        body.dark-mode table thead tr,
+        body.dark-mode table thead th,
+        body.dark-mode .table-movimientos thead,
+        body.dark-mode .table-movimientos thead tr,
+        body.dark-mode .table-movimientos thead th {
+            background-color: #0f213a !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #grid-tbody tr {
+            background-color: #18243a !important;
+        }
+
+        body.dark-mode #grid-tbody td {
+            color: #dbe7ff !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #grid-tbody .text-gray-400,
+        body.dark-mode #grid-tbody .text-gray-500,
+        body.dark-mode #grid-tbody .text-gray-600 {
+            color: #c7d2fe !important;
+        }
+
+        body.dark-mode tfoot,
+        body.dark-mode tfoot tr,
+        body.dark-mode tfoot td {
+            background-color: #101c33 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #total-cant,
+        body.dark-mode #total-peso,
+        body.dark-mode #total-importe {
+            color: #93c5fd !important;
+        }
+
+        body.dark-mode section.bg-white.rounded-xl.shadow-sm.border.border-gray-200.p-4 {
+            background-color: #18243a !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .fixed.bottom-0 {
+            background-color: #111827 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .theme-toggle-btn {
+            background: #1f2937;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+
+        body.dark-mode .modal-header {
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode .modal-header h3,
+        body.dark-mode .modal-title,
+        body.dark-mode #modal-title {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .modal-body,
+        body.dark-mode #modal-message {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .modal-footer {
+            border-top-color: #334155 !important;
+        }
+
+        body.dark-mode .modal-footer .bg-gray-200 {
+            background-color: #334155 !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode .modal-footer .bg-gray-200:hover {
+            background-color: #475569 !important;
+        }
+
+        body.dark-mode #modal-lista-movimientos .table-movimientos th {
+            color: #e2e8f0 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode #modal-lista-movimientos .table-movimientos td {
+            color: #cbd5e1 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode #modal-lista-movimientos .table-movimientos tbody tr:hover {
+            background-color: #1f2937 !important;
+        }
+
+        body.dark-mode #modal-reporte-items .table-movimientos th {
+            color: #f1f5f9 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode #modal-reporte-items .table-movimientos td {
+            color: #f8fafc !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode #modal-reporte-items .table-movimientos tbody tr:hover {
+            background-color: #1f2937 !important;
+        }
+
+        body.dark-mode #rep-item-buscar-codigo,
+        body.dark-mode #rep-item-buscar-descripcion {
+            color: #f8fafc !important;
+            background-color: #0b1220 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #rep-item-buscar-codigo::placeholder,
+        body.dark-mode #rep-item-buscar-descripcion::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode #modal-lista-movimientos button.text-gray-400 {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode #modal-lista-movimientos button.text-gray-400:hover {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #box-formato-impresion {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #box-formato-impresion .label-formato-impresion,
+        body.dark-mode #box-formato-impresion .opcion-formato-impresion {
+            color: #e2e8f0 !important;
+        }
+
+        /* Modal/Popup personalizado */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.9) translateY(-20px);
+            transition: transform 0.2s ease-out;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .modal-icon {
+            font-size: 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .modal-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .modal-btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Modal de lista de movimientos */
+        .modal-list {
+            max-width: 95%;
+            width: 1200px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-list-body {
+            overflow-y: auto;
+            overflow-x: auto;
+            max-height: calc(85vh - 140px);
+        }
+
+        .table-movimientos {
+            width: 100%;
+            font-size: 0.875rem;
+        }
+
+        .table-movimientos thead {
+            background: #f3f4f6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-movimientos th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .table-movimientos td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .table-movimientos tbody tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .table-movimientos tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .reporte-preview-page {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            background: transparent;
+        }
+
+        .reporte-preview-dialog {
+            display: flex;
+            flex-direction: column;
+            width: 90%;
+            height: 90%;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .reporte-preview-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 8px 16px;
+            min-height: 50px;
+            background: #374151;
+            color: #ffffff;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .reporte-preview-toolbar-title {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reporte-preview-toolbar-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .preview-close-btn {
+            border: none;
+            background: #dc2626;
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .preview-close-btn:hover {
+            background: #b91c1c;
+        }
+
+        .reporte-preview-frame {
+            flex: 1;
+            min-height: 0;
+            background: #ffffff;
+            padding: 0;
+        }
+
+        .reporte-preview-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #ffffff;
+        }
+
+        body.dark-mode .reporte-preview-page {
+            background: transparent;
+        }
+
+        body.dark-mode .reporte-preview-dialog {
+            background: #ffffff;
+        }
+
+        body.dark-mode .reporte-preview-toolbar {
+            background: #374151;
+        }
+
+        body.dark-mode .reporte-preview-frame {
+            background: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .reporte-preview-page {
+                padding: 0;
+            }
+
+            .reporte-preview-dialog {
+                width: 94%;
+                height: 88%;
+            }
+
+            .reporte-preview-toolbar {
+                padding: 8px 12px;
+            }
+        }
+
+        /* El tema oscuro global aplica estilos a section/button con !important;
+           forzamos el modal de preview para que se vea igual en claro y oscuro. */
+        #vista-reporte-kardex-preview {
+            background: rgba(0, 0, 0, 0.7) !important;
+        }
+
+        #vista-reporte-kardex-preview > div {
+            background: #ffffff !important;
+        }
+
+        #vista-reporte-kardex-preview #btn-volver-reporte-preview {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+
+        #vista-reporte-kardex-preview #btn-volver-reporte-preview:hover {
+            background: #b91c1c !important;
+        }
+
+        body.dark-mode section#vista-reporte-kardex-preview {
+            background: rgba(0, 0, 0, 0.7) !important;
+            color: inherit !important;
+        }
+
+        body.dark-mode section#vista-reporte-kardex-preview > div {
+            background: #ffffff !important;
+            border-color: transparent !important;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-gray-800">
+    <style>
+        /* ── LAYOUT BASE ─────────────────────────────────────── */
+        html,body{height:100%;margin:0;padding:0;}
+        body{overflow-x:hidden;}
+        /* ── TAB NAV ─────────────────────────────────────────── */
+        .tab-nav{flex-shrink:0;display:flex;gap:0;background:#1e3a5f;border-bottom:2px solid #2563eb;z-index:50;}
+        .tab-btn{padding:9px 18px;font-size:13px;font-weight:600;color:#93c5fd;background:transparent;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+        .tab-btn:hover{color:#fff;background:rgba(255,255,255,.08);}
+        .tab-btn.active{color:#fff;border-bottom-color:#60a5fa;background:rgba(255,255,255,.12);}
+    </style>
+    <div class="tab-nav">
+        <button class="tab-btn active">&#128203; Registro Completo</button>
+        <button class="tab-btn" onclick="window.location.href='dashboard-salidas-rapidas.html'">&#9889; Salida Rápida</button>
+    </div>
+
+    <!--<header
+        class="bg-white border-b border-gray-200 px-6 py-4 mb-6 sticky top-0 z-40 shadow-sm flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-extrabold text-blue-900 tracking-tight">Movimiento de Almacén</h1>
+            <p id="info-empresa" class="text-sm text-gray-500 font-medium mt-1"></p>
+        </div>
+        <div class="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+            <span class="text-blue-500">📅</span>
+            <span id="fecha-actual" class="text-sm font-semibold text-blue-800"></span>
+        </div>
+    </header>-->
+
+    <div id="tab-panel-registro">
+    <main class="">
+        <form id="form-movimiento" autocomplete="off" class="space-y-3">
+
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <!--<div class="bg-gray-50 border-b border-gray-200 px-5 py-3 flex justify-between items-center">
+                    <h2 class="text-base font-bold text-gray-700 flex items-center gap-2">
+                        <span>📋</span> Datos Generales
+                    </h2>
+                    <div class="flex gap-3 text-sm items-center">
+                        <div class="flex items-center gap-2">
+                            <label class="text-gray-500 font-medium">Lib:</label>
+                            <input type="text" id="tlib" name="tlib"
+                                class="w-16 px-2 py-1 bg-gray-100 border-dashed border-gray-300 rounded text-center text-gray-500"
+                                readonly>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-gray-500 font-medium"># Reg:</label>
+                            <input type="text" id="treg" name="treg"
+                                class="w-24 px-2 py-1 bg-gray-100 border-dashed border-gray-300 rounded text-center font-bold text-gray-700"
+                                readonly placeholder="Auto">
+                        </div>
+                        <button type="button" id="btn-theme-toggle" class="theme-toggle-btn" aria-label="Cambiar tema" title="Cambiar tema">
+                            <span id="theme-icon">🌙</span>
+                            <span id="theme-text">Oscuro</span>
+                        </button>
+                    </div>
+                </div>-->
+
+                <div class="p-3">
+                    <!-- Primera fila: Almacén, Fecha, Transacción, Cta. Cte. -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Almacén</label>
+                            <select id="talm" name="talm"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500"
+                                required>
+                                <option value="">-- Seleccione Almacén --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
+                            <input type="date" id="tfectra" name="tfectra"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                required>
+                            <p id="msg-fecha" class="text-red-500 text-xs mt-1 font-medium" style="display:none"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Transacción</label>
+                            <select id="tcodtra" name="tcodtra"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500"
+                                required>
+                                <option value="">-- Tipo de Transacción --</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-almacen-destino">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Almacén Destino</label>
+                            <select id="talr" name="talr"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500">
+                                <option value="">-- Destino Opcional --</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-cencos-destino">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Cencos Destino</label>
+                            <select id="tcencos_dest" name="tcencos_dest"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="">-- Centro Costo --</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- Segunda fila: Almacén Destino, Cencos Destino, Moneda, Tipo Doc., Serie, Número, Fecha Doc. -->
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Cta. Cte. (Cliente/
+                                Proveedor)</label>
+                            <select id="tprocli" name="tprocli"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="">Buscar código o nombre...</option>
+                            </select>
+                        </div>
+
+
+                        <div id="grupo-emidoc">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo Doc.</label>
+                            <select id="tdoc" name="tdoc"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="">-- Tipo --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Serie</label>
+                            <input type="text" id="tserie" name="tserie"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm uppercase" maxlength="4"
+                                placeholder="F001">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Número</label>
+                            <input type="number" id="tnumfac" name="tnumfac"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm" min="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha Doc.</label>
+                            <input type="date" id="tfecfac" name="tfecfac"
+                                class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+
+                    </div>
+
+                    <div class="mt-3 space-y-2 border-t border-gray-100 pt-2">
+
+
+                        <!-- Tercera fila: Orden Compra, Motivo, Observación -->
+                        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+                            <div id="grupo-moneda">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Moneda</label>
+                                <select id="tmon" name="tmon"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    <option value="S/">S/ Soles</option>
+                                    <option value="US$">US$ Dólares</option>
+                                </select>
+                            </div>
+
+                            <div id="grupo-tipo-cambio" class="md:col-span-1" style="display: none;">
+                                <!--<label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de cambio</label>-->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo</label>
+                                        <select id="tcambio-tipo" name="tcambio-tipo"
+                                            class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                            <option value="compra" selected>Compra</option>
+                                            <option value="venta">Venta</option>
+                                            <option value="manual">Manual</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1">T.C</label>
+                                        <input type="number" id="tcambio-valor" name="tcambio-valor"
+                                            class="input-field w-full rounded-md border-gray-300 shadow-sm" step="0.001"
+                                            min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--<div id="grupo-ordcom">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Orden de Compra</label>
+                                <input type="number" id="tordcom" name="tordcom"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm" min="0">
+                            </div>
+
+                            <div id="grupo-motivo">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Motivo de Traslado</label>
+                                <select id="tmotivo_traslado" name="tmotivo_traslado"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    <option value="01">01 - Venta</option>
+                                    <option value="02">02 - Compra</option>
+                                    <option value="04">04 - Traslado entre almacenes</option>
+                                    <option value="08">08 - Importación</option>
+                                    <option value="09">09 - Exportación</option>
+                                    <option value="13">13 - Otros</option>
+                                </select>
+                            </div>-->
+
+                            <div id="grupo-observacion">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Observación /
+                                    Glosa</label>
+                                <input type="text" id="tglosa" name="tglosa"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm" maxlength="250"
+                                    placeholder="Detalles adicionales del movimiento...">
+                            </div>
+                        </div>
+
+                        <!--<div class="flex flex-wrap gap-4 mt-2">
+                            <div
+                                class="bg-gray-100 px-4 py-2 rounded-md border border-gray-200 flex items-center gap-3">
+                                <label class="text-sm font-semibold text-gray-600">Costo Mínimo:</label>
+                                <input type="number" id="tcostmin" name="tcostmin"
+                                    class="bg-transparent border-none text-gray-700 w-24 focus:ring-0 p-0" step="0.01"
+                                    value="0" readonly>
+                            </div>
+                            <div
+                                class="bg-gray-100 px-4 py-2 rounded-md border border-gray-200 flex items-center gap-3">
+                                <label class="text-sm font-semibold text-gray-600">Peso Total (KG):</label>
+                                <input type="text" id="total-peso-field" name="tpesotot"
+                                    class="bg-transparent border-none font-bold text-gray-800 w-24 focus:ring-0 p-0"
+                                    readonly>
+                            </div>-->
+                    </div>
+                </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
+                <div class="flex gap-3">
+                    <div class="flex flex-wrap gap-3 justify-between items-center">
+                     
+                        
+                        <!-- <h2 class="text-base font-bold text-gray-700 flex items-center gap-2">
+                        <span>📦</span> Detalle de Ítems
+                    </h2>-->
+
+                        <!--<div class="flex flex-col items-center gap-1">
+                            <span class="text-[10px] text-gray-400 font-mono">Ins</span>
+                            <button type="button" id="btn-nuevo"
+                                class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                Añadir
+                            </button>
+                        </div>-->
+
+                        
+                    </div>
+                </div>
+                        
+
+                <div>
+                    <div id="formulario-agregar-item" class="bg-gray-100 p-1.5 border border-gray-200 rounded-t-lg mt-4"
+                        style="display: none; opacity: 0; transform: translateY(-10px);">
+                        <!-- Fila inferior: Cencos primero → Producto → Lote → ... → ABC último -->
+                        <div class="mov-row p-2 rounded-md bg-white border border-gray-300">
+                            <div class="mov-field">
+                                <label for="grid-tcencos" class="mov-label text-gray-500 font-semibold">Cencos</label>
+                                <select id="grid-tcencos" class="input-field mov-control text-xs px-1" title="Centro de Costos">
+                                    <option value="">Buscar cencos...</option>
+                                </select>
+                                <span class="mov-helper mov-helper-spacer">.</span>
+                            </div>
+                            <div class="mov-field mov-field-product">
+                                <label class="mov-label text-gray-500 font-medium">🔍 Producto</label>
+                                <select id="grid-buscar-producto"
+                                    class="input-field mov-control text-xs border-gray-300">
+                                    <option value="">Buscar producto...</option>
+                                </select>
+                                <span class="mov-helper mov-helper-spacer">.</span>
+                            </div>
+
+                            <input type="hidden" id="tcodproc" value="00">
+                            <input type="hidden" id="tcodsubproc" value="00">
+                            <input type="hidden" id="tcodacti" value="00">
+                            <input type="hidden" id="tcodtarea" value="00">
+                            <input type="hidden" id="grid-tcodigo" value="">
+                            <input type="hidden" id="grid-tctabal" value="">
+                            
+                            <div class="mov-field">
+                                <label for="grid-tlote" class="mov-label text-gray-500 font-semibold">Lote</label>
+                                <select id="grid-tlote" class="input-field mov-control text-xs px-1" title="Lote">
+                                    <option value="">Buscar lote...</option>
+                                </select>
+                                <span class="mov-helper mov-helper-spacer">.</span>
+                            </div>
+                           
+                             <div class="mov-field">
+                                    <label for="grid-tunidad" class="mov-label text-gray-500 font-semibold">Unidad</label>
+                                    <input type="text" id="grid-tunidad"
+                                        class="input-field mov-control text-[10px] bg-gray-50 border-dashed text-gray-600 text-center px-1"
+                                        readonly placeholder="-" title="Unidad">
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
+                            <div class="mov-field">
+                                    <label for="grid-tcantid" class="mov-label text-gray-500 font-semibold">Cantidad</label>
+                                    <input type="number" id="grid-tcantid"
+                                        class="input-field mov-control text-xs text-right font-bold text-blue-700 px-2 border-blue-400 focus:ring-blue-500"
+                                        step="0.001" min="0" placeholder="0.00" title="Cantidad">
+                                    <span id="grid-res-cantidad" class="mov-helper text-gray-500/70">Cantidad: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-tpeso" class="mov-label text-gray-500 font-semibold">Peso</label>
+                                    <input type="number" id="grid-tpeso"
+                                        class="input-field mov-control text-xs text-right px-2" step="0.001" min="0"
+                                        placeholder="0.00" title="Peso">
+                                    <span id="grid-res-peso" class="mov-helper text-gray-500/70">Peso: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-tpreuni" class="mov-label text-gray-500 font-semibold">Precio</label>
+                                    <input type="number" id="grid-tpreuni"
+                                        class="input-field mov-control text-xs text-right px-2" step="0.01" min="0" value="0"
+                                        placeholder="0.0000" title="Precio">
+                                    <span id="grid-res-precio" class="mov-helper text-gray-500/70">Precio: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-timport" class="mov-label text-gray-500 font-semibold">Importe</label>
+                                    <input type="number" id="grid-timport"
+                                        class="input-field mov-control text-xs text-right px-2 bg-gray-50 border-dashed text-gray-600" step="0.01" min="0" value="0"
+                                        placeholder="0.00" title="Importe" readonly>
+                                    <span id="grid-res-importe" class="mov-helper text-gray-500/70">Importe: 0</span>
+                                </div>
+
+                            <!-- ABC al final (posición 9) -->
+                            <div class="mov-field">
+                                <label for="grid-costoabc-display" class="mov-label text-gray-500 font-semibold">ABC (F1)</label>
+                                <input type="text" id="grid-costoabc-display"
+                                    class="input-field mov-control text-xs px-2 text-center font-mono"
+                                    maxlength="8" placeholder="00000000" title="Costo ABC (concatenado) - Presione F1 para modal">
+                                <span id="grid-abc-ruta" class="mov-helper text-gray-500/70 font-normal whitespace-nowrap overflow-hidden text-ellipsis block max-w-full" title="Sin ruta seleccionada">Sin ruta seleccionada</span>
+                            </div>
+                            <div class="mov-action">
+                                <span class="mov-label text-gray-400 font-mono text-right">Alt +</span>
+                                <button type="button" id="btn-agregar-item"
+                                    class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-sm transition-all whitespace-nowrap active:transform active:scale-95">
+                                    ➕
+                                </button>
+                                <span class="mov-helper mov-helper-spacer">.</span>
+                            </div>
+                            <!--<div class="flex flex-col items-center gap-0.5">
+                                <span class="text-[9px] text-gray-400 font-mono">Alt + I</span>
+                                <button type="button" id="btn-importar-exportar"
+                                    class="text-xs px-3 h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow-sm transition-all whitespace-nowrap active:transform active:scale-95">
+                                    ⇅ Imp/Exp
+                                </button>
+                            </div>-->
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="border border-gray-200 rounded-b-lg overflow-hidden relative z-0">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead
+                                class="bg-gray-100 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3">Código</th>
+                                    <th class="px-4 py-3">Descripción</th>
+                                    <th class="px-4 py-3">Cencos</th>
+                                    <th class="px-4 py-3">ABC</th>
+                                    <th class="px-4 py-3">Lote</th>
+                                    <th class="px-4 py-3 text-right">Cant</th>
+                                    <th class="px-4 py-3 text-right">Peso KG</th>
+                                    <th id="col-precio" class="px-4 py-3 text-right">Precio</th>
+                                    <th id="col-importe" class="px-4 py-3 text-right">Importe</th>
+                                    <th class="px-4 py-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grid-tbody" class="divide-y divide-gray-100 bg-white">
+                                <tr>
+                                    <td colspan="10" class="text-center text-gray-400 py-8">
+                                        <span class="block text-3xl mb-2">🛒</span>
+                                        Aún no has agregado ningún producto.
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-blue-50/50 font-bold border-t-2 border-gray-200">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-3 text-right text-gray-600">TOTALES:</td>
+                                    <td class="px-4 py-3 text-right text-blue-700" id="total-cant">0.00</td>
+                                    <td class="px-4 py-3 text-right text-blue-700" id="total-peso">0.00</td>
+                                    <td id="col-precio-tot"></td>
+                                    <td class="px-4 py-3 text-right text-blue-700 text-base col-importe" id="total-importe">0.00
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex flex-wrap gap-3 items-center">
+                    
+                    <div class="flex flex-col items-center gap-1 shrink-0">
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + L</span>
+                            <button type="button" id="btn-nuevo"
+                                class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                limpiar
+                            </button>
+                        </div>
+
+                    <div id="box-formato-impresion" class="flex flex-col items-start gap-1 bg-slate-50 border border-slate-200 rounded px-3 py-3 shrink-0">
+                        <span class="label-formato-impresion text-[10px] text-gray-500 font-mono">Formato de impresión</span>
+                        <div class="flex items-center gap-4">
+                            <label class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
+                                <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4" checked>
+                                A4
+                            </label>
+                            <label class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
+                                <input type="radio" name="formato-impresion" id="formato-impresion-80mm" value="80mm">
+                                Ticket 80mm
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!--<div class="flex gap-2">
+                        <div class="flex flex-col items-center gap-1">
+                            <button type="button" id="btn-borrar-mov"
+                                class="btn-danger bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded font-medium transition-colors flex items-center gap-2">
+                                🗑 Borrar Mov
+                            </button>
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + B</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <button type="button" id="btn-borrar-todos"
+                                class="btn-warning bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 px-4 py-2 rounded font-medium transition-colors flex items-center gap-2">
+                                🧹 Limpiar Todo
+                            </button>
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + T</span>
+                        </div>
+                    </div>-->
+                    <div class="flex gap-3 ml-auto shrink-0 items-end">
+                        <!--<div class="flex flex-col items-center gap-1">
+                            <button type="button" id="btn-nuevo"
+                                class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                📄 Nuevo
+                            </button>
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + N</span>
+                        </div>-->
+
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + C</span>
+                            <button type="button" id="btn-grabar"
+                                class="btn-primary bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded font-bold transition-colors flex items-center gap-2 shadow-md">
+                                💾 Guardar
+                            </button>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + R</span>
+                            <button type="button" id="btn-generar-reporte"
+                                class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                �️ Vista previa
+                            </button>
+                        </div>
+                        <!--<div class="flex flex-col items-center gap-1">
+                            <button type="button" id="btn-ver-movimientos"
+                                class="btn-secondary bg-blue-50 border border-blue-300 hover:bg-blue-100 text-blue-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                📋 Ver Movimientos
+                            </button>
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + V</span>
+                        </div>-->
+                    </div>
+                </div>
+            </section>
+
+        </form>
+    </main>
+    </div><!-- /#tab-panel-registro -->
+
+    <!-- Salidas Rápidas → ver dashboard-salidas-rapidas.html -->
+    <!-- Modal/Popup personalizado -->
+    <div id="modal-popup" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon" id="modal-icon">⚠️</span>
+                <h3 class="text-lg font-bold text-gray-800" id="modal-title">Advertencia</h3>
+            </div>
+            <div class="modal-body" id="modal-message">
+                Mensaje del modal
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-primary" onclick="cerrarModal()">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Importar / Exportar detalle -->
+    <div id="modal-import-export" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <span class="modal-icon">⇅</span>
+                <h3 class="text-lg font-bold text-gray-800">Importar / Exportar Ítems</h3>
+                <div style="margin-left: auto;">
+                    <button type="button" id="btn-cerrar-modal-import-export"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="text-sm text-gray-600">
+                    Formato TXT con separador <strong>|</strong>. Cada línea representa un ítem.
+                </div>
+                <textarea id="txt-import-export" class="input-field w-full text-xs" rows="10"
+                    placeholder="tcodigo|tdescri|tcantid|tpreuni|tpeso|tnumlot|tcencos|timport|tctabal|tcodproc|tcodsubproc|tcodacti|tcodtarea"></textarea>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <input type="file" id="file-import-items" accept=".txt,text/plain" class="text-xs">
+                    <span class="text-[11px] text-gray-500">Puede pegar el contenido o seleccionar un archivo
+                        TXT.</span>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <div class="flex gap-2 flex-wrap">
+                    <button type="button" id="btn-importar-items"
+                        class="modal-btn bg-green-600 text-white hover:bg-green-700">Importar</button>
+                    <button type="button" id="btn-exportar-items"
+                        class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Exportar</button>
+                    <button type="button" id="btn-descargar-formato"
+                        class="modal-btn bg-indigo-600 text-white hover:bg-indigo-700">Descargar formato</button>
+                </div>
+                <button type="button" id="btn-cancelar-import-export"
+                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de lista de movimientos -->
+    <div id="modal-lista-movimientos" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-list">
+            <div class="modal-header">
+                <span class="modal-icon">📋</span>
+                <h3 class="text-lg font-bold text-gray-800">Movimientos de Almacén</h3>
+                <div style="margin-left: auto;">
+                    <button onclick="cerrarModalMovimientos()"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="modal-list-body">
+                <table class="table-movimientos">
+                    <thead>
+                        <tr>
+                            <th>#Reg</th>
+                            <th>Fecha</th>
+                            <th>Transacción</th>
+                            <th>Alm. Origen</th>
+                            <th>Alm. Destino</th>
+                            <th>Cliente/Proveedor</th>
+                            <th>Moneda</th>
+                            <th>Libro</th>
+                            <th>Tipo Doc</th>
+                            <th>Serie</th>
+                            <th>Número</th>
+                            <th>Fecha Doc</th>
+                            <th>Cencos Dest.</th>
+                            <th>Ord. Compra</th>
+                            <th>Motivo Traslado</th>
+                            <th>Observación</th>
+                            <th>Costo Mín.</th>
+                            <th>Peso Total</th>
+                            <th>Importe</th>
+                            <th>Conductor</th>
+                            <th>Placa</th>
+                            <th>Usuario</th>
+                            <th>Fecha Reg.</th>
+                            <th>Hora Reg.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-movimientos-body">
+                        <tr>
+                            <td colspan="24" class="text-center text-gray-400 py-8">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    onclick="cerrarModalMovimientos()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de opciones de reporte Kardex -->
+    <div id="modal-reporte-kardex" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 760px;">
+            <div class="modal-header">
+                <span class="modal-icon">📊</span>
+                <h3 class="text-lg font-bold text-gray-800">Kardex Valorado - Opciones</h3>
+                <div style="margin-left: auto;">
+                    <button type="button" id="btn-cerrar-modal-reporte"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="display: grid; gap: 1rem;">
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <label class="block text-xs text-gray-500 mb-1 font-semibold">Zona</label>
+                    <input type="text" id="rep-zona"
+                        class="input-field w-full rounded-md border-gray-300 shadow-sm bg-gray-100" readonly>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="text-sm font-semibold text-gray-700 mb-2">Rango de Items</div>
+                    <div class="flex flex-wrap gap-4 items-center mb-3">
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="radio" name="rep-modo-items" id="rep-items-todo" value="todo" checked>
+                            Todo
+                        </label>
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="radio" name="rep-modo-items" id="rep-items-codigo" value="codigo">
+                            Escoger Codigo
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="rep-rango-codigos"
+                        style="opacity: 0.6; pointer-events: none;">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1 font-semibold">Codigo Desde</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="rep-codigo-desde"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                                    placeholder="P010001" disabled>
+                                <button type="button" id="btn-rep-item-desde"
+                                    class="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-sm"
+                                    disabled>🔎</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1 font-semibold">Hasta</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="rep-codigo-hasta"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                                    placeholder="P999999" disabled>
+                                <button type="button" id="btn-rep-item-hasta"
+                                    class="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-sm"
+                                    disabled>🔎</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="text-sm font-semibold text-gray-700 mb-2">Rango de Fechas</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1 font-semibold">Desde</label>
+                                <input type="date" id="rep-fecha-desde"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1 font-semibold">Hasta</label>
+                                <input type="date" id="rep-fecha-hasta"
+                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="text-sm font-semibold text-gray-700 mb-2">Stock con</div>
+                        <div class="flex flex-wrap gap-4 items-center mb-3">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" name="rep-stock-con" value="valor" checked>
+                                Valor
+                            </label>
+                            
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" name="rep-stock-con" value="cantidad">
+                                Cantidad
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" name="rep-stock-con" value="negativos">
+                                Negativos
+                            </label>
+                        </div>
+
+                        <div class="text-sm font-semibold text-gray-700 mb-2">Tipo</div>
+                        <div class="flex flex-wrap gap-4 items-center">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" name="rep-tipo" value="detalle" checked>
+                                Detalle
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" name="rep-tipo" value="resumen">
+                                Resumen
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <span class="text-xs text-gray-500">Orden PDF: Fecha, Codigo, Nro.Doc, Cli/Pro, Descripcion,
+                    Unidades(Entrada/Salida/Stock), Valor(Entrada/Salida/Stock), Va.Unit.</span>
+                <div class="flex gap-2">
+                    <button type="button" id="btn-cancelar-reporte"
+                        class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cancelar</button>
+                    <button type="button" id="btn-procesar-reporte"
+                        class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Generar PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal consulta al maestro de item -->
+    <div id="modal-reporte-items" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 860px;">
+            <div class="modal-header">
+                <span class="modal-icon">🔎</span>
+                <h3 class="text-lg font-bold text-gray-800">Consulta al Maestro de Item</h3>
+                <div style="margin-left: auto;">
+                    <button type="button" id="btn-cerrar-modal-reporte-items"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="display: grid; gap: 0.75rem;">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input type="text" id="rep-item-buscar-codigo"
+                        class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                        placeholder="Buscar por codigo...">
+                    <input type="text" id="rep-item-buscar-descripcion"
+                        class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                        placeholder="Buscar por descripcion...">
+                </div>
+                <div class="border border-gray-200 rounded-lg overflow-hidden max-h-[360px] overflow-y-auto">
+                    <table class="table-movimientos w-full text-sm">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Descripcion</th>
+                                <th>Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rep-items-body">
+                            <tr>
+                                <td colspan="3" class="text-center text-gray-400 py-6">Cargando items...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancelar-modal-reporte-items"
+                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista de previsualizacion PDF Kardex -->
+    <section id="vista-reporte-kardex-preview" class="reporte-preview-page" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
+        <div style="position:relative; width:90%; height:90%; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.3); overflow:hidden; display:flex; flex-direction:column;">
+            <div style="background:#374151; color:white; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; min-height:50px; border-radius:12px 12px 0 0;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-file-pdf" style="font-size:20px; color:#dc2626;"></i>
+                    <span id="titulo-reporte-preview" style="font-weight:600; font-size:14px;">Visualizador de PDF - Reporte Kardex Valorado</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" id="btn-volver-reporte-preview" title="Cerrar" style="background:#dc2626; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+            <iframe id="iframe-reporte-kardex-preview" src="" title="Vista previa Kardex PDF" style="width:100%; flex:1; border:none; background:white;"></iframe>
+        </div>
+    </section>
+
+    <!-- Modal Costo ABC -->
+    <div id="modal-abc" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 860px;">
+            <div class="modal-header">
+                <span class="modal-icon">🔢</span>
+                <h3 class="text-lg font-bold text-gray-800">Costo ABC</h3>
+                <div style="margin-left: auto;">
+                    <button type="button" id="btn-cerrar-modal-abc"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="display: grid; gap: 0.75rem;">
+                <div class="border border-gray-200 rounded-lg p-3 flex items-center gap-2 flex-wrap font-mono text-sm">
+                    <span id="abc-chip-proc" class="px-2 py-1 rounded bg-gray-100">00</span>
+                    <span class="text-gray-400">-</span>
+                    <span id="abc-chip-subp" class="px-2 py-1 rounded bg-gray-100">00</span>
+                    <span class="text-gray-400">-</span>
+                    <span id="abc-chip-acti" class="px-2 py-1 rounded bg-gray-100">00</span>
+                    <span class="text-gray-400">-</span>
+                    <span id="abc-chip-tarea" class="px-2 py-1 rounded bg-gray-100">00</span>
+                    <span class="text-gray-500">=</span>
+                    <span id="abc-full-code"
+                        class="px-2 py-1 rounded bg-blue-50 text-blue-700 font-bold">00000000</span>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm">
+                    <span id="abc-etapa"
+                        class="px-2 py-1 rounded-full bg-blue-50 text-blue-600 font-semibold">Proceso</span>
+                    <span id="abc-etapa-desc" class="text-gray-500">Seleccione un proceso</span>
+                </div>
+
+                <div class="text-sm">
+                    <span class="text-gray-400">Guia:</span>
+                    <span id="abc-ruta" class="text-gray-500 font-medium">Sin ruta seleccionada</span>
+                </div>
+
+                <input type="text" id="abc-buscar" class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                    placeholder="Filtrar...">
+
+                <div class="border border-gray-200 rounded-lg overflow-hidden max-h-[320px] overflow-y-auto">
+                    <table class="table-movimientos w-full text-sm">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">Cod.</th>
+                                <th>Descripcion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="abc-lista-body">
+                            <tr>
+                                <td colspan="2" class="text-center text-gray-400 py-6">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-abc-volver"
+                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Volver</button>
+                <button type="button" id="btn-cancelar-modal-abc"
+                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cancelar</button>
+                <button type="button" id="btn-aceptar-modal-abc"
+                    class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Prevenir submit accidental del formulario (ej: Enter en campos de fecha en algunos navegadores)
+        document.getElementById('form-movimiento').addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+
+        // ===================================
+        // TEMA OSCURO/CLARO - Gestionado por theme-sync.js
+        // ===================================
+        // El tema se sincroniza automáticamente con el index.html
+        // No es necesario código adicional aquí
+
+        // Funciones globales para el modal
+        function mostrarModal(titulo, mensaje, icono = '⚠️') {
+            if (window.SwalHelpers?.showInfo) {
+                const iconMap = {
+                    '✅': 'success',
+                    '⚠️': 'warning',
+                    '❌': 'error',
+                    'ℹ️': 'info'
+                };
+                const swalIcon = iconMap[icono] || 'info';
+                window.SwalHelpers.showInfo(mensaje, titulo, swalIcon);
+                return;
+            }
+
+            const modal = document.getElementById('modal-popup');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalIcon = document.getElementById('modal-icon');
+
+            modalTitle.textContent = titulo;
+            modalMessage.textContent = mensaje;
+            modalIcon.textContent = icono;
+
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+
+            // Cerrar con Escape
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    cerrarModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
+
+        function cerrarModal() {
+            const modal = document.getElementById('modal-popup');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+
+        // Cerrar modal al hacer click fuera
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('modal-popup');
+            if (e.target === modal) {
+                cerrarModal();
+            }
+
+            const modalLista = document.getElementById('modal-lista-movimientos');
+            if (e.target === modalLista) {
+                cerrarModalMovimientos();
+            }
+
+            const modalImportExport = document.getElementById('modal-import-export');
+            if (e.target === modalImportExport) {
+                cerrarModalImportExport();
+            }
+
+            const modalReporte = document.getElementById('modal-reporte-kardex');
+            if (e.target === modalReporte && window.movAlmCtrl?._cerrarModalReporte) {
+                window.movAlmCtrl._cerrarModalReporte();
+            }
+
+            const modalReporteItems = document.getElementById('modal-reporte-items');
+            if (e.target === modalReporteItems && window.movAlmCtrl?._cerrarModalReporteItems) {
+                window.movAlmCtrl._cerrarModalReporteItems();
+            }
+
+            const modalAbc = document.getElementById('modal-abc');
+            if (e.target === modalAbc && window.movAlmCtrl?._cerrarModalAbc) {
+                window.movAlmCtrl._cerrarModalAbc();
+            }
+        });
+
+        // Funciones para modal de movimientos
+        function mostrarModalMovimientos() {
+            const modal = document.getElementById('modal-lista-movimientos');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function cerrarModalMovimientos() {
+            const modal = document.getElementById('modal-lista-movimientos');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+
+        // Funciones para modal de importar / exportar
+        function mostrarModalImportExport() {
+            const modal = document.getElementById('modal-import-export');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function cerrarModalImportExport() {
+            const modal = document.getElementById('modal-import-export');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/shared/utils/swal-helpers.js?v=20260323"></script>
+    <script src="../js/shared/utils/theme-sync.js?v=20260325"></script>
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/components/SearchableSelect.js"></script>
+    <script src="../js/utils/FormNavigation.js"></script>
+    <script src="../js/modules/movimiento-almacen/movimiento-almacen.service.js?v=20260326"></script>
+    <script src="../js/modules/movimiento-almacen/movimiento-almacen.controller.js?v=20260326"></script>
+</body>
+
+</html>

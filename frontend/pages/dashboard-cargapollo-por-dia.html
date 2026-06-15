@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Carga de Pollos - Sistema GRS</title>
+    
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/scroller/2.3.0/css/scroller.dataTables.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden; 
+        }
+
+        /* ===== BARRA SUPERIOR ===== */
+        .top-bar {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            height: 60px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 30;
+        }
+
+        .top-bar label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-bar .select-wrap {
+            flex: 1;
+            max-width: 450px;
+        }
+
+        .btn-top {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-top:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-top:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-load   { background: #6d28d9; color: white; } 
+        .btn-excel  { background: #10b981; color: white; } 
+
+        /* ===== LAYOUT 3 PANELES DINÁMICO ===== */
+        :root {
+            --left-panel: 330px;
+            --right-panel: 340px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: var(--left-panel) 1fr var(--right-panel);
+            gap: 12px;
+            padding: 12px;
+            height: calc(100vh - 60px);
+            transition: grid-template-columns 0.2s ease-out;
+            will-change: grid-template-columns;
+            transform: translateZ(0); /* Hardware acceleration */
+        }
+
+        .main-layout.left-collapsed { --left-panel: 42px; }
+        .main-layout.right-collapsed { --right-panel: 42px; }
+
+        /* ===== PANELES ===== */
+        .panel {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: border-color 0.2s ease;
+            min-width: 0; /* CRUCIAL para evitar que el Grid se rompa */
+            transform: translateZ(0); /* Hardware acceleration */
+            backface-visibility: hidden;
+        }
+
+        /* Color gradiente conservado */
+        .panel-header {
+            background: linear-gradient(to right, #1e3a5f, #2563eb) !important; 
+            color: white;
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            height: 42px;
+        }
+
+        .panel-title-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .panel-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+            background: #ffffff;
+            position: relative;
+            min-width: 0; /* CRUCIAL para scroll interno horizontal */
+        }
+
+        /* ===== ESTILOS COLAPSADOS ===== */
+        .panel.panel-collapsed { cursor: pointer; }
+        .panel.panel-collapsed:hover { border-color: #2563eb; }
+        .panel.panel-collapsed .panel-body,
+        .panel.panel-collapsed .panel-title-text,
+        .panel.panel-collapsed .badge-proyeccion,
+        .panel.panel-collapsed .btn-recalcular,
+        .panel.panel-collapsed .dataTables_wrapper {
+            display: none !important;
+        }
+        .panel.panel-collapsed .panel-header {
+            height: 100%;
+            background: white !important;
+            color: #2563eb;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0;
+            border-right: 1px solid #e5e7eb;
+        }
+        .panel.panel-collapsed .btn-minimizar {
+            transform: rotate(180deg);
+            color: #2563eb;
+            background: transparent;
+        }
+
+        /* Botones Cabecera */
+        .btn-minimizar {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .btn-minimizar:hover { background: rgba(255,255,255,0.4); }
+
+        .btn-recalcular {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: auto;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        .btn-recalcular:hover { background: rgba(255,255,255,0.4); }
+
+        /* ===== TABS PANEL CENTRAL ===== */
+        .tabs-container {
+            display: flex;
+            gap: 4px;
+            margin-left: 12px;
+            background: rgba(0,0,0,0.2);
+            padding: 3px;
+            border-radius: 6px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+        .tab-btn.active {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+        .vista-tab { display: none; height: 100%; }
+        .vista-tab.active { display: block; }
+
+        /* ===== TABLA DETALLE ===== */
+        #tablaDetalle thead th {
+            white-space: nowrap;
+            font-size: 11px;
+        }
+        #tablaDetalle tbody td {
+            font-size: 11px;
+            padding: 6px 4px;
+        }
+        #tablaDetalle tbody td:nth-child(6) { text-align: left; }
+
+        /* ===== FIX DATATABLES (SINCRONIZACIÓN DE CABECERAS Y SCROLL HORIZONTAL) ===== */
+        .dataTables_wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            min-width: 0; /* Evita desborde */
+        }
+        
+        /* Controles Top */
+        .dataTables_length {
+            padding: 12px 16px 8px !important;
+            margin: 0 !important;
+            order: 1;
+        }
+        .dataTables_filter {
+            padding: 12px 16px 8px !important;
+            margin: 0 !important;
+            order: 2;
+        }
+        /* Ocultar buscadores en paneles laterales */
+        #panelIzquierdo .dataTables_filter,
+        #panelDerecho .dataTables_filter {
+            display: none !important;
+        }
+        /* Ocultar controles de longitud en paneles laterales */
+        #panelIzquierdo .dataTables_length,
+        #panelDerecho .dataTables_length {
+            display: none !important;
+        }
+        .dataTables_length label, .dataTables_filter label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .dataTables_length select, .dataTables_filter input {
+            padding: 4px 8px !important;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            outline: none;
+            font-size: 12px;
+            height: 28px;
+        }
+        .dataTables_filter input:focus { border-color: #2563eb; }
+
+        /* Cuerpo de la Tabla - El Fix Crítico */
+        .dataTables_scroll {
+            order: 3;
+            flex: 1 1 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; 
+            min-width: 0; 
+        }
+        
+        .dataTables_scrollHead { 
+            flex: 0 0 auto !important; 
+            width: 100% !important; 
+            overflow: hidden !important; 
+            background: #1e3a8a;
+        }
+        
+        /* ¡NO FORZAR EL WIDTH A 100% AQUI PARA QUE SE MUEVA LA CABECERA! */
+        .dataTables_scrollHeadInner { 
+            box-sizing: content-box !important; 
+            padding-right: 0px !important; 
+            margin: 0 auto;
+        }
+        
+        .dataTables_scrollBody { 
+            flex: 1 1 auto !important; 
+            width: 100% !important; 
+            overflow-y: auto !important; 
+            overflow-x: auto !important; 
+        }
+
+        /* Footer Tabla */
+        .dataTables_info { 
+            padding: 12px 16px !important; 
+            order: 4; 
+            font-size: 12px; 
+            border-top: 1px solid #f3f4f6;
+            flex: 1;
+        }
+        .dataTables_paginate { 
+            padding: 12px 16px !important; 
+            order: 5; 
+            font-size: 12px; 
+            border-top: 1px solid #f3f4f6;
+            margin-left: auto;
+        }
+        .dataTables_paginate .paginate_button {
+            padding: 4px 8px !important;
+            margin: 0 2px !important;
+        }
+
+        /* ===== ESTILOS TABLAS INTERNAS ===== */
+        .tbl { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 11.5px; 
+            margin: 0 !important; 
+        }
+        .tbl th, .tbl td {
+            white-space: nowrap !important; /* Obliga a DataTables a activar el scroll horizontal si no entra */
+        }
+        .tbl thead th {
+            background: #1e3a8a;
+            color: white;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            border-bottom: none !important;
+        }
+        .tbl tbody td {
+            padding: 6px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: center;
+            color: #475569;
+        }
+        .tbl tbody tr:hover td { background-color: #eff6ff !important; }
+
+        /* Colores columnas */
+        .col-semana { font-weight: 700; color: #1d4ed8; }
+        .col-pollos { font-weight: 700; color: #7c3aed; }
+        .col-total  { background-color: #dcfce7 !important; font-weight: 700; color: #166534; }
+
+        /* Select2 */
+        .select2-container--default .select2-selection--single {
+            height: 38px !important; border-radius: 6px !important;
+            border: 1px solid #d1d5db !important; display: flex !important; align-items: center !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-left: 12px !important; font-size: 13px; color: #374151;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: #9ca3af; padding: 2rem; text-align: center;
+        }
+        .empty-state i { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+        .empty-state span { font-size: 12px; }
+
+        .badge-proyeccion {
+            background: rgba(255,255,255,0.2); color: white;
+            border-radius: 4px; padding: 2px 8px; font-size: 10px; margin-left: auto;
+        }
+
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .spinner {
+            border: 3px solid #e5e7eb; border-top: 3px solid #6d28d9;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== MODO OSCURO - AJUSTES LOCALES ===== */
+        body.dark-mode {
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode .top-bar {
+            background: #111827 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode .top-bar label,
+        body.dark-mode .top-bar .text-gray-600,
+        body.dark-mode .top-bar .text-gray-700 {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .main-layout {
+            background: #0f172a;
+        }
+
+        body.dark-mode .panel {
+            background: #1f2937 !important;
+            border-color: #334155 !important;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
+        }
+
+        body.dark-mode .panel-body {
+            background: #111827 !important;
+        }
+
+        body.dark-mode .panel.panel-collapsed .panel-header {
+            background: #111827 !important;
+            color: #93c5fd !important;
+            border-right-color: #334155 !important;
+        }
+
+        body.dark-mode .panel.panel-collapsed:hover {
+            border-color: #60a5fa !important;
+        }
+
+        body.dark-mode .btn-minimizar,
+        body.dark-mode .btn-recalcular {
+            background: rgba(148, 163, 184, 0.2) !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .btn-minimizar:hover,
+        body.dark-mode .btn-recalcular:hover {
+            background: rgba(148, 163, 184, 0.35) !important;
+        }
+
+        body.dark-mode .btn-top {
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark-mode .dataTables_length label,
+        body.dark-mode .dataTables_filter label,
+        body.dark-mode .dataTables_info,
+        body.dark-mode .dataTables_paginate {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .dataTables_length select,
+        body.dark-mode .dataTables_filter input {
+            background: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .dataTables_filter input::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .dataTables_scrollHead {
+            background: #1e3a8a !important;
+        }
+
+        body.dark-mode .tbl tbody td {
+            border-bottom-color: #334155 !important;
+            color: #cbd5e1 !important;
+            background: #111827;
+        }
+
+        body.dark-mode .tbl tbody tr:hover td {
+            background-color: #1e293b !important;
+        }
+
+        body.dark-mode .empty-state {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .empty-state i {
+            color: #64748b !important;
+            opacity: 0.45;
+        }
+
+        body.dark-mode #popupCalendario {
+            background: #111827 !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #334155;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+        }
+
+        body.dark-mode #popupCalendario > div:first-child {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #btnCerrarPopup {
+            background: #1f2937 !important;
+            color: #cbd5e1 !important;
+            border: 1px solid #334155;
+        }
+
+        body.dark-mode #btnCerrarPopup:hover {
+            background: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #overlayCalendario {
+            background: rgba(2, 6, 23, 0.74) !important;
+        }
+
+        body.dark-mode .loading-overlay {
+            background: rgba(2, 6, 23, 0.74) !important;
+        }
+
+        body.dark-mode .loading-overlay .bg-white {
+            background: #111827 !important;
+            border: 1px solid #334155;
+        }
+
+        body.dark-mode .loading-overlay p {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #modalPdfViewer > div,
+        body.dark-mode #iframePdfViewer {
+            background: #111827 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <label>
+            <i class="fas fa-layer-group text-purple-600 text-lg mr-2"></i>
+            Proyección:
+        </label>
+        
+        <div class="select-wrap">
+            <select id="selectProyeccion" class="select2-proyeccion w-full">
+                <option value="">Cargando...</option>
+            </select>
+        </div>
+        
+        <button id="btnCargarDatos" class="btn-top btn-load">
+            <i class="fas fa-sync-alt"></i> Cargar Datos
+        </button>
+        <button id="btnExportarExcel" class="btn-top btn-excel" disabled>
+            <i class="fas fa-file-excel"></i> Exportar Excel
+        </button>
+        <button id="btnExportarPDF" class="btn-top" style="background:#dc2626; color:white;" disabled>
+            <i class="fas fa-file-pdf"></i> Exportar PDF
+        </button>
+        <button id="btnDescargarCalendario" class="btn-top btn-excel" style="background:#2563eb; color:white;">
+            <i class="fas fa-calendar-alt"></i> Descargar/Importar Calendario
+        </button>
+        <!-- Overlay modal para popup -->
+        <div id="overlayCalendario" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;"></div>
+        
+        <!-- Popup para opciones de calendario -->
+        <div id="popupCalendario" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.2); padding:28px 24px; min-width:320px; max-width:90%;">
+            <div style="font-weight:600; font-size:16px; margin-bottom:16px; color:#1f2937;">Opciones de Calendario</div>
+            <button id="btnDescargarTxt" style="width:100%; margin-bottom:10px; background:#2563eb; color:white; border:none; border-radius:8px; padding:12px 0; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.2s;">
+                <i class="fas fa-download"></i> Descargar Calendario (TXT)
+            </button>
+            <button id="btnImportarTxt" style="width:100%; margin-bottom:10px; background:#22c55e; color:white; border:none; border-radius:8px; padding:12px 0; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.2s;">
+                <i class="fas fa-upload"></i> Importar Calendario (TXT)
+            </button>
+            <button id="btnCerrarPopup" style="width:100%; margin-top:8px; background:#e5e7eb; color:#374151; border:none; border-radius:8px; padding:10px 0; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s;">Cerrar</button>
+        </div>
+    <script>
+    // Función reutilizable para renderizar calendario - SOLO PARA IMPORTACIÓN
+    // NOTA: Esta función ya NO se usa en la carga normal, solo en importación
+    async function renderizarCalendarioEditable(registros, proyeccion) {
+        // Destruir DataTable si existe para evitar conflictos
+        if ($.fn.DataTable.isDataTable('#tablaCalendario')) {
+            $('#tablaCalendario').DataTable().destroy();
+        }
+        
+        const tbody = document.getElementById('bodyCalendario');
+        tbody.innerHTML = '';
+        
+        registros.forEach(registro => {
+            let fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td class="text-center">${registro.semana || ''}</td>
+                <td class="text-center">${registro.fecha || ''}</td>
+                <td class="text-center">
+                    <input type="number" 
+                           class="input-cargas" 
+                           value="${registro.cargas || 1}" 
+                           min="1" 
+                           data-fecha="${registro.fecha}"
+                           style="width:60px; text-align:center; padding:4px; border:1px solid #ddd; border-radius:4px;">
+                </td>
+            `;
+            tbody.appendChild(fila);
+        });
+        
+        // NO agregar event listeners aquí - el controlador los maneja
+        // Simplemente mostrar los datos importados
+        document.getElementById('tablaCalendario').style.display = 'table';
+        document.getElementById('emptyCalendario').style.display = 'none';
+        
+        // Después de importar, recargar usando el controlador para que maneje DataTable
+        setTimeout(() => {
+            if (window.cargapolloPorDiaController) {
+                window.cargapolloPorDiaController.renderCalendario();
+            }
+        }, 500);
+    }
+    
+    // Mostrar popup al hacer clic en el botón
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnCalendario = document.getElementById('btnDescargarCalendario');
+        const popup = document.getElementById('popupCalendario');
+        const overlay = document.getElementById('overlayCalendario');
+        const btnCerrar = document.getElementById('btnCerrarPopup');
+        
+        btnCalendario.addEventListener('click', function(e) {
+            e.stopPropagation();
+            overlay.style.display = 'block';
+            popup.style.display = 'block';
+        });
+        
+        btnCerrar.addEventListener('click', function() {
+            overlay.style.display = 'none';
+            popup.style.display = 'none';
+        });
+        
+        // Cerrar con click en overlay
+        overlay.addEventListener('click', function() {
+            overlay.style.display = 'none';
+            popup.style.display = 'none';
+        });
+        // Descargar calendario completo (todos los registros desde el backend)
+        document.getElementById('btnDescargarTxt').addEventListener('click', async function() {
+            if (window.cargapolloPorDiaController) {
+                await window.cargapolloPorDiaController.descargarCalendarioCompleto();
+                overlay.style.display = 'none';
+                popup.style.display = 'none';
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'El controlador no está inicializado' });
+            }
+        });
+        
+        // Importar calendario desde texto plano
+        document.getElementById('btnImportarTxt').addEventListener('click', function() {
+            let inputFile = document.createElement('input');
+            inputFile.type = 'file';
+            inputFile.accept = '.txt';
+            inputFile.onchange = function(e) {
+                let file = e.target.files[0];
+                if (!file) return;
+                let reader = new FileReader();
+                reader.onload = async function(ev) {
+                    let contenido = ev.target.result;
+                    // Filtrar líneas: eliminar comentarios, espacios en blanco y líneas vacías
+                    let lineas = contenido.split('\n')
+                        .map(l => l.trim())
+                        .filter(l => l && !l.startsWith('#'))
+                        .filter(l => !l.match(/^\s*$/)); // Eliminar líneas que solo tengan espacios
+                    
+                    if (lineas.length === 0) {
+                        Swal.fire({ icon: 'warning', title: 'Archivo vacío', text: 'El archivo no contiene datos válidos. Verifica que tenga datos con formato: Fecha|Cargas' });
+                        return;
+                    }
+                    
+                    // Obtener proyección seleccionada
+                    let proyeccion = document.getElementById('selectProyeccion').value;
+                    if (!proyeccion) {
+                        Swal.fire({ icon: 'warning', title: 'Proyección requerida', text: 'Selecciona una proyección primero' });
+                        return;
+                    }
+                    
+                    let tbody = document.getElementById('bodyCalendario');
+                    tbody.innerHTML = '';
+                    let errores = [];
+                    let registrosValidos = [];
+                    
+                    // Función auxiliar para normalizar fecha YYYY/MM/DD → YYYY-MM-DD
+                    const normFecha = f => f ? f.replace(/\//g, '-').trim() : '';
+                    
+                    // Parsear todas las líneas y recopilar registros válidos
+                    for (let linea of lineas) {
+                        try {
+                            // Eliminar pipe inicial si existe y limpiar
+                            let lineaLimpia = linea.trim();
+                            if (lineaLimpia.startsWith('|')) {
+                                lineaLimpia = lineaLimpia.substring(1);
+                            }
+                            
+                            // Parsear valores usando | como separador principal
+                            let valores = lineaLimpia.split('|').map(v => v.trim()).filter(v => v);
+                            
+                            if (valores.length !== 2) {
+                                errores.push(`Formato inválido (debe ser Fecha|Cargas): "${linea}"`);
+                                continue;
+                            }
+                            
+                            // Formato: Fecha|Cargas
+                            let fecha = normFecha(valores[0]);
+                            let cargas = parseInt(valores[1], 10) || 1;
+
+                            // Validar que fecha tenga formato YYYY-MM-DD
+                            if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+                                errores.push(`Fecha inválida: "${fecha || linea.substring(0,30)}"`);
+                                continue;
+                            }
+                            
+                            registrosValidos.push({ fecha, cargas });
+                        } catch (err) {
+                            errores.push(`Error al parsear: ${err.message}`);
+                        }
+                    }
+                    
+                    if (registrosValidos.length === 0) {
+                        Swal.fire({ 
+                            icon: 'error', 
+                            title: 'Registros inválidos', 
+                            html: 'No se encontraron registros válidos en el archivo.<br><br><strong>Formato aceptado:</strong><br>Fecha|Cargas<br><br><strong>Ejemplos:</strong><br>2018/12/13|2<br>2025/01/06|5<br><br>Las fechas deben usar formato YYYY/MM/DD' 
+                        });
+                        return;
+                    }
+                    
+                    // Mostrar loading
+                    let loadingDiv = document.getElementById('loadingOverlay');
+                    loadingDiv.style.display = 'flex';
+                    
+                    try {
+                        // Llamar API para importar calendario completo (elimina el anterior y lo reemplaza)
+                        let response = await fetch(`${window.apiBaseUrl}/api/cargapollo/importar-calendario`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                proyeccion: proyeccion,
+                                registros: registrosValidos
+                            })
+                        });
+                        
+                        let result = await response.json();
+                        
+                        if (result.success) {
+                            // Recargar datos desde la BD después de importar
+                            let respuestaFrechaProj = await fetch(`${window.apiBaseUrl}/api/cargapollo/fechaproy?proyeccion=${encodeURIComponent(proyeccion)}`);
+                            let dataFechaProj = await respuestaFrechaProj.json();
+                            
+                            if (dataFechaProj.success && dataFechaProj.data && dataFechaProj.data.length > 0) {
+                                // Usar función reutilizable para renderizar calendario editable
+                                await renderizarCalendarioEditable(dataFechaProj.data, proyeccion);
+                            }
+                            
+                            let msg = `Calendario reemplazado correctamente<br><strong>${registrosValidos.length} registros importados</strong>`;
+                            if (errores.length > 0) {
+                                msg += `<br><br>⚠ ${errores.length} líneas con error:<br>${errores.slice(0, 5).join('<br>')}`;
+                                if (errores.length > 5) msg += `<br>... y ${errores.length - 5} más`;
+                            }
+                            Swal.fire({ icon: 'success', title: '✓ Importación exitosa', html: msg });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error al importar', text: result.message });
+                        }
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: `Error al importar calendario: ${err.message}` });
+                        console.error(err);
+                    } finally {
+                        loadingDiv.style.display = 'none';
+                        overlay.style.display = 'none';
+                        popup.style.display = 'none';
+                    }
+                };
+                reader.readAsText(file);
+            };
+            inputFile.click();
+        });
+    });
+    </script>
+
+        <!--<div class="ml-auto">
+            <span id="badgeProyeccion" class="badge-proyeccion bg-purple-100 text-purple-700 font-bold" style="display:none;"></span>
+        </div>-->
+    </div>
+
+    <div class="main-layout left-collapsed right-collapsed" id="mainLayout">
+
+        <div class="panel panel-collapsed" id="panelIzquierdo">
+            <div class="panel-header" title="Haz clic para restaurar">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="panel-title-text">Calendario por Día</span>
+                
+<button id="btnCopiarCalendario" class="btn-recalcular" title="Copiar Calendario" style="font-weight:600; font-size:13px; min-width:32px; color:#fff; margin-right:6px;" disabled>
+                    <i class="fas fa-copy"></i>
+                </button>
+
+                <button id="btnRecalcular" class="btn-recalcular" title="Recalcular el calendario" style="font-weight:600; font-size:13px; min-width:80px; color:#fff;">
+                    Recalcular
+                </button>
+
+                <button class="btn-minimizar ml-2" id="btnMinimizarIzq" title="Minimizar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <div class="panel-body" id="panelCalendario">
+                <div class="empty-state" id="emptyCalendario">
+                    <i class="fas fa-calendar"></i>
+                    <span>Carga una proyección para ver el calendario</span>
+                </div>
+                <table class="tbl" id="tablaCalendario" style="display:none; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;">Sem</th>
+                            <th style="width:110px;">Fecha</th>
+                            <th style="width:70px;">Cargas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyCalendario"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <i class="fas fa-table"></i>
+                <span class="panel-title-text" id="tituloPanelCentral">Cargas de Pollos por Día — Detalle Completo</span>
+                
+                <!-- TABS COMENTADOS - Solo vista Por Día activa -->
+                <!--
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="pivotado" title="Vista pivotada por semana">
+                        <i class="fas fa-th"></i> Por Semana
+                    </button>
+                    <button class="tab-btn" data-tab="detalle" title="Vista detallada día a día">
+                        <i class="fas fa-list"></i> Por Día
+                    </button>
+                </div>
+                -->
+                
+                <span id="badgeCentral" class="badge-proyeccion" style="display:none;"></span>
+            </div>
+            <div class="panel-body">
+                
+                <!-- Vista PIVOTADO POR SEMANA -->
+                <div id="vistaPivotado" class="vista-tab" style="display:none;">
+                    <div class="empty-state" id="emptyReporte">
+                        <i class="fas fa-inbox"></i>
+                        <span>Selecciona una proyección y haz clic en <strong>Cargar Datos</strong></span>
+                    </div>
+                    <table class="tbl" id="tablaReporte" style="display:none; width: 100%;">
+                        <thead>
+                            <tr id="headerRow">
+                                <th>Sem</th>
+                                <th>Año</th>
+                                <th>Mes</th>
+                                <th>N° Cart</th>
+                                <th>Pollos × Sem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                
+                <!-- Vista DETALLE POR DÍA - ACTIVA POR DEFECTO -->
+                <div id="vistaDetalle" class="vista-tab active" style="display:block;">
+                    <div class="empty-state" id="emptyDetalle">
+                        <i class="fas fa-list"></i>
+                        <span>Carga los datos para ver el detalle día a día</span>
+                    </div>
+                    <table class="tbl" id="tablaDetalle" style="display:none; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Sem</th>
+                                <th>Viajes</th>
+                                <th>Pollos/Sem</th>
+                                <th>Fec.Salida</th>
+                                <th>Fec.Recep</th>
+                                <th>Granja</th>
+                                <th>Galp</th>
+                                <th>Camp</th>
+                                <th>Pollos</th>
+                                <th>Fec.Liqui</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyDetalle"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-collapsed" id="panelDerecho">
+            <div class="panel-header" title="Haz clic para restaurar">
+                <i class="fas fa-chart-pie order-first"></i>
+                <span class="panel-title-text">Resumen Oferta / Demanda</span>
+                <button class="btn-minimizar" id="btnMinimizarDer" title="Minimizar" style="margin-left: auto;">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <div class="empty-state" id="emptyResumen">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>El resumen se cargará automáticamente</span>
+                </div>
+                <table class="tbl" id="tablaResumen" style="display:none; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Año</th>
+                            <th>Sem</th>
+                            <th>Oferta</th>
+                            <th>Demanda</th>
+                            <th>Dif</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyResumen"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+            <div class="spinner"></div>
+            <p class="text-gray-700 font-semibold text-sm m-0">Cargando datos...</p>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/scroller/2.3.0/js/dataTables.scroller.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/config/config.js"></script>
+
+    <script>
+        // Proyección validada comentada temporalmente
+        // window.validatedProyeccionId = "CARGA 2025 (13.5 SEM) v4";
+        window.validatedProyeccionId = null;
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({ user: null, isAuthenticated: false, loading: false });
+        }
+    </script>
+
+    <script src="../js/shared/components/Modal.js"></script>
+    <script src="../js/shared/components/Notification.js"></script>
+    <script src="../js/shared/utils/swal-helpers.js"></script>
+    <script src="../js/shared/utils/theme-sync.js?v=20260325"></script>
+    <script src="../js/modules/auth/auth.service.js"></script>
+    <script src="../js/modules/cargapollo-por-dia/cargapollo-por-dia.service.js"></script>
+    <script src="../js/modules/cargapollo-por-dia/cargapollo-por-dia.controller.js"></script>
+
+    <script>
+        // Lógica Select2 Validada
+        const validatedProyeccionId = window.validatedProyeccionId || null;
+        
+        function formatProyeccion(data) {
+            if (!data.id) return data.text;
+            if (validatedProyeccionId && data.id == validatedProyeccionId) {
+                return $('<span style="color:#16a34a;font-weight:600;">' + data.text + ' <span style="font-size:11px;margin-left:4px;">✔ Validada</span></span>');
+            }
+            return data.text;
+        }
+
+        function formatProyeccionSelection(data) {
+            if (!data.id) return data.text;
+            if (validatedProyeccionId && data.id == validatedProyeccionId) {
+                return $('<span style="color:#16a34a;font-weight:600;">' + data.text + ' <span style="font-size:11px;margin-left:4px;">✔ Validada</span></span>');
+            }
+            return data.text;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authService = new AuthService();
+            const sesion = await authService.validarSesion();
+            if (!sesion.success) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            window.cargapolloPorDiaController = new CargapolloPorDiaController();
+
+            $('.select2-proyeccion').select2({
+                placeholder: 'Seleccionar proyección...',
+                allowClear: true,
+                width: '100%',
+                templateResult: formatProyeccion,
+                templateSelection: formatProyeccionSelection
+            });
+
+            // ===== LÓGICA PANELES =====
+            const layout = document.getElementById('mainLayout');
+            const panelIzq = document.getElementById('panelIzquierdo');
+            const panelDer = document.getElementById('panelDerecho');
+
+            // FUNCIÓN CRÍTICA PARA DATATABLES - Optimizada con requestAnimationFrame
+            const redrawTables = () => {
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        if ($.fn.DataTable.isDataTable('#tablaCalendario')) { $('#tablaCalendario').DataTable().columns.adjust().draw(false); }
+                        if ($.fn.DataTable.isDataTable('#tablaReporte')) { $('#tablaReporte').DataTable().columns.adjust().draw(false); }
+                        if ($.fn.DataTable.isDataTable('#tablaResumen')) { $('#tablaResumen').DataTable().columns.adjust().draw(false); }
+                        if ($.fn.DataTable.isDataTable('#tablaDetalle')) { $('#tablaDetalle').DataTable().columns.adjust().draw(false); }
+                    }, 210); 
+                });
+            };
+
+            // Minimizar Izq
+            document.getElementById('btnMinimizarIzq').addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                requestAnimationFrame(() => {
+                    layout.classList.add('left-collapsed');
+                    panelIzq.classList.add('panel-collapsed');
+                    redrawTables();
+                });
+            });
+
+            panelIzq.addEventListener('click', () => {
+                if (panelIzq.classList.contains('panel-collapsed')) {
+                    requestAnimationFrame(() => {
+                        layout.classList.remove('left-collapsed');
+                        panelIzq.classList.remove('panel-collapsed');
+                        redrawTables();
+                    });
+                }
+            });
+
+            // Minimizar Der
+            document.getElementById('btnMinimizarDer').addEventListener('click', (e) => {
+                e.stopPropagation();
+                requestAnimationFrame(() => {
+                    layout.classList.add('right-collapsed');
+                    panelDer.classList.add('panel-collapsed');
+                    redrawTables();
+                });
+            });
+
+            panelDer.addEventListener('click', () => {
+                if (panelDer.classList.contains('panel-collapsed')) {
+                    requestAnimationFrame(() => {
+                        layout.classList.remove('right-collapsed');
+                        panelDer.classList.remove('panel-collapsed');
+                        redrawTables();
+                    });
+                }
+            });
+
+            // Botón Recalcular
+            document.getElementById('btnRecalcular').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if(window.cargapolloPorDiaController && typeof window.cargapolloPorDiaController.recalcular === 'function'){
+                    const success = await window.cargapolloPorDiaController.recalcular();
+                    
+                    // Solo recargar si el recálculo fue exitoso
+                    if (success) {
+                        const proyeccion = document.getElementById('selectProyeccion').value;
+                        if (proyeccion) {
+                            datosDetalleCargados = false;
+                            setTimeout(async () => {
+                                await cargarDatosDetalle(proyeccion);
+                            }, 500);
+                        }
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'info', title: 'Calculando...', text: 'Funcionalidad en desarrollo.', timer: 1500, showConfirmButton: false
+                    });
+                }
+            });
+            
+            // Reajuste de tablas si cambia el tamaño de la ventana (con debounce)
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(redrawTables, 150);
+            });
+
+            // ===== TABS PANEL CENTRAL - COMENTADO (Solo vista Por Día) =====
+            // const tabButtons = document.querySelectorAll('.tab-btn');
+            const vistaPivotado = document.getElementById('vistaPivotado');
+            const vistaDetalle = document.getElementById('vistaDetalle');
+            const tituloPanelCentral = document.getElementById('tituloPanelCentral');
+            const emptyDetalle = document.getElementById('emptyDetalle');
+            const tablaDetalle = document.getElementById('tablaDetalle');
+            const bodyDetalle = document.getElementById('bodyDetalle');
+            let dtDetalle = null;
+            let datosDetalleCargados = false;
+
+            /* TABS COMENTADOS - Solo vista Por Día activa
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    // Cambiar clase active en tabs
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const tab = btn.dataset.tab;
+                    
+                    if (tab === 'pivotado') {
+                        vistaPivotado.classList.add('active');
+                        vistaPivotado.style.display = 'block';
+                        vistaDetalle.classList.remove('active');
+                        vistaDetalle.style.display = 'none';
+                        tituloPanelCentral.textContent = 'Reporte Carga Pollos BB — Pivotado por Semana';
+                        redrawTables();
+                    } else if (tab === 'detalle') {
+                        vistaPivotado.classList.remove('active');
+                        vistaPivotado.style.display = 'none';
+                        vistaDetalle.classList.add('active');
+                        vistaDetalle.style.display = 'block';
+                        tituloPanelCentral.textContent = 'Cargas de Pollos por Día — Detalle Completo';
+                        
+                        // Cargar datos si no están cargados
+                        const proyeccion = document.getElementById('selectProyeccion').value;
+                        if (proyeccion && !datosDetalleCargados) {
+                            await cargarDatosDetalle(proyeccion);
+                        }
+                        redrawTables();
+                    }
+                });
+            });
+            */
+
+            async function cargarDatosDetalle(proyeccion) {
+                if (!proyeccion) return;
+                
+                emptyDetalle.style.display = 'flex';
+                emptyDetalle.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:30px;margin-bottom:12px;"></i><span>Cargando detalle...</span>';
+                tablaDetalle.style.display = 'none';
+                
+                try {
+                    const resp = await fetch(`${AppConfig.API.BASE_URL}/api/cargapollo/datos?proyeccion=${encodeURIComponent(proyeccion)}`);
+                    const json = await resp.json();
+                    
+                    if (json.success && json.data && json.data.length > 0) {
+                        // Destruir DataTable si existe
+                        if (dtDetalle) {
+                            dtDetalle.destroy();
+                            dtDetalle = null;
+                        }
+                        
+                        bodyDetalle.innerHTML = '';
+                        json.data.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${row.SemCard || ''}</td>
+                                <td>${row.ViajesSem || ''}</td>
+                                <td>${Number(row.PollosSem || 0).toLocaleString()}</td>
+                                <td>${formatDate(row.FecSalidaPlanta)}</td>
+                                <td>${formatDate(row.FecRecepcionGr)}</td>
+                                <td style="text-align:left;">${row.Granja || ''}</td>
+                                <td>${row.Galpon || ''}</td>
+                                <td>${row.Campana || ''}</td>
+                                <td>${Number(row.Pollos || 0).toLocaleString()}</td>
+                                <td>${formatDate(row.FecLiqui)}</td>
+                            `;
+                            bodyDetalle.appendChild(tr);
+                        });
+                        
+                        emptyDetalle.style.display = 'none';
+                        tablaDetalle.style.display = 'table';
+                        
+                        // Inicializar DataTable
+                        dtDetalle = $('#tablaDetalle').DataTable({
+                            paging: true,
+                            pageLength: 25,
+                            lengthMenu: [[25, 50, 100, -1], [25, 50, 100, 'Todos']],
+                            searching: true,
+                            ordering: true,
+                            info: true,
+                            autoWidth: false,
+                            language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+                            scrollY: 'calc(100vh - 280px)',
+                            scrollCollapse: true,
+                            order: [[0, 'asc']]  // Ordenar por SEM (columna 0) de menor a mayor
+                        });
+                        
+                        datosDetalleCargados = true;
+                    } else {
+                        emptyDetalle.innerHTML = '<i class="fas fa-inbox" style="font-size:40px;margin-bottom:12px;opacity:0.3;"></i><span>No hay datos de detalle para esta proyección</span>';
+                    }
+                } catch (err) {
+                    console.error('Error cargando detalle:', err);
+                    emptyDetalle.innerHTML = '<i class="fas fa-exclamation-triangle" style="font-size:40px;margin-bottom:12px;color:#dc3545;"></i><span>Error al cargar datos</span>';
+                }
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr || dateStr === '0000-00-00') return '';
+                const d = new Date(dateStr + 'T00:00:00');
+                return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+
+            // Resetear datos detalle cuando cambia la proyección
+            document.getElementById('selectProyeccion').addEventListener('change', () => {
+                datosDetalleCargados = false;
+                if (dtDetalle) {
+                    dtDetalle.destroy();
+                    dtDetalle = null;
+                }
+                bodyDetalle.innerHTML = '';
+                tablaDetalle.style.display = 'none';
+                emptyDetalle.style.display = 'flex';
+                emptyDetalle.innerHTML = '<i class="fas fa-list" style="font-size:40px;margin-bottom:12px;opacity:0.3;"></i><span>Carga los datos para ver el detalle día a día</span>';
+            });
+
+            // ===== IMPORTANTE: El controlador maneja la carga de datos del calendario =====
+            // Solo agregamos el event listener para cargar el detalle DESPUÉS que el controlador cargue
+            const btnCargarDatosOriginal = document.getElementById('btnCargarDatos');
+            if (btnCargarDatosOriginal) {
+                // Interceptar el click para agregar carga de detalle al final
+                btnCargarDatosOriginal.addEventListener('click', async () => {
+                    // Esperar a que el controlador termine de cargar (600ms es suficiente)
+                    setTimeout(async () => {
+                        const proyeccion = document.getElementById('selectProyeccion').value;
+                        if (proyeccion) {
+                            await cargarDatosDetalle(proyeccion);
+                        }
+                    }, 600);
+                });
+            }
+
+            // ===== BOTÓN EXPORTAR PDF POR SEMANA =====
+            const btnExportarPDF = document.getElementById('btnExportarPDF');
+            if (btnExportarPDF) {
+                btnExportarPDF.addEventListener('click', () => {
+                    const proyeccion = document.getElementById('selectProyeccion').value;
+                    
+                    if (!proyeccion) {
+                        alert('Por favor selecciona una proyección');
+                        return;
+                    }
+
+                    // Mostrar modal con PDF dentro de la misma ventana
+                    const url = `${AppConfig.API.BASE_URL}/api/cargapollo/pdf?proyeccion=${encodeURIComponent(proyeccion)}`;
+                    const modal = document.getElementById('modalPdfViewer');
+                    const iframe = document.getElementById('iframePdfViewer');
+                    
+                    iframe.src = url;
+                    modal.style.display = 'flex';
+                    
+                    // Mostrar mensaje de confirmación
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#10b981; color:white; padding:16px 24px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:10000; font-weight:500;';
+                    toast.innerHTML = '<i class="fas fa-file-pdf"></i> Generando PDF agrupado por semana...';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                });
+            }
+            
+            // ===== CERRAR MODAL PDF =====
+            const btnCerrarPdf = document.getElementById('btnCerrarPdf');
+            const modalPdf = document.getElementById('modalPdfViewer');
+            if (btnCerrarPdf && modalPdf) {
+                btnCerrarPdf.addEventListener('click', () => {
+                    modalPdf.style.display = 'none';
+                    document.getElementById('iframePdfViewer').src = '';
+                });
+                // Cerrar al hacer clic en el overlay
+                modalPdf.addEventListener('click', (e) => {
+                    if (e.target === modalPdf) {
+                        modalPdf.style.display = 'none';
+                        document.getElementById('iframePdfViewer').src = '';
+                    }
+                });
+            }
+            
+            // ===== DESCARGAR PDF DESDE MODAL =====
+            const btnDescargarPdf = document.getElementById('btnDescargarPdf');
+            if (btnDescargarPdf) {
+                btnDescargarPdf.addEventListener('click', () => {
+                    const proyeccion = document.getElementById('selectProyeccion').value;
+                    if (!proyeccion) return;
+                    
+                    // Crear toast de descarga en progreso
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#22c55e; color:white; padding:16px 24px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:100001; font-weight:500; display:flex; align-items:center; gap:10px;';
+                    toast.innerHTML = '<div style="width:20px; height:20px; border:3px solid white; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div><span>Descargando PDF...</span>';
+                    document.body.appendChild(toast);
+                    
+                    // Crear link temporal para descargar
+                    const url = `${AppConfig.API.BASE_URL}/api/cargapollo/pdf?proyeccion=${encodeURIComponent(proyeccion)}&download=1`;
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `Carga_Pollos_${proyeccion}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Cambiar toast a completado
+                    setTimeout(() => {
+                        toast.style.background = '#10b981';
+                        toast.innerHTML = '<i class="fas fa-check-circle"></i> PDF descargado correctamente';
+                        setTimeout(() => toast.remove(), 2500);
+                    }, 800);
+                });
+            }
+            
+            // ===== IMPRIMIR PDF DESDE MODAL =====
+            const btnImprimirPdf = document.getElementById('btnImprimirPdf');
+            if (btnImprimirPdf) {
+                btnImprimirPdf.addEventListener('click', () => {
+                    const iframe = document.getElementById('iframePdfViewer');
+                    if (iframe && iframe.src) {
+                        iframe.contentWindow.print();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Modal para visualizar PDF -->
+    <div id="modalPdfViewer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
+        <div style="position:relative; width:90%; height:90%; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.3); overflow:hidden; display:flex; flex-direction:column;">
+            <!-- Barra superior con controles -->
+            <div style="background:#374151; color:white; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; min-height:50px; border-radius:12px 12px 0 0;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-file-pdf" style="font-size:20px; color:#dc2626;"></i>
+                    <span style="font-weight:600; font-size:14px;">Visualizador de PDF - Reporte de Carga de Pollos</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <!-- Botón Descargar --
+                    <button id="btnDescargarPdf" title="Descargar PDF" style="background:#22c55e; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+                        <i class="fas fa-download"></i> Descargar
+                    </button>
+                    -- Botón Imprimir --
+                    <button id="btnImprimirPdf" title="Imprimir PDF" style="background:#3b82f6; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>-->
+                    <!-- Botón Cerrar -->
+                    <button id="btnCerrarPdf" title="Cerrar" style="background:#dc2626; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+            <!-- Iframe para mostrar el PDF -->
+            <iframe id="iframePdfViewer" src="" style="width:100%; flex:1; border:none; background:white;"></iframe>
+        </div>
+    </div>
+</body>
+</html>

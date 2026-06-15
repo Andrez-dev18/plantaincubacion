@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor Excel con Fórmulas - Programa de Carga</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.1/dist/hyperformula.full.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #222535;
+  --border: #2e3148; --accent: #4f8ef7; --text: #e2e8f0;
+  --text2: #94a3b8; --green: #22c55e; --red: #ef4444;
+  --yellow: #fbbf24; --formula: #a78bfa; --modified: #1e3a1e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* HEADER */
+header {
+  background: linear-gradient(135deg, #1a1d27 0%, #12152a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex-shrink: 0;
+}
+header h1 { font-size: .95rem; font-weight: 700; color: #fff; white-space: nowrap; }
+.btn {
+  background: var(--accent); color: #fff; border: none;
+  padding: 7px 14px; border-radius: 6px; font-size: .76rem;
+  font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.btn:hover { opacity: .85; transform: translateY(-1px); }
+.btn.green  { background: #16a34a; }
+.btn.orange { background: #ea580c; }
+.btn.gray   { background: #475569; }
+.btn.purple { background: #9333ea; }
+#fileInput { display: none; }
+
+/* TABS */
+.tabs-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto; flex-shrink: 0; padding: 0 8px;
+}
+.tabs-bar::-webkit-scrollbar { height: 4px; }
+.tabs-bar::-webkit-scrollbar-thumb { background: var(--border); }
+.tab {
+  padding: 8px 14px; font-size: .74rem; color: var(--text2);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  white-space: nowrap; transition: all .15s; flex-shrink: 0;
+}
+.tab:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; background: rgba(79,142,247,.08); }
+
+/* FORMULA BAR */
+.formula-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; padding: 5px 12px;
+  flex-shrink: 0;
+}
+.cell-ref {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--accent); padding: 5px 10px; border-radius: 5px;
+  font-size: .75rem; font-weight: 600; min-width: 70px; text-align: center; font-family: 'Consolas', monospace;
+}
+.formula-label { font-size: .7rem; color: var(--formula); font-weight: 600; }
+#formulaInput {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--formula); padding: 5px 12px; border-radius: 5px; font-size: .78rem;
+  font-family: 'Consolas', monospace; font-weight: 500;
+}
+#formulaInput:focus { outline: 2px solid var(--formula); border-color: var(--formula); }
+#formulaInput.error { border-color: var(--red); color: var(--red); }
+
+/* TOOLBAR */
+.toolbar {
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+  padding: 5px 12px; display: flex; gap: 10px; align-items: center;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.toolbar label { font-size: .72rem; color: var(--text2); }
+.toolbar input, .toolbar select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: .74rem;
+}
+.toolbar .sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; }
+#searchInput { width: 170px; }
+#gotoInput   { width: 75px; font-family: 'Consolas', monospace; }
+.mod-indicator { font-size: .7rem; color: var(--yellow); display: flex; align-items: center; gap: 5px; }
+.recalc-indicator { font-size: .7rem; color: var(--green); display: flex; align-items: center; gap: 5px; }
+
+/* GRID WRAPPER */
+.grid-wrapper {
+  flex: 1; overflow: auto; position: relative; background: var(--bg);
+}
+.grid-wrapper::-webkit-scrollbar { width: 10px; height: 10px; }
+.grid-wrapper::-webkit-scrollbar-track { background: var(--bg); }
+.grid-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+.grid-wrapper::-webkit-scrollbar-thumb:hover { background: #3d4152; }
+
+/* TABLE */
+table { border-collapse: collapse; font-size: .75rem; table-layout: fixed; }
+thead th {
+  background: #12152a; color: var(--text2); font-weight: 600;
+  border: 1px solid #1e2235; padding: 5px 8px;
+  position: sticky; top: 0; z-index: 10; min-width: 32px;
+  text-align: center; user-select: none; white-space: nowrap;
+}
+thead th.col-header {
+  min-width: 100px; width: 100px; cursor: pointer;
+  transition: background .15s;
+}
+thead th.col-header:hover { background: #1a1e30; color: var(--text); }
+tbody td.row-num {
+  background: #12152a; color: var(--text2); font-weight: 500;
+  border: 1px solid #1e2235; padding: 3px 8px; text-align: center;
+  position: sticky; left: 0; z-index: 5; min-width: 45px; user-select: none;
+  cursor: pointer; transition: background .15s;
+}
+tbody td.row-num:hover { background: #1a1e30; color: var(--text); }
+tbody td.cell {
+  border: 1px solid #1e2235; padding: 3px 8px;
+  min-width: 100px; width: 100px; max-width: 250px;
+  cursor: cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text); transition: background .12s;
+  position: relative;
+}
+tbody td.cell:hover { background: #1e2235; }
+tbody td.cell.selected {
+  background: rgba(79,142,247,.2); outline: 2px solid var(--accent);
+  outline-offset: -2px; z-index: 3;
+}
+tbody td.cell.formula { color: var(--formula); font-style: italic; }
+tbody td.cell.formula::before {
+  content: 'ƒx'; position: absolute; left: 2px; top: 1px;
+  font-size: .6rem; opacity: .4; font-weight: 700;
+}
+tbody td.cell.modified { background: var(--modified); border-color: #2d4a2d; }
+tbody td.cell.modified.selected { background: rgba(34,197,94,.18); }
+tbody td.cell.error { background: rgba(239,68,68,.12); color: var(--red); }
+tbody td.cell.highlight { background: rgba(251,191,36,.18); }
+tbody td.cell.number { text-align: right; font-family: 'Consolas', monospace; }
+
+/* INLINE EDITOR */
+.cell-editor {
+  position: absolute; z-index: 100; border: 2px solid var(--accent);
+  background: var(--surface2); color: var(--formula); font-family: 'Consolas', monospace;
+  font-size: .76rem; padding: 3px 8px; outline: none; min-width: 100px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.6); border-radius: 3px;
+}
+
+/* LOADING */
+#overlay {
+  position: fixed; inset: 0; background: rgba(15,17,23,.94);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+}
+.spinner {
+  width: 50px; height: 50px; border: 4px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#overlay p { color: var(--text2); font-size: .84rem; margin-top: 8px; }
+#overlay.hidden { display: none; }
+
+/* EMPTY */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; flex: 1; gap: 14px; padding: 40px;
+}
+.empty .icon { font-size: 3.5rem; opacity: .25; }
+.empty h3 { font-size: 1.1rem; color: var(--text); }
+.empty p { color: var(--text2); font-size: .85rem; text-align: center; max-width: 400px; line-height: 1.5; }
+
+/* STATUS BAR */
+.status-bar {
+  background: var(--accent); color: #fff; font-size: .72rem;
+  padding: 4px 16px; display: flex; gap: 24px; flex-shrink: 0; align-items: center;
+}
+.status-bar span { display: flex; align-items: center; gap: 6px; }
+.status-bar b { font-weight: 700; }
+.status-bar .pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* CONTEXT MENU */
+.ctx-menu {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 0; z-index: 200; min-width: 200px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.6); display: none;
+}
+.ctx-item {
+  padding: 9px 18px; font-size: .78rem; color: var(--text);
+  cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background .12s;
+}
+.ctx-item:hover { background: var(--surface2); }
+.ctx-sep { height: 1px; background: var(--border); margin: 6px 0; }
+
+/* FORMULA HELP PANEL */
+.help-panel {
+  position: fixed; right: 20px; top: 80px; width: 320px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; z-index: 150;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5); display: none;
+  max-height: 70vh; overflow-y: auto;
+}
+.help-panel.open { display: block; }
+.help-panel h3 { font-size: .9rem; margin-bottom: 12px; color: var(--formula); }
+.help-panel .func {
+  background: var(--surface2); padding: 10px; border-radius: 6px;
+  margin-bottom: 8px; font-size: .72rem;
+}
+.help-panel .func-name { font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.help-panel .func-desc { color: var(--text2); line-height: 1.4; }
+.help-panel::-webkit-scrollbar { width: 5px; }
+.help-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* INFO PANEL */
+.info-panel {
+  position: fixed; left: 20px; bottom: 60px; width: 360px;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+  z-index: 150; box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+.info-panel h3 { font-size: .88rem; margin-bottom: 10px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.info-stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: .74rem; }
+.info-stat:last-child { border: none; }
+.info-stat .label { color: var(--text2); }
+.info-stat .value { color: var(--text); font-weight: 600; font-family: 'Consolas', monospace; }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="overlay">
+  <div class="spinner"></div>
+  <p id="overlayMsg">Iniciando motor de cálculo…</p>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" onclick="ctxCopy()">📋 Copiar (Ctrl+C)</div>
+  <div class="ctx-item" onclick="ctxPaste()">📌 Pegar (Ctrl+V)</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxClearCell()">🗑️ Limpiar celda</div>
+  <div class="ctx-item" onclick="ctxFillDown()">⬇️ Rellenar hacia abajo</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxFormat('number')">🔢 Formato: Número</div>
+  <div class="ctx-item" onclick="ctxFormat('text')">📝 Formato: Texto</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="showCellInfo()">ℹ️ Info de celda</div>
+</div>
+
+<!-- FORMULA HELP PANEL -->
+<div class="help-panel" id="helpPanel">
+  <h3>📚 Funciones Soportadas</h3>
+  <div class="func">
+    <div class="func-name">IF(condición, valor_si_verdadero, valor_si_falso)</div>
+    <div class="func-desc">Devuelve un valor si la condición es verdadera y otro si es falsa</div>
+  </div>
+  <div class="func">
+    <div class="func-name">VLOOKUP(valor, rango, columna, [exacto])</div>
+    <div class="func-desc">Busca un valor en la primera columna y devuelve un valor en la misma fila</div>
+  </div>
+  <div class="func">
+    <div class="func-name">SUM(rango)</div>
+    <div class="func-desc">Suma todos los números en un rango</div>
+  </div>
+  <div class="func">
+    <div class="func-name">SUMIF(rango, criterio, [rango_suma])</div>
+    <div class="func-desc">Suma las celdas que cumplen un criterio</div>
+  </div>
+  <div class="func">
+    <div class="func-name">SUMIFS(rango_suma, rango1, criterio1, ...)</div>
+    <div class="func-desc">Suma con múltiples criterios</div>
+  </div>
+  <div class="func">
+    <div class="func-name">AVERAGE(rango)</div>
+    <div class="func-desc">Calcula el promedio de un rango</div>
+  </div>
+  <div class="func">
+    <div class="func-name">MAX(rango) / MIN(rango)</div>
+    <div class="func-desc">Devuelve el valor máximo o mínimo</div>
+  </div>
+  <div class="func">
+    <div class="func-name">COUNT(rango) / COUNTA(rango)</div>
+    <div class="func-desc">Cuenta celdas con números o con cualquier valor</div>
+  </div>
+  <div class="func">
+    <div class="func-name">CONCATENATE(texto1, texto2, ...)</div>
+    <div class="func-desc">Une varios textos en uno solo</div>
+  </div>
+  <div class="func">
+    <div class="func-name">TEXT(valor, formato)</div>
+    <div class="func-desc">Convierte un valor a texto con formato específico</div>
+  </div>
+  <div class="func">
+    <div class="func-name">YEAR(fecha) / MONTH(fecha) / DAY(fecha)</div>
+    <div class="func-desc">Extrae año, mes o día de una fecha</div>
+  </div>
+  <div class="func">
+    <div class="func-name">WEEKNUM(fecha, [tipo])</div>
+    <div class="func-desc">Devuelve el número de semana del año</div>
+  </div>
+  <div class="func">
+    <div class="func-name">LOOKUP(valor, vector_búsqueda, [vector_resultado])</div>
+    <div class="func-desc">Busca un valor en un vector</div>
+  </div>
+  <div class="func">
+    <div class="func-name">IFERROR(valor, valor_si_error)</div>
+    <div class="func-desc">Devuelve un valor alternativo si hay error</div>
+  </div>
+  <div class="func">
+    <div class="func-name">OR(lógica1, lógica2, ...) / AND(...)</div>
+    <div class="func-desc">Operadores lógicos O y Y</div>
+  </div>
+  <p style="margin-top:12px;font-size:.7rem;color:var(--text2)">
+    ⚡ Total: <b>174,550 fórmulas</b> en el archivo<br>
+    📊 Funciones más usadas: IF, VLOOKUP, IFERROR, SUM
+  </p>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>⚡ Editor Excel con Fórmulas – Programa de Carga</h1>
+  <button class="btn" onclick="document.getElementById('fileInput').click()">📂 Cargar Excel</button>
+  <input type="file" id="fileInput" accept=".xlsx,.xls">
+  <button class="btn green" onclick="exportExcel()" id="btnExport" style="display:none">💾 Exportar</button>
+  <button class="btn orange" onclick="recalcAll()" id="btnRecalc" style="display:none">♻️ Recalcular</button>
+  <button class="btn gray" onclick="resetModified()" id="btnReset" style="display:none">↺ Revertir</button>
+  <button class="btn purple" onclick="toggleHelp()">📚 Ayuda</button>
+  <span class="mod-indicator" id="modCount" style="display:none">
+    <span style="width:8px;height:8px;background:var(--yellow);border-radius:50%"></span>
+    <span>0 modificadas</span>
+  </span>
+  <span class="recalc-indicator" id="recalcInfo" style="display:none">
+    <div class="pulse"></div>
+    <span id="recalcText">Listo</span>
+  </span>
+</header>
+
+<!-- TABS -->
+<div class="tabs-bar" id="tabsBar"></div>
+
+<!-- FORMULA BAR -->
+<div class="formula-bar">
+  <div class="cell-ref" id="cellRef">–</div>
+  <span class="formula-label">fx</span>
+  <input type="text" id="formulaInput" placeholder="Selecciona una celda para ver o editar su fórmula…" readonly>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <label>🔍 Buscar:</label>
+  <input type="text" id="searchInput" placeholder="Texto o fórmula…" oninput="searchCells()">
+  <button class="btn gray" onclick="clearSearch()" style="padding:3px 10px;font-size:.7rem">✕</button>
+  <div class="sep"></div>
+  <label>📍 Ir a:</label>
+  <input type="text" id="gotoInput" placeholder="B5, D12…" onkeydown="if(event.key==='Enter')gotoCell()">
+  <button class="btn gray" onclick="gotoCell()" style="padding:3px 10px;font-size:.7rem">→</button>
+  <div class="sep"></div>
+  <label>📏 Filas:</label>
+  <input type="number" id="rowFrom" placeholder="1"  min="1" style="width:60px" oninput="applyRowFilter()">
+  <label>a</label>
+  <input type="number" id="rowTo"   placeholder="∞" min="1" style="width:60px" oninput="applyRowFilter()">
+  <div class="sep"></div>
+  <span id="searchCount" style="font-size:.72rem;color:var(--text2)"></span>
+</div>
+
+<!-- MAIN AREA -->
+<div id="mainArea" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+  <div class="empty" id="emptyState">
+    <div class="icon">📊</div>
+    <h3>Editor Excel</h3>
+    <p>Carga tu archivo <strong>Programa-de-carga-Actual-14.0-cargas.xlsx</strong></p>
+    <p style="font-size:.78rem;opacity:.7">
+      ✨ Motor de cálculo HyperFormula integrado<br>
+      🔄 174,550+ fórmulas ejecutables<br>
+      ⚡ Soporte para IF, VLOOKUP, SUM, SUMIFS, TEXT, WEEKNUM y más
+    </p>
+    <button class="btn" onclick="document.getElementById('fileInput').click()" style="margin-top:12px">
+      📂 Seleccionar archivo Excel
+    </button>
+  </div>
+  <div class="grid-wrapper" id="gridWrapper" style="display:none">
+    <div id="gridContainer"></div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar" style="display:none">
+  <span>📄 Hoja: <b id="sbSheet">–</b></span>
+  <span>📊 Filas: <b id="sbRows">–</b></span>
+  <span>📋 Cols: <b id="sbCols">–</b></span>
+  <span>📍 Celda: <b id="sbCell">–</b></span>
+  <span>🧮 Fórmulas: <b id="sbFormulas">–</b></span>
+  <span id="sbValue"></span>
+</div>
+
+<!-- INFO PANEL -->
+<div class="info-panel" id="infoPanel" style="display:none">
+  <h3>📊 Estadísticas del Archivo</h3>
+  <div id="infoPanelContent"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   GLOBAL STATE
+═══════════════════════════════════════════ */
+let WB = null;
+let HF = null;
+let sheets = {};
+let sheetIds = {};
+let currentSheet = '';
+let selectedCell = null;
+let editingCell  = null;
+let clipboard = null;
+let modified = {};
+let searchMatches = [];
+let visibleRows = null;
+
+const COL_LETTERS = (n) => {
+  let s = '';
+  while (n >= 0) { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n/26) - 1; }
+  return s;
+};
+const cellName = (r, c) => COL_LETTERS(c) + (r + 1);
+const modKey = (sheet, r, c) => `${sheet}:${r}:${c}`;
+
+/* ═══════════════════════════════════════════
+   FILE LOAD WITH FORMULAS
+═══════════════════════════════════════════ */
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  showOverlay('Leyendo archivo…');
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    setTimeout(() => {
+      try {
+        showOverlay('Procesando hojas y fórmulas…');
+        WB = XLSX.read(evt.target.result, {
+          type: 'array',
+          cellFormula: true,
+          cellStyles: true,
+          cellDates: false,
+          raw: false
+        });
+
+        showOverlay('Inicializando motor de cálculo…');
+        initHyperFormula();
+
+        buildTabs();
+        switchSheet(WB.SheetNames[0]);
+
+        document.getElementById('emptyState').style.display   = 'none';
+        document.getElementById('gridWrapper').style.display  = 'block';
+        document.getElementById('statusBar').style.display    = 'flex';
+        document.getElementById('btnExport').style.display    = 'inline-block';
+        document.getElementById('btnReset').style.display     = 'inline-block';
+        document.getElementById('btnRecalc').style.display    = 'inline-block';
+        document.getElementById('infoPanel').style.display    = 'block';
+
+        updateFileStats();
+        hideOverlay();
+      } catch(err) {
+        hideOverlay();
+        alert('Error al leer el archivo:\n' + err.message);
+        console.error(err);
+      }
+    }, 100);
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+/* ═══════════════════════════════════════════
+   HYPERFORMULA INITIALIZATION
+═══════════════════════════════════════════ */
+function initHyperFormula() {
+  const sheetsData = {};
+
+  WB.SheetNames.forEach(name => {
+    const ws = WB.Sheets[name];
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const data = [];
+
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      const row = [];
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws[cellAddr];
+
+        if (!cell) {
+          row.push(null);
+        } else if (cell.f) {
+          row.push('=' + cell.f);
+        } else {
+          let val = cell.v;
+          if (cell.t === 'n') val = parseFloat(val);
+          else if (cell.t === 's') val = String(val);
+          else if (cell.t === 'b') val = Boolean(val);
+          row.push(val);
+        }
+      }
+      data.push(row);
+    }
+
+    sheetsData[name] = data;
+  });
+
+  HF = HyperFormula.buildFromSheets(sheetsData, {
+    licenseKey: 'gpl-v3',
+    useArrayArithmetic: true,
+    useColumnIndex: true
+  });
+
+  WB.SheetNames.forEach((name, idx) => {
+    sheetIds[name] = idx;
+  });
+
+  WB.SheetNames.forEach(name => {
+    const sheetId = sheetIds[name];
+    const serialized = HF.getSheetSerialized(sheetId);
+    sheets[name] = {
+      data: serialized,
+      orig: JSON.parse(JSON.stringify(serialized))
+    };
+  });
+
+  document.getElementById('recalcInfo').style.display = 'flex';
+  document.getElementById('recalcText').textContent = `${Object.keys(sheetsData).length} hojas cargadas`;
+}
+
+/* ═══════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════ */
+function buildTabs() {
+  const bar = document.getElementById('tabsBar');
+  bar.innerHTML = WB.SheetNames.map((name, i) =>
+    `<div class="tab" id="tab_${i}" onclick="switchSheet('${escAttr(name)}')">${escHTML(name)}</div>`
+  ).join('');
+}
+
+function switchSheet(name) {
+  currentSheet = name;
+  visibleRows = null;
+  document.getElementById('rowFrom').value = '';
+  document.getElementById('rowTo').value   = '';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const idx = WB.SheetNames.indexOf(name);
+  const tab = document.getElementById(`tab_${idx}`);
+  if (tab) { tab.classList.add('active'); tab.scrollIntoView({ inline: 'nearest' }); }
+  selectedCell = null;
+  document.getElementById('cellRef').textContent = '–';
+  document.getElementById('formulaInput').value  = '';
+  clearSearch();
+  renderSheet(name);
+  updateStatus();
+}
+
+/* ═══════════════════════════════════════════
+   RENDER WITH FORMULAS
+═══════════════════════════════════════════ */
+function renderSheet(name) {
+  const sheetData = sheets[name];
+  if (!sheetData) return;
+
+  const data = sheetData.data;
+  const sheetId = sheetIds[name];
+
+  const rows = visibleRows
+    ? data.filter((_, i) => i >= (visibleRows.from - 1) && i <= (visibleRows.to - 1))
+    : data;
+  const rowOffset = visibleRows ? visibleRows.from - 1 : 0;
+
+  if (rows.length === 0) {
+    document.getElementById('gridContainer').innerHTML = '<p style="padding:30px;color:var(--text2);text-align:center">Hoja vacía</p>';
+    return;
+  }
+
+  const maxCols = Math.max(...rows.map(r => r.length), 1);
+  let html = '<table id="sheetTable"><thead><tr><th style="min-width:45px"></th>';
+  for (let c = 0; c < maxCols; c++) {
+    html += `<th class="col-header" onclick="selectCol(${c})">${COL_LETTERS(c)}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  let formulaCount = 0;
+
+  rows.forEach((row, ri) => {
+    const realR = ri + rowOffset;
+    html += `<tr><td class="row-num" onclick="selectRow(${realR})">${realR + 1}</td>`;
+
+    for (let c = 0; c < maxCols; c++) {
+      const cellValue   = HF.getCellValue({ sheet: sheetId, col: c, row: realR });
+      const cellFormula = HF.getCellFormula({ sheet: sheetId, col: c, row: realR });
+
+      let displayValue = '';
+      let classes = 'cell';
+      let title = '';
+
+      if (cellFormula) {
+        formulaCount++;
+        displayValue = formatValue(cellValue);
+        classes += ' formula';
+        title = cellFormula;
+      } else {
+        displayValue = formatValue(cellValue);
+      }
+
+      // FIX Bug 1+2: detectar cualquier tipo de error de HyperFormula
+      if (cellValue !== null && typeof cellValue === 'object' && cellValue.type !== undefined) {
+        classes += ' error';
+        displayValue = String(cellValue.type);
+      } else if (typeof cellValue === 'number') {
+        classes += ' number';
+      }
+
+      const key = modKey(name, realR, c);
+      if (modified[key] !== undefined) classes += ' modified';
+      if (selectedCell && selectedCell.r === realR && selectedCell.c === c) classes += ' selected';
+
+      html += `<td class="${classes}" id="cell_${realR}_${c}" data-r="${realR}" data-c="${c}" title="${escAttr(title)}"
+        onclick="selectCell(${realR},${c},event)"
+        ondblclick="startEdit(${realR},${c})"
+        oncontextmenu="showCtx(event,${realR},${c})"
+      >${escHTML(displayValue)}</td>`;
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('gridContainer').innerHTML = html;
+  document.getElementById('sbSheet').textContent    = name;
+  document.getElementById('sbRows').textContent     = data.length;
+  document.getElementById('sbCols').textContent     = maxCols;
+  document.getElementById('sbFormulas').textContent = formulaCount.toLocaleString();
+}
+
+// FIX Bug 1: formatValue detecta todos los tipos de error HyperFormula
+function formatValue(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'number') return val.toLocaleString('es-PE', { maximumFractionDigits: 6 });
+  if (typeof val === 'boolean') return val ? 'VERDADERO' : 'FALSO';
+  if (val !== null && typeof val === 'object' && val.type !== undefined) return String(val.type);
+  return String(val);
+}
+
+/* ═══════════════════════════════════════════
+   CELL SELECTION
+═══════════════════════════════════════════ */
+function selectCell(r, c, e) {
+  if (editingCell) commitEdit();
+  if (selectedCell) {
+    const prev = document.getElementById(`cell_${selectedCell.r}_${selectedCell.c}`);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedCell = { r, c };
+  const cell = document.getElementById(`cell_${r}_${c}`);
+  if (cell) cell.classList.add('selected');
+
+  const sheetId     = sheetIds[currentSheet];
+  const cellValue   = HF.getCellValue({ sheet: sheetId, col: c, row: r });
+  const cellFormula = HF.getCellFormula({ sheet: sheetId, col: c, row: r });
+
+  document.getElementById('cellRef').textContent = cellName(r, c);
+
+  if (cellFormula) {
+    document.getElementById('formulaInput').value = cellFormula;
+    document.getElementById('formulaInput').classList.remove('error');
+  } else {
+    document.getElementById('formulaInput').value = formatValue(cellValue);
+    document.getElementById('formulaInput').classList.remove('error');
+  }
+
+  document.getElementById('formulaInput').removeAttribute('readonly');
+  document.getElementById('sbCell').textContent = cellName(r, c);
+
+  const valText = cellFormula ? `Formula: ${cellFormula}` : `Valor: ${formatValue(cellValue)}`;
+  document.getElementById('sbValue').innerHTML = `<span>${valText}</span>`;
+}
+
+function selectRow(r) { selectCell(r, 0, null); }
+function selectCol(c) { selectCell(0, c, null); }
+
+/* ═══════════════════════════════════════════
+   KEYBOARD NAVIGATION
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', function(e) {
+  if (editingCell) return;
+  if (!selectedCell) return;
+  const { r, c } = selectedCell;
+  const data = sheets[currentSheet]?.data;
+  if (!data) return;
+  const maxR = data.length - 1;
+  const maxC = (data[r]?.length || 1) - 1;
+
+  if (e.key === 'ArrowUp'    && r > 0)    { e.preventDefault(); selectCell(r-1, c, null); scrollToCell(r-1, c); }
+  if (e.key === 'ArrowDown'  && r < maxR) { e.preventDefault(); selectCell(r+1, c, null); scrollToCell(r+1, c); }
+  if (e.key === 'ArrowLeft'  && c > 0)    { e.preventDefault(); selectCell(r, c-1, null); }
+  if (e.key === 'ArrowRight' && c < maxC) { e.preventDefault(); selectCell(r, c+1, null); }
+  if (e.key === 'Tab')                    { e.preventDefault(); if (c < maxC) selectCell(r, c+1, null); else if (r < maxR) selectCell(r+1, 0, null); }
+  if (e.key === 'Enter')                  { e.preventDefault(); startEdit(r, c); }
+  if (e.key === 'Delete')                 { e.preventDefault(); setCellValue(r, c, ''); }
+  if (e.key === 'Escape')                 { clearSearch(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c') { ctxCopy(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); ctxPaste(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput').focus(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); exportExcel(); }
+
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+    startEdit(r, c, e.key);
+  }
+});
+
+function scrollToCell(r, c) {
+  const el = document.getElementById(`cell_${r}_${c}`);
+  if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+/* ═══════════════════════════════════════════
+   INLINE EDIT
+═══════════════════════════════════════════ */
+function startEdit(r, c, initialChar) {
+  if (editingCell) commitEdit();
+  editingCell = { r, c };
+
+  const cellEl = document.getElementById(`cell_${r}_${c}`);
+  if (!cellEl) return;
+  const rect    = cellEl.getBoundingClientRect();
+  const wrapper = document.getElementById('gridWrapper');
+  const wrRect  = wrapper.getBoundingClientRect();
+
+  const input = document.createElement('input');
+  input.className    = 'cell-editor';
+  input.style.left   = (rect.left - wrRect.left + wrapper.scrollLeft) + 'px';
+  input.style.top    = (rect.top  - wrRect.top  + wrapper.scrollTop)  + 'px';
+  input.style.width  = Math.max(rect.width, 150) + 'px';
+  input.style.height = rect.height + 'px';
+
+  const sheetId     = sheetIds[currentSheet];
+  const cellFormula = HF.getCellFormula({ sheet: sheetId, col: c, row: r });
+  const cellValue   = HF.getCellValue({ sheet: sheetId, col: c, row: r });
+
+  if (initialChar !== undefined) {
+    input.value = initialChar;
+  } else if (cellFormula) {
+    input.value = cellFormula;
+  } else {
+    input.value = formatValue(cellValue);
+  }
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitEdit(); const data = sheets[currentSheet].data; if (r + 1 < data.length) selectCell(r+1, c, null); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    if (e.key === 'Tab')    { e.preventDefault(); commitEdit(); const data = sheets[currentSheet].data; const maxC = (data[r]?.length||1)-1; if (c < maxC) selectCell(r, c+1, null); }
+  });
+  input.addEventListener('blur', commitEdit);
+
+  document.getElementById('gridContainer').appendChild(input);
+  input.focus();
+  if (initialChar !== undefined) input.setSelectionRange(1, 1);
+  else input.select();
+}
+
+function commitEdit() {
+  if (!editingCell) return;
+  const inputs = document.querySelectorAll('.cell-editor');
+  inputs.forEach(inp => {
+    setCellValue(editingCell.r, editingCell.c, inp.value);
+    inp.remove();
+  });
+  editingCell = null;
+}
+
+function cancelEdit() {
+  document.querySelectorAll('.cell-editor').forEach(i => i.remove());
+  editingCell = null;
+}
+
+/* ═══════════════════════════════════════════
+   SET VALUE WITH FORMULA SUPPORT
+═══════════════════════════════════════════ */
+function setCellValue(r, c, val) {
+  const sheetId = sheetIds[currentSheet];
+
+  try {
+    if (typeof val === 'string' && val.startsWith('=')) {
+      HF.setCellContents({ sheet: sheetId, col: c, row: r }, val);
+    } else {
+      let parsedVal = val;
+      if (val !== '' && !isNaN(val)) parsedVal = parseFloat(val);
+      HF.setCellContents({ sheet: sheetId, col: c, row: r }, parsedVal);
+    }
+
+    const serialized = HF.getSheetSerialized(sheetId);
+    sheets[currentSheet].data = serialized;
+
+    modified[modKey(currentSheet, r, c)] = val;
+
+    renderSheet(currentSheet);
+    selectCell(r, c, null);
+
+    updateModCount();
+    document.getElementById('recalcText').textContent = 'Recalculado ✓';
+  } catch(err) {
+    alert('Error en la fórmula:\n' + err.message);
+    console.error(err);
+    document.getElementById('formulaInput').classList.add('error');
+  }
+}
+
+function updateModCount() {
+  const n  = Object.keys(modified).length;
+  const el = document.getElementById('modCount');
+  el.style.display = n > 0 ? 'flex' : 'none';
+  el.querySelector('span:last-child').textContent = `${n} modificada${n !== 1 ? 's' : ''}`;
+}
+
+/* ═══════════════════════════════════════════
+   RECALCULATE ALL
+═══════════════════════════════════════════ */
+function recalcAll() {
+  showOverlay('Recalculando todas las fórmulas…');
+  setTimeout(() => {
+    try {
+      renderSheet(currentSheet);
+      document.getElementById('recalcText').textContent = 'Recalculado ✓';
+      hideOverlay();
+    } catch(err) {
+      hideOverlay();
+      alert('Error al recalcular: ' + err.message);
+    }
+  }, 100);
+}
+
+/* ═══════════════════════════════════════════
+   FORMULA BAR EDIT
+═══════════════════════════════════════════ */
+document.getElementById('formulaInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && selectedCell) {
+    e.preventDefault();
+    setCellValue(selectedCell.r, selectedCell.c, this.value);
+    this.blur();
+  }
+  // FIX Bug 4: guard selectedCell antes de acceder a sus propiedades
+  if (e.key === 'Escape' && selectedCell) {
+    const sheetId     = sheetIds[currentSheet];
+    const cellFormula = HF.getCellFormula({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+    const cellValue   = HF.getCellValue({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+    this.value = cellFormula || formatValue(cellValue);
+  }
+});
+
+/* ═══════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════ */
+function searchCells() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  document.querySelectorAll('.cell.highlight').forEach(el => el.classList.remove('highlight'));
+  searchMatches = [];
+  if (!q) { document.getElementById('searchCount').textContent = ''; return; }
+
+  const sheetId = sheetIds[currentSheet];
+  const data    = sheets[currentSheet]?.data;
+  if (!data) return;
+
+  data.forEach((row, r) => {
+    row.forEach((_, c) => {
+      const cellValue   = HF.getCellValue({ sheet: sheetId, col: c, row: r });
+      const cellFormula = HF.getCellFormula({ sheet: sheetId, col: c, row: r });
+      const searchText  = (cellFormula || formatValue(cellValue)).toLowerCase();
+
+      if (searchText.includes(q)) {
+        searchMatches.push({ r, c });
+        const el = document.getElementById(`cell_${r}_${c}`);
+        if (el) el.classList.add('highlight');
+      }
+    });
+  });
+
+  document.getElementById('searchCount').textContent = `${searchMatches.length} coincidencias`;
+  if (searchMatches.length > 0) {
+    const { r, c } = searchMatches[0];
+    selectCell(r, c, null);
+    scrollToCell(r, c);
+  }
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.cell.highlight').forEach(el => el.classList.remove('highlight'));
+  document.getElementById('searchCount').textContent = '';
+  searchMatches = [];
+}
+
+/* ═══════════════════════════════════════════
+   GOTO CELL
+═══════════════════════════════════════════ */
+function gotoCell() {
+  const ref = document.getElementById('gotoInput').value.trim().toUpperCase();
+  if (!ref) return;
+  const match = ref.match(/^([A-Z]+)(\d+)$/);
+  if (!match) { alert('Formato inválido. Usa A1, B5, etc.'); return; }
+  let c = 0;
+  for (let i = 0; i < match[1].length; i++) {
+    c = c * 26 + (match[1].charCodeAt(i) - 64);
+  }
+  c -= 1;
+  const r = parseInt(match[2]) - 1;
+  selectCell(r, c, null);
+  scrollToCell(r, c);
+}
+
+/* ═══════════════════════════════════════════
+   ROW FILTER
+═══════════════════════════════════════════ */
+function applyRowFilter() {
+  const from = parseInt(document.getElementById('rowFrom').value);
+  const to   = parseInt(document.getElementById('rowTo').value);
+  if (!isNaN(from) && !isNaN(to)) visibleRows = { from, to };
+  else if (!isNaN(from)) visibleRows = { from, to: sheets[currentSheet].data.length };
+  else visibleRows = null;
+  renderSheet(currentSheet);
+}
+
+/* ═══════════════════════════════════════════
+   CONTEXT MENU
+═══════════════════════════════════════════ */
+let ctxCell = null;
+function showCtx(e, r, c) {
+  e.preventDefault();
+  ctxCell = { r, c };
+  selectCell(r, c, null);
+  const menu = document.getElementById('ctxMenu');
+  menu.style.display = 'block';
+  menu.style.left    = e.clientX + 'px';
+  menu.style.top     = e.clientY + 'px';
+}
+document.addEventListener('click', () => { document.getElementById('ctxMenu').style.display = 'none'; });
+
+function ctxCopy() {
+  if (!selectedCell) return;
+  const sheetId     = sheetIds[currentSheet];
+  const cellFormula = HF.getCellFormula({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+  const cellValue   = HF.getCellValue({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+  clipboard = { val: cellFormula || formatValue(cellValue), ...selectedCell };
+}
+
+function ctxPaste() {
+  if (!selectedCell || !clipboard) return;
+  setCellValue(selectedCell.r, selectedCell.c, clipboard.val);
+}
+
+function ctxClearCell() {
+  if (!selectedCell) return;
+  setCellValue(selectedCell.r, selectedCell.c, '');
+}
+
+// FIX Bug 5: eliminar renderSheet() redundante al final del loop
+function ctxFillDown() {
+  if (!selectedCell) return;
+  const sheetId     = sheetIds[currentSheet];
+  const cellFormula = HF.getCellFormula({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+  const cellValue   = HF.getCellValue({ sheet: sheetId, col: selectedCell.c, row: selectedCell.r });
+  const val = cellFormula || formatValue(cellValue);
+
+  for (let r = selectedCell.r + 1; r < Math.min(selectedCell.r + 10, sheets[currentSheet].data.length); r++) {
+    setCellValue(r, selectedCell.c, val);
+  }
+  // renderSheet ya es llamado dentro de setCellValue en cada iteración — no duplicar
+}
+
+function ctxFormat(type) {
+  alert(`Formato ${type} aplicado (función de demostración)`);
+}
+
+function showCellInfo() {
+  if (!selectedCell) return;
+  const sheetId     = sheetIds[currentSheet];
+  const { r, c }    = selectedCell;
+  const cellFormula = HF.getCellFormula({ sheet: sheetId, col: c, row: r });
+  const cellValue   = HF.getCellValue({ sheet: sheetId, col: c, row: r });
+
+  alert(`📍 Celda: ${cellName(r, c)}\n` +
+        `📊 Hoja: ${currentSheet}\n` +
+        `🔢 Valor: ${formatValue(cellValue)}\n` +
+        `⚡ Fórmula: ${cellFormula || 'Sin fórmula'}`);
+}
+
+/* ═══════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════ */
+function resetModified() {
+  if (!confirm('¿Revertir todos los cambios?')) return;
+  showOverlay('Revirtiendo cambios…');
+  setTimeout(() => {
+    WB.SheetNames.forEach(name => {
+      const sheetId  = sheetIds[name];
+      const origData = sheets[name].orig;
+      HF.setSheetContent(sheetId, origData);
+      sheets[name].data = HF.getSheetSerialized(sheetId);
+    });
+    modified = {};
+    updateModCount();
+    renderSheet(currentSheet);
+    hideOverlay();
+  }, 100);
+}
+
+/* ═══════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════ */
+function exportExcel() {
+  if (!HF) { alert('No hay datos para exportar.'); return; }
+  showOverlay('Generando archivo Excel…');
+  setTimeout(() => {
+    try {
+      const newWB = XLSX.utils.book_new();
+
+      WB.SheetNames.forEach(name => {
+        const sheetId    = sheetIds[name];
+        const serialized = HF.getSheetSerialized(sheetId);
+
+        // FIX Bug 3: no forzar t:'n' — dejar que xlsx infiera el tipo
+        const ws = XLSX.utils.aoa_to_sheet(serialized.map(row =>
+          row.map(cell => {
+            if (typeof cell === 'string' && cell.startsWith('=')) {
+              return { f: cell.substring(1) };
+            }
+            return cell;
+          })
+        ));
+
+        XLSX.utils.book_append_sheet(newWB, ws, name);
+      });
+
+      XLSX.writeFile(newWB, 'Programa-de-carga-Modificado.xlsx');
+      hideOverlay();
+    } catch(err) {
+      hideOverlay();
+      alert('Error al exportar: ' + err.message);
+    }
+  }, 100);
+}
+
+/* ═══════════════════════════════════════════
+   HELP PANEL
+═══════════════════════════════════════════ */
+function toggleHelp() {
+  const panel = document.getElementById('helpPanel');
+  panel.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════
+   FILE STATS
+═══════════════════════════════════════════ */
+function updateFileStats() {
+  let totalFormulas = 0;
+  let totalCells    = 0;
+
+  WB.SheetNames.forEach(name => {
+    const sheetId = sheetIds[name];
+    const data    = sheets[name].data;
+    totalCells += data.reduce((sum, row) => sum + row.length, 0);
+
+    data.forEach((row, r) => {
+      row.forEach((_, c) => {
+        if (HF.getCellFormula({ sheet: sheetId, col: c, row: r })) {
+          totalFormulas++;
+        }
+      });
+    });
+  });
+
+  const html = `
+    <div class="info-stat"><span class="label">📄 Total hojas</span><span class="value">${WB.SheetNames.length}</span></div>
+    <div class="info-stat"><span class="label">📊 Total celdas</span><span class="value">${totalCells.toLocaleString()}</span></div>
+    <div class="info-stat"><span class="label">⚡ Total fórmulas</span><span class="value">${totalFormulas.toLocaleString()}</span></div>
+    <div class="info-stat"><span class="label">✏️ Modificadas</span><span class="value">${Object.keys(modified).length}</span></div>
+  `;
+  document.getElementById('infoPanelContent').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+function updateStatus() {
+  if (!sheets[currentSheet]) return;
+  const data = sheets[currentSheet].data;
+  document.getElementById('sbRows').textContent = data.length;
+  document.getElementById('sbCols').textContent = data[0]?.length || 0;
+}
+
+function showOverlay(msg) {
+  document.getElementById('overlayMsg').textContent = msg;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function escHTML(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+// Init
+setTimeout(hideOverlay, 700);
+</script>
+</body>
+</html>
