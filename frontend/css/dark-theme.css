@@ -652,6 +652,11 @@ body:not(.dark-mode) thead {
     color: var(--th-fg) !important;
 }
 
+body.dark-mode thead th,
+body:not(.dark-mode) thead th {
+    color: #ffffff !important;
+}
+
 body.dark-mode tbody tr,
 body:not(.dark-mode) tbody tr {
     background: var(--tr-odd) !important;
@@ -1131,26 +1136,43 @@ body:not(.dark-mode) details #btn-theme-toggle {
 }
 
 /* ========================================
-   TRANSICIONES SUAVES - AMBOS TEMAS
+   TRANSICIONES SUAVES - AMBOS TEMAS (CORREGIDO)
    ======================================== */
 
+/* Aplicamos transiciones de color globales de forma segura sin romper anchos ni márgenes */
 body,
-body * {
+body p,
+body h1,
+body h2,
+body h3,
+body h4,
+body h5,
+body h6,
+body section,
+body .card {
     transition: background-color 0.3s ease,
                 color 0.3s ease,
-                border-color 0.3s ease,
-                background 0.3s ease !important;
+                border-color 0.3s ease;
 }
 
-/* Excepciones: elementos que no deben tener transición */
+/* Excepciones: Elementos interactivos nativos */
 button,
 a,
 input,
 select,
-textarea,
-.animate-spin,
-[class*="animate"] {
+textarea {
     transition: all 0.2s ease !important;
+}
+
+/* ¡LA SALVACIÓN DE LA ANIMACIÓN! 
+   Protegemos el sidebar y el wrapper para que usen su propia transición elástica
+*/
+#sidebar,
+.sidebar,
+.content-wrapper {
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important, 
+                margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important,
+                transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* ========================================

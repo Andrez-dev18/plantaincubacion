@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Compatible con IAM y sistema antiguo
             if (userNameElem) userNameElem.textContent = usuario.nombre || usuario.nombre_completo || 'Usuario';
             if (rolUserElem) {
-                const rolNombre = sessionStorage.getItem('user_rol_nombre') || usuario.nombre_rol || 'Usuario';
+                const rolNombre = sessionStorage.getItem('username') || usuario.username || 'Usuario';
                 rolUserElem.textContent = rolNombre;
             }
         }

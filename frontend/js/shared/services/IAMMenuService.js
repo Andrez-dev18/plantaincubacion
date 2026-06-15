@@ -14,7 +14,7 @@ class IAMMenuService extends Service {
         try {
             const endpoint = AppConfig.API.ENDPOINTS.IAM.MENU;
             const response = await this.get(endpoint);
-            
+
             if (!response.success) {
                 throw new Error(response.message || 'Error al obtener menú');
             }
@@ -40,7 +40,7 @@ class IAMMenuService extends Service {
         try {
             const endpoint = `${AppConfig.API.ENDPOINTS.IAM.MENU_PROGRAMA}/${idPrograma}`;
             const response = await this.get(endpoint);
-            
+
             if (!response.success) {
                 throw new Error(response.message || 'Error al obtener menú del programa');
             }
@@ -66,7 +66,7 @@ class IAMMenuService extends Service {
         try {
             const endpoint = AppConfig.API.ENDPOINTS.IAM.PROGRAMAS;
             const response = await this.get(endpoint);
-            
+
             if (!response.success) {
                 throw new Error(response.message || 'Error al obtener programas');
             }
@@ -92,7 +92,7 @@ class IAMMenuService extends Service {
         try {
             const endpoint = `${AppConfig.API.ENDPOINTS.IAM.MODULOS_PROGRAMA}/${idPrograma}/modulos`;
             const response = await this.get(endpoint);
-            
+
             if (!response.success) {
                 throw new Error(response.message || 'Error al obtener módulos del programa');
             }
@@ -114,8 +114,11 @@ class IAMMenuService extends Service {
     /**
      * Convierte el formato de menú IAM al formato esperado por renderSidebarMenu
      */
+    /**
+     * Convierte el formato de menú IAM al formato esperado por renderSidebarMenu
+     * CON LIMPIEZA DE TEXTOS REPETIDOS DE DESARROLLO
+     */
     convertirMenuIAMaFormato(menuIAM) {
-        // Convierte el árbol jerárquico del backend en un array plano para renderSidebarMenu
         if (!Array.isArray(menuIAM)) {
             console.warn('El menú IAM no es un array válido:', menuIAM);
             return [];
@@ -123,25 +126,62 @@ class IAMMenuService extends Service {
 
         const items = [];
 
+        // Función auxiliar para separar el texto descriptivo del identificador técnico pegado
+        // Ej: "Programa de CargaGest. Objetivos" -> "Programa de Carga"
+        function limpiarTextoModulo(texto) {
+            if (!texto) return '';
+            // Detecta dónde se une una palabra minúscula con una mayúscula (CamelCase pegado)
+            // o patrones como "Gest. Objetivos", "Carga Pollo" pegados al final
+            let textoLimpio = texto.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+            // Eliminar colas de desarrollo repetitivas comunes detectadas en la captura
+            textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos.*/i, '');
+            textoLimpio = textoLimpio.replace(/\s*Config\s*Roles.*/i, '');
+            textoLimpio = textoLimpio.replace(/\s*Carga\s*Pollo.*/i, '');
+
+            return textoLimpio.trim();
+        }
+
+        // Función auxiliar para extraer un label corto limpio y amigable para el modo colapsado
+        function extraerLabelCorto(nodo) {
+            if (nodo.label_short && !nodo.label_short.includes('Gest.')) {
+                return nodo.label_short;
+            }
+            // Si no hay un label corto limpio, procesamos el nombre original para sacar algo coherente
+            const textoOriginal = nodo.nom_mod || '';
+            if (textoOriginal.includes('Carga')) return 'Carga';
+            if (textoOriginal.includes('Procedencia')) return 'Origen';
+            if (textoOriginal.includes('Transporte')) return 'Transp.';
+            if (textoOriginal.includes('Almacén')) return 'Almac.';
+            if (textoOriginal.includes('Incubación')) return 'Incub.';
+            if (textoOriginal.includes('Vacunación')) return 'Vacuna';
+            if (textoOriginal.includes('Granja')) return 'Granja';
+            if (textoOriginal.includes('Roles') || textoOriginal.includes('Config')) return 'Roles';
+
+            return limpiarTextoModulo(textoOriginal).substring(0, 7);
+        }
+
         // Función recursiva para aplanar el árbol
         function aplanarNodo(nodo, parentCod = null) {
+            const nombreLimpio = limpiarTextoModulo(nodo.nom_mod || nodo.label_short || 'Módulo');
+            const labelCortoLimpio = extraerLabelCorto(nodo);
+
             const item = {
                 cod_mod: nodo.cod_mod,
-                nom_mod: nodo.nom_mod || nodo.label_short || 'Módulo',
+                nom_mod: nombreLimpio,
                 icono: nodo.icono || 'fas fa-cog',
                 tipo: nodo.tipo || 'item',
                 orden: nodo.orden || 0,
                 url: nodo.url || 'pages/trabajando.html',
-                label_short: nodo.label_short || nodo.nom_mod?.substring(0, 5) || 'MOD',
+                label_short: labelCortoLimpio,
                 parent_cod: parentCod,
                 permiso: nodo.permiso || null,
                 tipo_param: nodo.tipo_param || 'modulo',
-                titulo: nodo.nom_mod || nodo.label_short || 'Módulo'
+                titulo: nombreLimpio
             };
-            
+
             items.push(item);
 
-            // Si tiene hijos, aplanarlos también
             if (Array.isArray(nodo.children)) {
                 nodo.children.forEach(hijo => aplanarNodo(hijo, nodo.cod_mod));
             }
@@ -150,28 +190,27 @@ class IAMMenuService extends Service {
         // Procesar cada programa
         menuIAM.forEach((programa, programaIndex) => {
             const hasMenu = Array.isArray(programa.menu) && programa.menu.length > 0;
-            if (!hasMenu) {
-                return;
-            }
+            if (!hasMenu) return;
 
-            // Crear grupo principal para el programa
+            const nombreProgramaLimpio = limpiarTextoModulo(programa.programa?.nombre || 'Programa');
+
+            // Crear grupo principal para el programa (Nivel 1)
             const grupoPrograma = {
                 cod_mod: `PROG_${programa.programa?.id_programa || programaIndex}`,
-                nom_mod: programa.programa?.nombre || 'Programa',
+                nom_mod: nombreProgramaLimpio,
                 icono: 'fas fa-folder',
                 tipo: 'group',
                 orden: programaIndex + 1,
-                label_short: programa.programa?.nombre?.substring(0, 4) || 'PROG',
+                label_short: nombreProgramaLimpio.substring(0, 4).toUpperCase(),
                 parent_cod: null,
                 url: null,
                 permiso: null,
                 tipo_param: null,
-                titulo: programa.programa?.nombre || 'Programa'
+                titulo: nombreProgramaLimpio
             };
-            
+
             items.push(grupoPrograma);
 
-            // Aplanar todos los nodos del menú del programa
             programa.menu.forEach(nodo => {
                 aplanarNodo(nodo, grupoPrograma.cod_mod);
             });

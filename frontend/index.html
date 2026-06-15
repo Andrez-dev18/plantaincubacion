@@ -7,54 +7,535 @@
     <meta name="description" content="Sistema de Gestión de Pollo - Múltiples Dashboards">
     <title>Sistema de Gestión - Dashboard</title>
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="css/output.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="assets/icons/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="css/dashboard-styles.css">
-    <link rel="stylesheet" href="css/index-styles.css">
+    <link rel="stylesheet" href="assets/css/dashboard-style.css">
 
     <!-- Tema Oscuro Global -->
-    <link rel="stylesheet" href="css/dark-theme.css?v=20260328a">
+    <link rel="stylesheet" href="css/dark-theme.css">
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            height: 100%;
+            height: 100dvh;
+        }
 
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            transition: margin-left 0.3s ease;
+        }
+
+        .content-wrapper main {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #dashboardFrame {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            border: none;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 350px;
+            background: linear-gradient(180deg, #163a9c 0%, #1a43c7 100%);
+            /* Aseguramos la transición suave tanto para transform como para width */
+            transition: transform 0.3s ease, width 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.collapsed {
+            width: 140px;
+            /* Quitamos el overflow-x molesto durante la animación */
+            overflow: hidden;
+        }
+
+
+        /* Scrollbar del sidebar: track transparente (vertical y horizontal) */
+        .sidebar nav::-webkit-scrollbar,
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .sidebar nav::-webkit-scrollbar-track,
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar nav::-webkit-scrollbar-corner,
+        .sidebar::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
+        .sidebar nav::-webkit-scrollbar-thumb,
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .sidebar nav::-webkit-scrollbar-thumb:hover,
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar nav,
+        .sidebar {
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        .toggle-sidebar-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .menu-item {
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            min-height: 48px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: none;
+        }
+
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid #60a5fa;
+        }
+
+        /* Alineación del contenido del item */
+        .menu-item>span {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .menu-item>span>span {
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.3;
+            text-align: left;
+        }
+
+        /* ==================================================
+           COMPORTAMIENTO DEL SIDEBAR COLAPSADO (ESTILO CLÁSICO + HOVER UX)
+           ================================================== */
+        @media (min-width: 1024px) {
+
+            /* 1. Ocultar los submenús al colapsar para mantener el orden */
+            .sidebar.collapsed .submenu {
+                display: none !important;
+            }
+
+            /* 2. Restaurar el diseño que te gustaba: Ícono centrado arriba y texto abajo */
+            .sidebar.collapsed .menu-item {
+                justify-content: center;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+                min-height: 65px;
+                /* Le damos un poco más de altura para que quepa el texto */
+            }
+
+            /* Ocultar la flechita de la derecha (chevron) */
+            .sidebar.collapsed .menu-item>i {
+                display: none !important;
+            }
+
+            /* Apilar verticalmente el ícono y el texto */
+            .sidebar.collapsed .menu-item>span {
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                width: 100%;
+            }
+
+            /* Formato del texto: pequeñito, centrado y que baje a la siguiente línea si es largo */
+            .sidebar.collapsed .menu-item>span>span {
+                font-size: 10.5px !important;
+                /* Tamaño ideal para que se lea pero no sature */
+                text-align: center !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                line-height: 1.1 !important;
+            }
+
+            /* Ocultar el texto del logo ("Sistema Gestión") arriba y centrar el ícono principal */
+            .sidebar.collapsed .sidebar-brand-text {
+                display: none !important;
+            }
+
+            .sidebar.collapsed .sidebar-brand-row {
+                justify-content: center;
+            }
+
+            /* Ocultar textos de usuario al colapsar y centrar el avatar */
+            .sidebar.collapsed .sidebar-user-text {
+                display: none !important;
+            }
+
+            .sidebar.collapsed .sidebar-user-section summary {
+                justify-content: center;
+            }
+
+        }
+
+        .sidebar.collapsed #accesoDirectoContainer p {
+            display: none !important;
+            /* Oculta el texto "Acceso rápido" */
+        }
+
+        .sidebar.collapsed #accesoDirectoContainer .flex {
+            justify-content: center !important;
+            /* Centra el botón visible */
+        }
+
+        .sidebar.collapsed #accesoDirectoContainer .flex button:not(:first-child) {
+            display: none !important;
+            /* Oculta todos los botones menos el primero */
+        }
+
+        /* Cuando el menú está tamaño Tablet (siempre 140px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            #accesoDirectoContainer p {
+                display: none !important;
+            }
+
+            #accesoDirectoContainer .flex {
+                justify-content: center !important;
+            }
+
+            #accesoDirectoContainer .flex button:not(:first-child) {
+                display: none !important;
+            }
+        }
+
+        .menu-item>span>i {
+            flex-shrink: 0;
+            width: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-item>i {
+            flex-shrink: 0;
+            margin-left: auto;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* estado activo para enlaces y botones */
+        .menu-link.active,
+        .menu-item.active,
+        .submenu-toggle.active {
+            color: white !important;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+        }
+
+        /* alternativa visual: sombra / fondo para botones activos */
+        .menu-item.active,
+        .submenu-toggle.active {
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 4 6px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Submenu */
+        .submenu.hidden {
+            display: none !important;
+        }
+
+        .submenu:not(.hidden) {
+            display: block;
+        }
+
+        .menu-link {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
+        }
+
+        .submenu-toggle {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.3;
+        }
+
+        /* Content area - margin controlado por JS (syncContentMargin) */
+        .content-wrapper {
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+            }
+
+            .menu-toggle-mobile {
+                display: none;
+            }
+        }
+
+        /* Tablet: sidebar colapsado (140px) + contenido al lado cuando está abierto (768-1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 140px;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            /* Forzar estilo colapsado en tablet: iconos centrados, sin ellipsis */
+            .sidebar.collapsed,
+            .sidebar:not(.collapsed) {
+                width: 140px;
+            }
+
+            .sidebar .sidebar-brand-text {
+                display: none !important;
+            }
+
+            .sidebar .sidebar-brand-row {
+                justify-content: center;
+            }
+
+            .sidebar .menu-item {
+                justify-content: center;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+
+            .sidebar .menu-item>i {
+                display: none;
+            }
+
+            .sidebar .menu-item>span {
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .sidebar .menu-item>span>span {
+                font-size: 10px;
+                text-align: center;
+                line-height: 1.1;
+                white-space: normal;
+                word-wrap: break-word;
+            }
+
+            .sidebar .menu-link {
+                font-size: 10px;
+                text-align: center;
+                white-space: normal;
+                word-wrap: break-word;
+            }
+
+            .sidebar .submenu {
+                padding-left: 10px !important;
+            }
+
+            .sidebar .sidebar-user-text {
+                display: none !important;
+            }
+
+            .sidebar .sidebar-user-section summary {
+                justify-content: center;
+            }
+        }
+
+        /* Móvil: ocultar sidebar (< 768px) */
+        @media (max-width: 767px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: block;
+            }
+        }
+
+        /* Animaciones */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* Dashboard iframe - altura fija para scroll único */
+        #dashboardFrame {
+            width: 100%;
+            border: none;
+            background: #f9fafb;
+        }
+
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
     <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
+    <aside id="sidebar" class="sidebar rounded-r-2xl">
         <!-- Logo/Header -->
-        <div class="p-6 border-b border-blue-700 sidebar-header">
-            <!-- Logo completo (visible cuando está expandido) -->
-            <div class="sidebar-header-content flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+        <div class="p-6 border-b border-blue-700">
+            <div class="flex items-center justify-between sidebar-brand-row">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0">
+                        <a href="index.html">
+                            <i class="fa-solid fa-egg"></i>
+                        </a>
                     </div>
-                    <div>
-                        <h2 class="text-white font-bold text-lg">Sistema</h2>
-                        <p class="text-blue-300 text-xs">Gestión </p>
+                    <div class="sidebar-brand-text">
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-white font-bold text-lg leading-none">Sistema</h2>
+                            <a href="index.html"
+                                class="w-7 h-7 flex items-center justify-center rounded-md transition duration-200"
+                                title="Ir al inicio">
+                                <i class="fas fa-home text-white text-xs"></i>
+                            </a>
+                        </div>
+                        <p class="text-blue-300 text-xs">Planta Incubacion</p>
                     </div>
                 </div>
-                <button onclick="toggleSidebarCollapse()" class="lg:hidden text-white hover:text-blue-200">
-                    <i class="fas fa-times text-xl"></i>
+
+                <button onclick="toggleSidebarCollapse()"
+                    class="lg:hidden text-white hover:text-blue-200 p-1 ml-auto -mr-1">
+                    <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
 
-            <!-- Logo compacto (visible cuando está colapsado) -->
-            <div class="sidebar-logo-icon">
-                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
-                </div>
+            <div class="mt-6 pt-4 border-blue-700/50 sidebar-user-section">
+                <details class="relative w-full group">
+                    <summary class="flex items-center gap-3 cursor-pointer select-none list-none">
+                        <div
+                            class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0 transition group-hover:bg-white/30">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div class="text-left sidebar-user-text overflow-hidden flex-1">
+                            <p id="userName" class="text-sm font-semibold text-white truncate">Usuario Admin</p>
+                            <p id="rolUser" class="text-xs text-blue-300 truncate">Administrador</p>
+                        </div>
+                        <i
+                            class="fas fa-chevron-down text-blue-300 text-xs sidebar-user-text transition group-hover:text-white"></i>
+                    </summary>
+
+
+
+                    <div
+                        class="absolute left-0 mt-3 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                        <!-- Botón de cambio de tema -->
+                        <button type="button" id="btn-theme-toggle"
+                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 font-medium transition-colors"
+                            aria-label="Cambiar tema">
+                            <span id="theme-icon" class="mr-2">🌙</span>
+                            <span id="theme-text">Oscuro</span>
+                        </button>
+                        <a id="btnCerrarSesion" href="#"
+                            class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition-colors">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Cerrar sesión
+                        </a>
+                    </div>
+                </details>
             </div>
         </div>
 
         <!-- Menu -->
-        <nav class="p-4 space-y-2 overflow-y-auto" style="max-height: calc(100vh - 130px);">
-            <div class="mb-4">
-                <p class="text-blue-300 text-xs uppercase font-semibold mb-2 px-3">Dashboards</p>
-            </div>
-            <div id="sidebarMenu"></div>
-        </nav>
+        <nav id="sidebarMenu" class="p-4 space-y-2 overflow-y-auto" style="max-height: calc(100vh - 130px);"></nav>
+
 
         <script>
             function toggleSubmenu(id) {
@@ -102,6 +583,36 @@
                 const container = document.getElementById('sidebarMenu');
                 if (!container) return;
 
+                // Función para limpiar textos duplicados del backend
+                const limpiarTextoModulo = (texto) => {
+                    if (!texto) return '';
+
+                    // 1. Insertar espacios en transiciones de minúscula a mayúscula (CamelCase)
+                    let textoLimpio = texto.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+                    // 2. Capturar solo la parte principal hasta sufijos de sistema
+                    const matchPrincipal = textoLimpio.match(/^(.*?)(?:\s*(?:Gest|Config|Roles|Objectives|BB|API|V[0-9]|Alfa|Beta).*)$/i);
+                    if (matchPrincipal) {
+                        textoLimpio = matchPrincipal[1];
+                    }
+
+                    // 3. Eliminar "Carga Pollo" y variantes si aparecen al final
+                    textoLimpio = textoLimpio.replace(/\s*(?:Carga\s+Pollo|bebeCarga|pollo\s+bebe).*$/i, '');
+
+                    // 4. Eliminar colas comunes de desarrollo
+                    textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos.*/i, '');
+                    textoLimpio = textoLimpio.replace(/\s*Config\s*Roles.*/i, '');
+                    textoLimpio = textoLimpio.replace(/\s*Objectives?.*/i, '');
+
+                    // 5. Eliminar texto duplicado consecutivo
+                    textoLimpio = textoLimpio.replace(/\b(\w+)\s+\1\b/gi, '$1');
+
+                    // 6. Limpiar espacios múltiples
+                    textoLimpio = textoLimpio.replace(/\s+/g, ' ');
+
+                    return textoLimpio.trim();
+                };
+
                 container.innerHTML = '';
 
                 const groups = items
@@ -120,9 +631,9 @@
 
                     const button = document.createElement('button');
                     button.className = 'menu-item flex items-center justify-between w-full px-4 py-3 text-white rounded-lg';
-                    
-                    // Eliminar prefijo numérico del nombre original y agregar número calculado
-                    const cleanName = (group.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
+
+                    // Limpiar nombre del grupo usando la función de limpieza
+                    const cleanName = limpiarTextoModulo(group.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
                     const displayName = `${groupIndex + 1}. ${cleanName}`;
                     button.setAttribute('data-tooltip', displayName);
                     button.addEventListener('click', () => toggleSubmenu(submenuId));
@@ -144,56 +655,56 @@
 
                     const submenu = document.createElement('div');
                     submenu.id = submenuId;
-                    submenu.className = 'submenu hidden pl-10 mt-2 space-y-2';
+                    submenu.className = 'submenu hidden pl-10 mt-2 space-y-3.5';
 
                     const groupChildren = children.filter(child => child.parent_cod === group.cod_mod);
-                    
+
                     groupChildren.forEach((child, childIndex) => {
-                            const link = document.createElement('a');
-                            link.href = '#';
-                            link.className = 'menu-link block text-gray-400 hover:text-white';
+                        const link = document.createElement('a');
+                        link.href = '#';
+                        link.className = 'menu-link block text-gray-400 hover:text-white';
 
-                            if (child.permiso) {
-                                link.setAttribute('data-permiso', child.permiso);
-                            }
+                        if (child.permiso) {
+                            link.setAttribute('data-permiso', child.permiso);
+                        }
 
-                            link.addEventListener('click', (event) => {
-                                event.preventDefault();
-                                const url = child.url || 'pages/trabajando.html';
-                                const tipo = child.tipo_param || 'trabajando';
-                                const titulo = child.titulo || child.nom_mod || 'Dashboard';
-                                activateAndLoad(link, url, tipo, titulo);
-                            });
-
-                            const linkIcon = document.createElement('i');
-                            linkIcon.className = `${child.icono || 'fas fa-chart-pie'} mr-2`;
-
-                            const textWrapper = document.createElement('span');
-                            textWrapper.className = 'menu-text';
-
-                            // Eliminar prefijo numérico y agregar número calculado
-                            const cleanChildName = (child.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
-                            const displayChildName = `${groupIndex + 1}.${childIndex + 1}. ${cleanChildName}`;
-
-                            const fullSpan = document.createElement('span');
-                            fullSpan.className = 'text-full';
-                            fullSpan.textContent = displayChildName;
-
-                            const shortSpan = document.createElement('span');
-                            shortSpan.className = 'text-short';
-                            if (child.label_short) {
-                                shortSpan.innerHTML = child.label_short;
-                            } else {
-                                shortSpan.textContent = displayChildName;
-                            }
-
-                            textWrapper.appendChild(fullSpan);
-                            textWrapper.appendChild(shortSpan);
-
-                            link.appendChild(linkIcon);
-                            link.appendChild(textWrapper);
-                            submenu.appendChild(link);
+                        link.addEventListener('click', (event) => {
+                            event.preventDefault();
+                            const url = child.url || 'pages/trabajando.html';
+                            const tipo = child.tipo_param || 'trabajando';
+                            const titulo = child.titulo || child.nom_mod || 'Dashboard';
+                            activateAndLoad(link, url, tipo, titulo);
                         });
+
+                        const linkIcon = document.createElement('i');
+                        linkIcon.className = `${child.icono || 'fas fa-chart-pie'} mr-2`;
+
+                        const textWrapper = document.createElement('span');
+                        textWrapper.className = 'menu-text';
+
+                        // Limpiar nombre del elemento hijo usando la función de limpieza
+                        const cleanChildName = limpiarTextoModulo(child.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
+                        const displayChildName = `${groupIndex + 1}.${childIndex + 1}. ${cleanChildName}`;
+
+                        const fullSpan = document.createElement('span');
+                        fullSpan.className = 'text-full';
+                        fullSpan.textContent = displayChildName;
+
+                        const shortSpan = document.createElement('span');
+                        shortSpan.className = 'text-short';
+                        if (child.label_short) {
+                            shortSpan.innerHTML = child.label_short;
+                        } else {
+                            shortSpan.textContent = displayChildName;
+                        }
+
+                        textWrapper.appendChild(fullSpan);
+                        textWrapper.appendChild(shortSpan);
+
+                        link.appendChild(linkIcon);
+                        link.appendChild(textWrapper);
+                        submenu.appendChild(link);
+                    });
 
                     menuGroup.appendChild(button);
                     menuGroup.appendChild(submenu);
@@ -211,7 +722,7 @@
                     const baseUrl = window.AppConfig?.API?.BASE_URL || 'http://localhost/plantaincubacion/backend';
                     const endpoint = window.AppConfig?.API?.ENDPOINTS?.DASHBOARD_MODULOS?.LISTAR || '/dashboard-modulos';
                     const url = `${baseUrl}${endpoint}?programa=${encodeURIComponent(DASHBOARD_PROGRAMA)}`;
-                    
+
                     console.log('📡 URL:', url);
 
                     const response = await fetch(url, {
@@ -221,7 +732,7 @@
 
                     const data = await response.json();
                     console.log('📦 Datos recibidos:', data);
-                    
+
                     if (!data || !data.success || !Array.isArray(data.data)) {
                         console.error('❌ Datos inválidos');
                         return;
@@ -230,7 +741,7 @@
                     console.log(`✅ Total módulos: ${data.data.length}`);
                     renderSidebarMenu(data.data);
                     window.menuLoadedFromDashboard = true;
-                    
+
                     console.log('🔐 Aplicando filtro de permisos...');
                     PermisosManager.filtrarMenuPorPermisos();
                     console.log('✅ Filtro aplicado');
@@ -249,52 +760,36 @@
     <!-- Main Content -->
     <div class="content-wrapper">
         <!-- Top Bar -->
-        <header class="bg-white shadow-sm sticky top-0 z-50">
-            <div class="px-4 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
+        <header
+            class="bg-white shadow-sm relative sm:sticky top-0 sm:top-3 z-50 mx-0 sm:mx-4 rounded-none sm:rounded-xl transition-all">
+            <div class="px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between w-full">
 
-                    <!-- Botón PARA DESKTOP (ocultar sidebar) -->
-                    <button class="menu-toggle-desktop" onclick="toggleSidebarCollapse()" aria-label="Mostrar u ocultar sidebar">
-                        <i class="fas fa-bars"></i>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <button
+                        class="text-gray-500 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center transition-colors outline-none shrink-0"
+                        onclick="toggleSidebarCollapse()">
+                        <i class="fas fa-bars text-sm sm:text-lg"></i>
                     </button>
-                    <div>
-                        <h1 id="" class="text-2xl font-bold text-gray-800">Planta de Incubacion</h1>
-                        <p id="dashboardTitle" class="text-sm text-gray-500"></p>
-                    </div>
 
+                    <div class="flex flex-col justify-center">
+                        <h1
+                            class="text-sm sm:text-lg font-bold text-gray-800 leading-none tracking-tight truncate max-w-[180px] sm:max-w-none">
+                            Sistema de Almacén Distribución</h1>
+                        <p id="dashboardTitle"
+                            class="text-[10px] sm:text-sm text-blue-500 font-medium mt-0.5 sm:mt-1 empty:hidden"></p>
+                    </div>
                 </div>
 
-                <!-- User Dropdown -->
-                <details class="relative">
-                    <summary class="flex items-center gap-3 cursor-pointer select-none list-none">
-                        <div class="text-right">
-                            <p id="userName" class="text-sm font-semibold text-gray-700">Usuario Admin</p>
-                            <p id="rolUser" class="text-xs text-gray-500">Administrador</p>
-                        </div>
-                        <div
-                            class="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center"
-                            style="background: linear-gradient(135deg, #3b82f6, #4f46e5);">
-                            <i class="fas fa-user text-white"></i>
-                        </div>
-                    </summary>
+                <button onclick="openSearchModal()" title="Buscar Dashboard (Ctrl+K)"
+                    class="hidden flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg sm:rounded-xl transition-colors border border-gray-200/80 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 shrink-0">
+                    <i class="fas fa-search text-xs sm:text-base"></i>
+                    <span class="text-sm font-medium hidden sm:block">Buscar...</span>
+                    <span
+                        class="hidden lg:flex items-center gap-1 text-[10px] font-bold bg-white px-1.5 py-0.5 rounded border border-gray-300 shadow-sm text-gray-400">
+                        Ctrl K
+                    </span>
+                </button>
 
-                    <div class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
-                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            <i class="fas fa-user text-gray-500 mr-2"></i> Perfil
-                        </a>
-
-                        <!-- Botón de cambio de tema -->
-                        <button type="button" id="btn-theme-toggle" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center" aria-label="Cambiar tema">
-                            <span id="theme-icon" class="mr-2">🌙</span>
-                            <span id="theme-text">Oscuro</span>
-                        </button>
-
-                        <hr class="border-gray-200 my-1" />
-                        <a id="btnCerrarSesion" href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                            <i class="fas fa-sign-out-alt mr-2"></i> Cerrar sesión
-                        </a>
-                    </div>
-                </details>
             </div>
         </header>
 
@@ -410,12 +905,7 @@
         }
 
         // Responsive: cerrar sidebar al hacer clic fuera
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 1024) {
-                document.getElementById('sidebar').classList.add('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            }
-        });
+
 
         // Inicializar sidebar abierto en desktop
         if (window.innerWidth >= 1024) {
@@ -487,48 +977,6 @@
             const overlay = document.getElementById('sidebarOverlay');
             const contentWrapper = document.querySelector('.content-wrapper');
 
-            // Inicializar estado del sidebar según tamaño de pantalla
-            if (window.innerWidth >= 1024) {
-                // En desktop: iniciar colapsado para expandir/contraer con hover
-                sidebar.classList.add('collapsed');
-                sidebar.classList.remove('pinned');
-                sidebar.classList.add('open');
-                contentWrapper.classList.add('sidebar-collapsed');
-                overlay.classList.remove('active');
-            } else {
-                sidebar.classList.add('collapsed');
-                sidebar.classList.remove('pinned');
-                sidebar.classList.remove('open');
-                contentWrapper.classList.add('sidebar-collapsed');
-                overlay.classList.remove('active');
-            }
-
-            // ========================================
-            // EFECTO HOVER (Solo Desktop)
-            // ========================================
-            (function () {
-                let enterTimer = null;
-                let leaveTimer = null;
-
-                sidebar.addEventListener('mouseenter', () => {
-                    if (window.innerWidth < 1024) return;
-                    if (!sidebar.classList.contains('collapsed')) return;
-                    clearTimeout(leaveTimer);
-                    // Delay natural antes de expandir (evita aperturas accidentales)
-                    enterTimer = setTimeout(() => {
-                        sidebar.classList.add('hover-expanded');
-                    }, 280);
-                });
-
-                sidebar.addEventListener('mouseleave', () => {
-                    clearTimeout(enterTimer);
-                    if (!sidebar.classList.contains('hover-expanded')) return;
-                    // Delay al cerrar para evitar parpadeo al moverse entre elementos
-                    leaveTimer = setTimeout(() => {
-                        sidebar.classList.remove('hover-expanded');
-                    }, 200);
-                });
-            })();
 
             // ✅ INICIALIZAR SISTEMA DE PERMISOS PRIMERO
             PermisosManager.init();
@@ -558,47 +1006,88 @@
                 hideLoading();
             };
         });
-        function toggleSidebarCollapse() {
-            const sidebar = document.getElementById('sidebar');
-            const contentWrapper = document.querySelector('.content-wrapper');
-            const overlay = document.getElementById('sidebarOverlay');
-            const isCollapsed = sidebar.classList.contains('collapsed');
 
-            // ========================================
-            // MÓVIL: Toggle normal open/closed
-            // ========================================
-            if (window.innerWidth < 1024) {
-                if (isCollapsed) {
-                    sidebar.classList.remove('collapsed');
-                    sidebar.classList.add('open');
-                    overlay.classList.add('active');
-                } else {
-                    sidebar.classList.add('collapsed');
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('active');
-                }
+        // =========================================================
+        // LÓGICA DE SIDEBAR, EFECTO HOVER Y RESPONSIVE (Estilo Planta Beneficio)
+        // =========================================================
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const contentWrapper = document.querySelector('.content-wrapper');
 
-                contentWrapper.classList.toggle('sidebar-collapsed', !isCollapsed);
-                return;
-            }
-
-            // ========================================
-            // DESKTOP: Toggle pin (fijar/desfijar)
-            // ========================================
-            sidebar.classList.toggle('pinned');
-            
-            if (sidebar.classList.contains('pinned')) {
-                // Fijado: expandir y mantener abierto
-                sidebar.classList.remove('collapsed');
-                contentWrapper.classList.remove('sidebar-collapsed');
-            } else {
-                // Desfijado: colapsar (hover lo expandirá)
+        function initSidebar() {
+            if (window.innerWidth >= 1024) {
+                // PC: Inicia siempre en modo "Hover" (no fijado y colapsado)
+                sidebar.classList.remove('pinned');
                 sidebar.classList.add('collapsed');
-                contentWrapper.classList.add('sidebar-collapsed');
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.remove('active');
+            } else if (window.innerWidth >= 768) {
+                // Tablet
+                sidebar.classList.add('open');
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.remove('pinned');
+                if (overlay) overlay.classList.remove('active');
+            } else {
+                // Móvil
+                sidebar.classList.remove('open');
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.remove('pinned');
+                if (overlay) overlay.classList.remove('active');
             }
-            
-            overlay.classList.remove('active');
+            syncContentMargin();
         }
+
+        function syncContentMargin() {
+            if (!contentWrapper) return;
+            if (window.innerWidth >= 1024) {
+                // Si está fijado (pinned), empujamos el panel 350px. Si no, 140px.
+                contentWrapper.style.marginLeft = sidebar.classList.contains('pinned') ? '350px' : '140px';
+            } else if (window.innerWidth >= 768) {
+                contentWrapper.style.marginLeft = sidebar.classList.contains('open') ? '140px' : '0px';
+            } else {
+                contentWrapper.style.marginLeft = '0px';
+            }
+        }
+
+        // Efecto Hover (Solo para PC)
+        sidebar.addEventListener('mouseenter', () => {
+            if (window.innerWidth >= 1024) {
+                sidebar.classList.remove('collapsed'); // Crece a 350px
+            }
+        });
+
+        sidebar.addEventListener('mouseleave', () => {
+            // Solo se vuelve a encoger si NO está fijado con el candado
+            if (window.innerWidth >= 1024 && !sidebar.classList.contains('pinned')) {
+                sidebar.classList.add('collapsed'); // Se achica a 140px
+            }
+        });
+
+        function toggleSidebarCollapse() {
+            if (window.innerWidth >= 1024) {
+                // PC: El botón actúa como candado (Pin / Unpin)
+                sidebar.classList.toggle('pinned');
+
+                if (sidebar.classList.contains('pinned')) {
+                    sidebar.classList.remove('collapsed'); // Forzamos a quedarse abierto
+                } else {
+                    sidebar.classList.add('collapsed'); // Regresamos al comportamiento Hover
+                }
+            } else {
+                // Tablet / Móvil: Comportamiento normal
+                sidebar.classList.toggle('open');
+                if (window.innerWidth < 768 && overlay) {
+                    overlay.classList.toggle('active', sidebar.classList.contains('open'));
+                }
+            }
+            syncContentMargin();
+        }
+
+        // Escuchar cambios de pantalla e inicializar
+        window.addEventListener('resize', initSidebar);
+        // Iniciar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initSidebar);
+
     </script>
 
     <!-- Scripts Core -->
@@ -606,10 +1095,10 @@
     <script src="js/core/Service.js"></script>
     <script src="js/core/Component.js"></script>
     <script src="js/core/Http.js"></script>
-    
+
     <!-- Config -->
     <script src="js/config/config.js"></script>
-    
+
     <!-- Inicializar Store Global -->
     <script>
         // Crear store global antes de cargar los módulos
@@ -621,7 +1110,7 @@
             });
         }
     </script>
-    
+
     <!-- Módulo Auth -->
     <script src="js/modules/auth/auth.service.js"></script>
 
@@ -630,24 +1119,24 @@
     <script src="js/shared/utils/swal-helpers.js"></script>
 
     <script src="js/modules/auth/session.controller.js"></script>
-    
+
     <!-- Servicios IAM -->
     <script src="js/shared/services/IAMMenuService.js"></script>
-    
+
     <!-- Controladores -->
     <script src="js/shared/controllers/MenuController.js"></script>
-    
+
     <!-- Utilidades -->
     <script src="js/shared/utils/permisos.js"></script>
 
     <!-- Validación de Sesión para Index.html -->
     <script>
         // Validar sesión al cargar el index.html
-        (function() {
+        (function () {
             // Verificar si hay sesión activa
             const isAuthenticated = sessionStorage.getItem('isAuthenticated');
             const usuario = sessionStorage.getItem('usuario');
-            
+
             if (!isAuthenticated || !usuario || isAuthenticated !== 'true') {
                 // No hay sesión válida, redirigir al login silenciosamente
                 try {
@@ -663,7 +1152,7 @@
             }
 
             // Escuchar mensajes del iframe sobre expiración de sesión
-            window.addEventListener('message', function(event) {
+            window.addEventListener('message', function (event) {
                 if (event.data && event.data.type === 'SESSION_EXPIRED') {
                     // El iframe detectó sesión expirada, limpiar y redirigir
                     sessionStorage.clear();
@@ -681,7 +1170,7 @@
             });
 
             // Verificar la sesión periódicamente (cada 30 segundos)
-            setInterval(function() {
+            setInterval(function () {
                 const stillAuth = sessionStorage.getItem('isAuthenticated');
                 if (!stillAuth || stillAuth !== 'true') {
                     // Sesión expiró, limpiar y redirigir
@@ -703,7 +1192,7 @@
 
     <!-- Funcionalidad del botón de cambio de tema -->
     <script>
-        (function() {
+        (function () {
             const themeToggleBtn = document.getElementById('btn-theme-toggle');
             const themeIcon = document.getElementById('theme-icon');
             const themeText = document.getElementById('theme-text');
@@ -810,7 +1299,7 @@
             // Cuando se carga un nuevo iframe, aplicarle el tema actual
             const dashboardFrame = document.getElementById('dashboardFrame');
             if (dashboardFrame) {
-                dashboardFrame.addEventListener('load', function() {
+                dashboardFrame.addEventListener('load', function () {
                     const currentTheme = resolveInitialTheme();
                     notifyIframesThemeChange(currentTheme);
                     setTimeout(() => notifyIframesThemeChange(currentTheme), 100);
@@ -820,7 +1309,7 @@
             // Mientras no exista override manual, seguir tema del sistema operativo.
             if (window.matchMedia) {
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                const handleSystemThemeChange = function(event) {
+                const handleSystemThemeChange = function (event) {
                     if (isManualThemeEnabled()) {
                         return;
                     }
@@ -838,7 +1327,7 @@
             }
 
             // Escuchar cambios de tema desde los iframes
-            window.addEventListener('message', function(event) {
+            window.addEventListener('message', function (event) {
                 if (event.data && event.data.type === 'THEME_CHANGE_FROM_IFRAME') {
                     const newTheme = event.data.theme;
 
