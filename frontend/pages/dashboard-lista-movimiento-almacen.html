@@ -5,10 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listado de Movimientos de Almacen</title>
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/dark-theme.css">
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+
+    <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-style.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
 
     <style>
         body {
@@ -342,7 +346,7 @@
             align-items: center;
             gap: 0.7rem;
             padding: 0.75rem 1rem;
-            background: linear-gradient(90deg, #0f172a 0%, #1d4ed8 100%);
+            background: linear-gradient(90deg, #3962c2 0%, #1d4ed8 100%);
             color: #f8fafc;
             border-bottom: 1px solid #1e3a8a;
             flex-wrap: wrap;
@@ -460,7 +464,7 @@
         }
 
         body.dark-mode .pdf-preview-toolbar {
-            background: linear-gradient(90deg, #020617 0%, #1e3a8a 100%);
+            background: linear-gradient(90deg, #0f1e5e 0%, #1e3a8a 100%);
             border-bottom-color: #1e40af;
         }
 
@@ -490,8 +494,8 @@
     </style>
 </head>
 
-<body>
-    <main class="container-page">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <main class="container mx-auto px-4 py-4">
         <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
             <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
                 <i class="fas fa-tools text-blue-600"></i>
@@ -688,8 +692,8 @@
     <div id="modalPreviewPdfMovimiento" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="previewPdfTitleMovimiento">
         <div class="pdf-preview-dialog">
             <div class="pdf-preview-toolbar">
-                <span style="font-size: 1.02rem;">📄</span>
-                <h3 id="previewPdfTitleMovimiento" class="pdf-preview-title">Vista previa PDF</h3>
+                <i class="fa-solid fa-file"></i>
+                <h3 id="previewPdfTitleMovimiento" class="pdf-preview-title text-white">Vista previa PDF</h3>
                 <div class="pdf-preview-actions">
                     <button type="button" id="btnPreviewDescargarPdf" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded-lg text-sm">
                         <i class="fas fa-download mr-1"></i>

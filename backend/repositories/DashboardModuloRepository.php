@@ -53,15 +53,6 @@ class DashboardModuloRepository {
         if (!$idPrograma) {
             return [];
         }
-
-        // ── BYPASS REAL PARA ADMINISTRADORES ────────────────────────────────
-        // Si eres el usuario supremo del sistema, te entregamos la jerarquía completa 
-        // directo de la tabla amd_dashboard_modulos sin pasar por las tablas de permisos rotas.
-        if ($userCodigo === 'SYSTEM' || strtolower($userCodigo) === 'admin') {
-            return $this->findAllByPrograma($programa);
-        }
-        // ───────────────────────────────────────────────────────────────────
-
         try {
             // ── ítems accesibles para el usuario (vía sus roles) ─────────────
             $sqlItems = "SELECT DISTINCT
@@ -375,44 +366,24 @@ class DashboardModuloRepository {
                 return 0;
             }
 
-            // --- FILTRO ANTIDUPLICADOS ---
-            // Creamos un set para rastrear combinaciones únicas dentro del mismo lote
-            $itemsUnicos = [];
-            $procesados = [];
-            
-            foreach ($items as $item) {
-                if (empty($item['cod_mod'])) {
-                    continue;
-                }
-                
-                // Filtramos única y estrictamente por el código del módulo
-                $keyModulo = $item['cod_mod'];
-                
-                if (isset($procesados[$keyModulo])) {
-                    // Si el código ya se procesó en este lote, lo saltamos
-                    continue; 
-                }
-                
-                $procesados[$keyModulo] = true;
-                $itemsUnicos[] = $item;
-            }
-            // ------------------------------
-
             $this->conn->beginTransaction();
 
             $deleteSql = "DELETE FROM amd_dashboard_modulos WHERE id_programa = ?";
             $deleteStmt = $this->conn->prepare($deleteSql);
             $deleteStmt->execute([$idPrograma]);
 
-            $insertSql = "INSERT INTO amd_dashboard_modulos
+                $insertSql = "INSERT INTO amd_dashboard_modulos
                     (id_programa, cod_mod, tipo, parent_cod, nom_mod, label_short, icono, url, tipo_param, titulo,
                      nivel0, nivel1, nivel2, nivel3, orden)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $insertStmt = $this->conn->prepare($insertSql);
 
             $orden = 1;
-            // Iteramos sobre el array limpio libre de duplicados de PK
-            foreach ($itemsUnicos as $item) {
+            foreach ($items as $item) {
+                if (empty($item['cod_mod'])) {
+                    continue;
+                }
+
                 $insertStmt->execute([
                     $idPrograma,
                     $item['cod_mod'],
@@ -437,9 +408,7 @@ class DashboardModuloRepository {
 
             return $orden - 1;
         } catch (PDOException $e) {
-            if ($this->conn->inTransaction()) {
-                $this->conn->rollBack();
-            }
+            $this->conn->rollBack();
             error_log("Error en DashboardModuloRepository::replaceForPrograma: " . $e->getMessage());
             throw new Exception("Error al sincronizar modulos del dashboard: " . $e->getMessage());
         }

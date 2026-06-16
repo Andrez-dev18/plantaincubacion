@@ -565,17 +565,7 @@
                 fullSpan.className = 'text-full';
                 fullSpan.textContent = fullText || '';
 
-                const shortSpan = document.createElement('span');
-                shortSpan.className = 'text-short';
-                if (shortHtml) {
-                    shortSpan.innerHTML = shortHtml;
-                } else {
-                    shortSpan.textContent = fullText || '';
-                }
-
                 wrapper.appendChild(fullSpan);
-                wrapper.appendChild(shortSpan);
-
                 return wrapper;
             };
 
@@ -583,31 +573,23 @@
                 const container = document.getElementById('sidebarMenu');
                 if (!container) return;
 
-                // Función para limpiar textos duplicados del backend
+                // FUNCIÓN DE LIMPIEZA CORREGIDA: No destruye palabras como "Configuración"
                 const limpiarTextoModulo = (texto) => {
                     if (!texto) return '';
 
                     // 1. Insertar espacios en transiciones de minúscula a mayúscula (CamelCase)
                     let textoLimpio = texto.replace(/([a-z])([A-Z])/g, '$1 $2');
 
-                    // 2. Capturar solo la parte principal hasta sufijos de sistema
-                    const matchPrincipal = textoLimpio.match(/^(.*?)(?:\s*(?:Gest|Config|Roles|Objectives|BB|API|V[0-9]|Alfa|Beta).*)$/i);
-                    if (matchPrincipal) {
-                        textoLimpio = matchPrincipal[1];
-                    }
+                    // 2. Eliminar sufijos técnicos específicos de desarrollo SOLO si están al final del texto
+                    textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos$/i, '');
+                    textoLimpio = textoLimpio.replace(/\s*Config\s*Roles$/i, '');
+                    textoLimpio = textoLimpio.replace(/\s*Objectives?$/i, '');
+                    textoLimpio = textoLimpio.replace(/\s*(?:Carga\s+Pollo|bebeCarga|pollo\s+bebe)$/i, '');
 
-                    // 3. Eliminar "Carga Pollo" y variantes si aparecen al final
-                    textoLimpio = textoLimpio.replace(/\s*(?:Carga\s+Pollo|bebeCarga|pollo\s+bebe).*$/i, '');
-
-                    // 4. Eliminar colas comunes de desarrollo
-                    textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos.*/i, '');
-                    textoLimpio = textoLimpio.replace(/\s*Config\s*Roles.*/i, '');
-                    textoLimpio = textoLimpio.replace(/\s*Objectives?.*/i, '');
-
-                    // 5. Eliminar texto duplicado consecutivo
+                    // 3. Eliminar texto duplicado consecutivo
                     textoLimpio = textoLimpio.replace(/\b(\w+)\s+\1\b/gi, '$1');
 
-                    // 6. Limpiar espacios múltiples
+                    // 4. Limpiar espacios múltiples
                     textoLimpio = textoLimpio.replace(/\s+/g, ' ');
 
                     return textoLimpio.trim();
@@ -632,7 +614,7 @@
                     const button = document.createElement('button');
                     button.className = 'menu-item flex items-center justify-between w-full px-4 py-3 text-white rounded-lg';
 
-                    // Limpiar nombre del grupo usando la función de limpieza
+                    // Limpiar nombre del grupo
                     const cleanName = limpiarTextoModulo(group.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
                     const displayName = `${groupIndex + 1}. ${cleanName}`;
                     button.setAttribute('data-tooltip', displayName);
@@ -645,7 +627,15 @@
                     icon.className = `${group.icono || 'fas fa-seedling'} w-5`;
 
                     left.appendChild(icon);
-                    left.appendChild(buildMenuText(displayName, group.label_short));
+
+                    // CORRECCIÓN: Solo inyectamos el text-full
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'menu-text font-medium';
+                    const fullSpan = document.createElement('span');
+                    fullSpan.className = 'text-full';
+                    fullSpan.textContent = displayName;
+                    wrapper.appendChild(fullSpan);
+                    left.appendChild(wrapper);
 
                     const chevron = document.createElement('i');
                     chevron.className = 'fas fa-chevron-down text-sm';
@@ -682,24 +672,16 @@
                         const textWrapper = document.createElement('span');
                         textWrapper.className = 'menu-text';
 
-                        // Limpiar nombre del elemento hijo usando la función de limpieza
+                        // Limpiar nombre del elemento hijo
                         const cleanChildName = limpiarTextoModulo(child.nom_mod || '').replace(/^\d+(\.\d+)*\.\s*/, '');
                         const displayChildName = `${groupIndex + 1}.${childIndex + 1}. ${cleanChildName}`;
 
-                        const fullSpan = document.createElement('span');
-                        fullSpan.className = 'text-full';
-                        fullSpan.textContent = displayChildName;
+                        const childFullSpan = document.createElement('span');
+                        childFullSpan.className = 'text-full';
+                        childFullSpan.textContent = displayChildName;
 
-                        const shortSpan = document.createElement('span');
-                        shortSpan.className = 'text-short';
-                        if (child.label_short) {
-                            shortSpan.innerHTML = child.label_short;
-                        } else {
-                            shortSpan.textContent = displayChildName;
-                        }
-
-                        textWrapper.appendChild(fullSpan);
-                        textWrapper.appendChild(shortSpan);
+                        // CORRECCIÓN: Ya no se genera el shortSpan para los hijos
+                        textWrapper.appendChild(childFullSpan);
 
                         link.appendChild(linkIcon);
                         link.appendChild(textWrapper);
@@ -711,7 +693,6 @@
                     container.appendChild(menuGroup);
                 });
             };
-
             // Hacer disponible globalmente para el MenuController
             window.renderSidebarMenu = renderSidebarMenu;
 
@@ -795,12 +776,13 @@
 
 
         <!-- Dashboard Content -->
-        <main class="p-6 relative">
+        <main class="flex flex-col flex-1 min-h-0 p-0 sm:p-6 relative">
             <div id="loadingIndicator" class="loading hidden">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
 
-            <iframe id="dashboardFrame" src="pages/bienvenida.html" onload="hideLoading()">
+            <iframe id="dashboardFrame" class="flex-1 min-h-0 w-full" src="pages/bienvenida.html"
+                onload="hideLoading()">
             </iframe>
         </main>
     </div>

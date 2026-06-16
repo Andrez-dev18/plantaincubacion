@@ -5,173 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jerarquia de Modulos - Sistema de Gestion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
 
-    <style>
-        body {
-            background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
-            min-height: 100vh;
-        }
+    <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-style.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
 
-        .container-page {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .card-shadow {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .slide-down {
-            animation: slideDown 0.4s ease;
-        }
-
-        .table-scroll {
-            max-height: calc(100vh - 360px);
-            min-height: 360px;
-            overflow-y: auto;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            background: #ffffff;
-        }
-
-        .table-scroll table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        .table-scroll th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: inherit;
-        }
-
-        .table-scroll th,
-        .table-scroll td {
-            border-bottom: 1px solid #e5e7eb;
-            white-space: nowrap;
-        }
-
-        .table-scroll tbody tr:hover {
-            background-color: #f8fafc;
-        }
-
-        .row-name {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .depth-1 { padding-left: 0; }
-        .depth-2 { padding-left: 1rem; }
-        .depth-3 { padding-left: 2rem; }
-        .depth-4 { padding-left: 3rem; }
-
-        .depth-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 9999px;
-            background: #93c5fd;
-            flex: 0 0 auto;
-        }
-
-        .nivel-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.15rem 0.6rem;
-            border-radius: 9999px;
-            background: #e0f2fe;
-            color: #075985;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .cod-mod {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 0.25rem;
-        }
-
-        .state-box {
-            border: 1px dashed #cbd5f5;
-            background: #f8fafc;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            color: #475569;
-        }
-
-        .order-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 0.5rem;
-            border: 1px solid #e5e7eb;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #1d4ed8;
-            background: #eff6ff;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-
-        .order-btn:hover {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .order-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-hover-scale {
-            transition: transform 0.2s ease;
-        }
-
-        .btn-hover-scale:hover {
-            transform: translateY(-2px);
-        }
-
-        .is-hidden {
-            display: none;
-        }
-
-        /* Estilos adicionales para el formulario del modal */
-        .modal-body input[type="text"],
-        .modal-body input[type="number"],
-        .modal-body select {
-            font-size: 0.875rem;
-        }
-
-        .modal-body label {
-            margin-bottom: 0.25rem;
-        }
-
-        .modal-body .grid {
-            margin-top: 0;
-        }
-    </style>
 </head>
 
-<body>
-    <main class="container-page">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <main class="container mx-auto px-4 py-4">
         <!-- Acciones -->
         <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
             <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
@@ -192,60 +37,6 @@
             </div>
         </section>
 
-        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down is-hidden">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
-                    <i class="fas fa-filter text-purple-600"></i>
-                    Filtros
-                </h2>
-                <div class="text-right">
-                    <p class="text-sm text-gray-500">Total de modulos</p>
-                    <p id="totalModulos" class="text-base font-semibold text-gray-800">-</p>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-layer-group text-purple-600 mr-1"></i>
-                        Programa
-                    </label>
-                    <select id="programaSelect"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
-                        <option value="produccion">produccion</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-search text-purple-600 mr-1"></i>
-                        Buscar por nombre
-                    </label>
-                    <input id="buscarNombre" type="text" placeholder="Escribe el nombre del modulo"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" />
-                </div>
-            </div>
-        </section>
-
-        <section class="bg-white rounded-2xl card-shadow p-6 slide-down is-hidden">
-            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
-                <i class="fas fa-sitemap text-purple-600"></i>
-                Jerarquia de modulos
-            </h2>
-
-            <div class="table-scroll">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
-                        <tr class="text-left">
-                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Nivel</th>
-                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Modulo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modulosBody"></tbody>
-                </table>
-            </div>
-
-            <div id="stateMessage" class="state-box mt-4 hidden"></div>
-        </section>
-
         <!-- Panel de Filtros -->
         <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -253,7 +44,8 @@
                     <i class="fas fa-filter text-purple-600"></i>
                     Filtros
                 </h2>
-                <button id="btnLimpiarFiltros" class="text-purple-600 hover:text-purple-800 flex items-center gap-2 text-sm font-medium">
+                <button id="btnLimpiarFiltros"
+                    class="text-purple-600 hover:text-purple-800 flex items-center gap-2 text-sm font-medium">
                     <i class="fas fa-times-circle"></i>
                     Limpiar filtros
                 </button>
@@ -307,7 +99,8 @@
                             <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">titulo</th>
                             <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">orden</th>
                             <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Mover</th>
-                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Opciones</th>
+                            <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Opciones
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="dashboardBody"></tbody>
@@ -321,102 +114,29 @@
     <script src="../js/config/config.js"></script>
     <script src="../js/core/Http.js"></script>
     <script src="../js/core/Component.js"></script>
-    
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Modal Component -->
     <script src="../js/shared/components/Modal.js"></script>
 
     <script>
-        const stateMessage = document.getElementById('stateMessage');
-        const modulosBody = document.getElementById('modulosBody');
-        const totalModulos = document.getElementById('totalModulos');
-        const programaSelect = document.getElementById('programaSelect');
-        const buscarNombre = document.getElementById('buscarNombre');
         const dashboardBody = document.getElementById('dashboardBody');
         const dashboardState = document.getElementById('dashboardState');
         const dashboardProgramaSelect = document.getElementById('dashboardProgramaSelect');
         const dashboardSearch = document.getElementById('dashboardSearch');
-        let allModulos = [];
         let allDashboardModulos = [];
         let allDashboardProgramas = [];
         let dashboardProgramaActual = '';
 
-        const buildNivel = (modulo) => {
-            const niveles = [modulo.nivel0, modulo.nivel1, modulo.nivel2, modulo.nivel3]
-                .filter((value) => value !== null && value !== undefined && value !== '');
-            return niveles.join('.');
-        };
-
-        const buildDepth = (modulo) => {
-            return [modulo.nivel0, modulo.nivel1, modulo.nivel2, modulo.nivel3]
-                .filter((value) => value !== null && value !== undefined && value !== '').length;
-        };
-
-        const clearTable = () => {
-            while (modulosBody.firstChild) {
-                modulosBody.removeChild(modulosBody.firstChild);
-            }
-        };
-
-        const renderEmpty = (message) => {
-            clearTable();
-            stateMessage.textContent = message;
-            stateMessage.classList.remove('hidden');
-        };
-
-        const renderRows = (items) => {
-            clearTable();
-            stateMessage.classList.add('hidden');
-
-            items.forEach((modulo) => {
-                const nivel = buildNivel(modulo) || '-';
-                const depth = Math.min(buildDepth(modulo), 4);
-
-                const row = document.createElement('tr');
-
-                const nivelCell = document.createElement('td');
-                nivelCell.className = 'px-4 py-3';
-                const nivelPill = document.createElement('span');
-                nivelPill.className = 'nivel-pill';
-                nivelPill.textContent = nivel;
-                nivelCell.appendChild(nivelPill);
-
-                const nameCell = document.createElement('td');
-                nameCell.className = 'px-4 py-3';
-
-                const rowName = document.createElement('div');
-                rowName.className = `row-name depth-${depth}`;
-
-                const dot = document.createElement('span');
-                dot.className = 'depth-dot';
-
-                const nameText = document.createElement('span');
-                nameText.className = 'text-gray-800 font-medium';
-                nameText.textContent = modulo.nom_mod || 'Sin nombre';
-
-                rowName.appendChild(dot);
-                rowName.appendChild(nameText);
-
-                const codMod = document.createElement('div');
-                codMod.className = 'cod-mod';
-                codMod.textContent = modulo.cod_mod ? `Pagina: ${modulo.cod_mod}` : 'Pagina: -';
-
-                nameCell.appendChild(rowName);
-                nameCell.appendChild(codMod);
-
-                row.appendChild(nivelCell);
-                row.appendChild(nameCell);
-
-                modulosBody.appendChild(row);
-            });
-        };
-
         const clearDashboardTable = () => {
+            // Forma infalible de limpiar el DOM sin dejar rastro
             while (dashboardBody.firstChild) {
                 dashboardBody.removeChild(dashboardBody.firstChild);
             }
+            // Por si acaso, limpiamos también el contenedor de estado
+            dashboardState.classList.add('hidden');
         };
 
         const renderDashboardEmpty = (message) => {
@@ -455,7 +175,7 @@
                 // Calcular nivel visual
                 let displayNivel = '';
                 let depth = 1;
-                
+
                 if (modulo.tipo === 'group') {
                     currentGroupIndex++;
                     displayNivel = currentGroupIndex.toString();
@@ -497,11 +217,11 @@
                 dot.className = 'depth-dot';
                 const nameText = document.createElement('span');
                 nameText.className = 'text-gray-800 font-medium';
-                
+
                 // Eliminar prefijo numérico del nombre original (ej: "1. ", "2. ", "1.1. ")
                 let cleanName = (modulo.nom_mod || 'Sin nombre').replace(/^\d+(\.\d+)*\.\s*/, '');
                 nameText.textContent = `${displayNivel}. ${cleanName}`;
-                
+
                 rowName.appendChild(dot);
                 rowName.appendChild(nameText);
                 nameCell.appendChild(rowName);
@@ -587,7 +307,7 @@
                 // Opciones (botones de editar y eliminar)
                 const opcionesCell = document.createElement('td');
                 opcionesCell.className = 'px-4 py-3 text-center';
-                
+
                 const editBtn = document.createElement('button');
                 editBtn.className = 'text-blue-600 hover:text-blue-800 mx-1';
                 editBtn.innerHTML = '<i class="fas fa-edit"></i>';
@@ -596,7 +316,7 @@
                     event.stopPropagation();
                     editarModulo(modulo);
                 });
-                
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'text-red-600 hover:text-red-800 mx-1';
                 deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
@@ -605,7 +325,7 @@
                     event.stopPropagation();
                     eliminarModulo(modulo.cod_mod, modulo.nom_mod);
                 });
-                
+
                 opcionesCell.appendChild(editBtn);
                 opcionesCell.appendChild(deleteBtn);
                 row.appendChild(opcionesCell);
@@ -639,14 +359,14 @@
         const aplicarFiltroDashboard = () => {
             const searchValue = dashboardSearch.value.trim().toLowerCase();
             const programaValue = dashboardProgramaActual;
-            
+
             let filtered = allDashboardModulos;
-            
+
             // Filtrar por programa si se seleccionó uno
             if (programaValue && programaValue !== '') {
                 filtered = filtered.filter((modulo) => modulo.programa === programaValue);
             }
-            
+
             // Filtrar por búsqueda de texto
             if (searchValue) {
                 filtered = filtered.filter((modulo) => {
@@ -658,7 +378,7 @@
             }
 
             if (!filtered.length) {
-                const mensaje = programaValue 
+                const mensaje = programaValue
                     ? 'No hay módulos para el programa seleccionado.'
                     : 'No hay modulos que coincidan con la busqueda.';
                 renderDashboardEmpty(mensaje);
@@ -691,7 +411,7 @@
                 stateMessage.classList.add('hidden');
 
                 const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.MODULOS.LISTAR}`;
-            const response = await Http.get(url, { programa: programaSelect.value });
+                const response = await Http.get(url, { programa: programaSelect.value });
 
                 if (!response || !response.success) {
                     renderEmpty('No se pudo cargar la jerarquia de modulos.');
@@ -714,53 +434,24 @@
             }
         };
 
-        const cargarProgramas = async () => {
+        const obtenerProgramas = async () => {
             try {
                 const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.MODULOS.PROGRAMAS}`;
                 const response = await Http.get(url);
-
-                if (!response || !response.success) {
-                    return;
+                if (response && response.success) {
+                    return response.data || [];
                 }
-
-                const programas = response.data || [];
-                programaSelect.innerHTML = '';
-                
-                // Guardar programas para el dashboard
-                allDashboardProgramas = programas;
-                
-                // Cargar en select de módulos oculto
-                programas.forEach((item) => {
-                    const option = document.createElement('option');
-                    option.value = item.programa;
-                    option.textContent = item.programa;
-                    programaSelect.appendChild(option);
-                });
-
-                if (programaSelect.options.length === 0) {
-                    const option = document.createElement('option');
-                    option.value = 'produccion';
-                    option.textContent = 'produccion';
-                    programaSelect.appendChild(option);
-                }
-                
-                // Cargar en select de dashboard
-                cargarProgramasEnDashboard();
             } catch (error) {
-                if (programaSelect.options.length === 0) {
-                    const option = document.createElement('option');
-                    option.value = 'produccion';
-                    option.textContent = 'produccion';
-                    programaSelect.appendChild(option);
-                }
+                console.error('Error al obtener programas:', error);
             }
+            return [];
         };
-        
+
         const cargarProgramasEnDashboard = () => {
             if (!allDashboardProgramas || allDashboardProgramas.length === 0) return;
-            
+
             dashboardProgramaSelect.innerHTML = '<option value="">Todos los programas</option>';
-            
+
             allDashboardProgramas.forEach((item) => {
                 const option = document.createElement('option');
                 option.value = item.programa;
@@ -875,49 +566,30 @@
             }
         };
 
-        const syncDashboardFromIndex = async () => {
-            const items = getDashboardOrderFromIndex();
-            if (!items.length) {
-                return false;
-            }
-
-            const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.SYNC}`;
-            const programa = dashboardProgramaActual || 'Planta de Incubacion';
-            const response = await Http.post(url, {
-                programa: programa,
-                items: items
-            });
-
-            return response && response.success;
-        };
 
         const cargarDashboardModulos = async () => {
             try {
                 const url = `${window.AppConfig.API.BASE_URL}${window.AppConfig.API.ENDPOINTS.DASHBOARD_MODULOS.LISTAR}`;
-                // Siempre cargar todos los módulos, el filtro se aplica después
-                const response = await Http.get(url, {});
+
+                // Capturamos el programa seleccionado en el dropdown del dashboard
+                // Si está vacío, le ponemos por defecto 'Planta de Incubacion'
+                const programaSeleccionado = dashboardProgramaSelect.value || 'Planta de Incubacion';
+
+                console.log('📡 Cargando módulos del dashboard para el programa:', programaSeleccionado);
+
+                // ENVIAMOS EL PARÁMETRO CORRECTAMENTE EN EL GET
+                const response = await Http.get(url, { programa: programaSeleccionado });
 
                 if (response && response.success && response.data && response.data.length) {
                     allDashboardModulos = response.data;
                     aplicarFiltroDashboard();
                     return;
-                }
-
-                const synced = await syncDashboardFromIndex();
-                if (!synced) {
-                    renderDashboardEmpty('No se pudo sincronizar desde el menu del dashboard.');
-                    return;
-                }
-
-                const refreshed = await Http.get(url, {});
-                if (refreshed && refreshed.success && refreshed.data && refreshed.data.length) {
-                    allDashboardModulos = refreshed.data;
-                    aplicarFiltroDashboard();
                 } else {
-                    renderDashboardEmpty('No hay modulos del dashboard para mostrar.');
+                    renderDashboardEmpty('No hay módulos asignados a este programa en la base de datos.');
                 }
             } catch (error) {
-                renderDashboardEmpty('Error al cargar el orden del dashboard.');
+                console.error('❌ Error al cargar el orden del dashboard:', error);
+                renderDashboardEmpty('Error al conectar con el servidor.');
             }
         };
 
@@ -942,7 +614,7 @@
         // Función para obtener sugerencias de autocompletado
         const getSugerencias = (tipo) => {
             const existentes = allDashboardModulos || [];
-            
+
             if (tipo === 'group') {
                 // Contar grupos existentes
                 const grupos = existentes.filter(m => m.tipo === 'group');
@@ -951,7 +623,7 @@
                     return match ? parseInt(match[1]) : 0;
                 })) : 0;
                 const siguienteNumero = ultimoGrupo + 1;
-                
+
                 return {
                     cod_mod: `grp-${siguienteNumero}`,
                     nom_mod: `${siguienteNumero}. `,
@@ -967,7 +639,7 @@
             } else {
                 // Para items, buscar el último item de cada grupo
                 const items = existentes.filter(m => m.tipo === 'item');
-                
+
                 return {
                     cod_mod: 'item-',
                     nom_mod: '',
@@ -987,7 +659,7 @@
         // Función para actualizar campos según el tipo
         const actualizarCamposPorTipo = (tipo) => {
             const sugerencias = getSugerencias(tipo);
-            
+
             const fields = {
                 'cod_mod': sugerencias.cod_mod,
                 'nom_mod': sugerencias.nom_mod,
@@ -998,7 +670,7 @@
                 'tipo_param': sugerencias.tipo_param,
                 'titulo': sugerencias.titulo
             };
-            
+
             Object.keys(fields).forEach(fieldName => {
                 const input = document.getElementById(fieldName);
                 if (input && fields[fieldName]) {
@@ -1010,12 +682,12 @@
         // Función para crear nuevo módulo
         const crearModulo = async () => {
             const sugerencias = getSugerencias('group');
-            
+
             // Generar opciones de programa para el select
-            const programasOptions = allDashboardProgramas.map(p => 
+            const programasOptions = allDashboardProgramas.map(p =>
                 `<option value="${p.programa}">${p.programa}</option>`
             ).join('');
-            
+
             const formContent = `
                 <form id="moduloForm" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1068,10 +740,10 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
                                 <option value="">Sin padre (es un grupo)</option>
                                 ${allDashboardModulos.filter(m => m.tipo === 'group').map(g => {
-                                    const numero = g.cod_mod.replace('grp-', '');
-                                    const nombre = (g.nom_mod || '').replace(/^\\d+\\.\\s*/, '');
-                                    return `<option value="${g.cod_mod}">[${numero}] ${nombre}</option>`;
-                                }).join('')}
+                const numero = g.cod_mod.replace('grp-', '');
+                const nombre = (g.nom_mod || '').replace(/^\\d+\\.\\s*/, '');
+                return `<option value="${g.cod_mod}">[${numero}] ${nombre}</option>`;
+            }).join('')}
                             </select>
                         </div>
                         <div>
@@ -1176,22 +848,22 @@
                     const parentCod = e.target.value;
                     const codModInput = document.getElementById('cod_mod');
                     const nomModInput = document.getElementById('nom_mod');
-                    
+
                     if (parentCod && codModInput) {
                         // Extraer el número del grupo padre (ej: grp-3 -> 3)
                         const match = parentCod.match(/grp-(\\d+)/);
                         if (match) {
                             const grupoNum = match[1];
-                            
+
                             // Contar items existentes de este grupo
-                            const itemsDelGrupo = allDashboardModulos.filter(m => 
+                            const itemsDelGrupo = allDashboardModulos.filter(m =>
                                 m.tipo === 'item' && m.parent_cod === parentCod
                             );
                             const siguienteItem = itemsDelGrupo.length + 1;
-                            
+
                             // Generar código automático
                             codModInput.value = `item-${grupoNum}-${siguienteItem}`;
-                            
+
                             // Sugerir nombre con numeración
                             if (nomModInput && !nomModInput.value) {
                                 nomModInput.value = `${grupoNum}.${siguienteItem}. `;
@@ -1212,7 +884,7 @@
                     e.preventDefault();
 
                     const programaSeleccionado = document.getElementById('programa_modulo').value;
-                    
+
                     if (!programaSeleccionado) {
                         Swal.fire({
                             icon: 'warning',
@@ -1221,7 +893,7 @@
                         });
                         return;
                     }
-                    
+
                     const formData = {
                         cod_mod: document.getElementById('cod_mod').value,
                         nom_mod: document.getElementById('nom_mod').value,
@@ -1271,7 +943,7 @@
         const editarModulo = async (modulo) => {
             // Función helper para valores seguros
             const val = (v) => v !== null && v !== undefined ? v : '';
-            
+
             const formContent = `
                 <form id="moduloEditForm" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1463,7 +1135,7 @@
                         cod_mod: codMod,
                         programa: dashboardProgramaActual || 'Planta de Incubacion'
                     });
-                    
+
                     if (response && response.success) {
                         await Swal.fire({
                             icon: 'success',
@@ -1490,18 +1162,22 @@
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await cargarProgramas();
-            await cargarModulos();
+            // Cargar programas y módulos del dashboard
+            const programas = await obtenerProgramas();
+            if (programas && programas.length > 0) {
+                allDashboardProgramas = programas;
+                cargarProgramasEnDashboard();
+            }
             await cargarDashboardModulos();
-            
+
             // Event listeners para botones de acción
             const btnNuevoModulo = document.getElementById('btnNuevoModulo');
             const btnRefreshDashboard = document.getElementById('btnRefreshDashboard');
-            
+
             if (btnNuevoModulo) {
                 btnNuevoModulo.addEventListener('click', crearModulo);
             }
-            
+
             if (btnRefreshDashboard) {
                 btnRefreshDashboard.addEventListener('click', async () => {
                     await cargarDashboardModulos();
@@ -1515,17 +1191,16 @@
                 });
             }
         });
-        
-        programaSelect.addEventListener('change', cargarModulos);
-        buscarNombre.addEventListener('input', aplicarFiltroNombre);
+
         dashboardSearch.addEventListener('input', aplicarFiltroDashboard);
-        
+
         // Event listener para el filtro de programa del dashboard
         dashboardProgramaSelect.addEventListener('change', (e) => {
             dashboardProgramaActual = e.target.value;
-            aplicarFiltroDashboard();
+            // Forzamos a que vuelva a consultar a la API con la nueva planta seleccionada
+            cargarDashboardModulos();
         });
-        
+
         // Botón limpiar filtros
         const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
         if (btnLimpiarFiltros) {
@@ -1540,5 +1215,3 @@
 </body>
 
 </html>
-
-

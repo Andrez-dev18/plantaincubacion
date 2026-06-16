@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proyecciones de Cargas Pollos - Sistema GRS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     
-    <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="../css/dark-theme.css">
     
@@ -13,7 +14,7 @@
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/scroller/2.3.0/css/scroller.dataTables.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    
 
     <style>
         body {
@@ -22,11 +23,7 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
-        .container-page {
-            max-width: 1800px; /* Un poco más ancho para tablas grandes */
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
+       
 
         .card-shadow {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -394,7 +391,7 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
     
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-content">
@@ -410,7 +407,7 @@
         </div>
     </div>
 
-    <main class="container-page pb-20">
+    <main class="mx-auto px-4 py-4">
         
        <!-- <header class="flex flex-col md:flex-row justify-between items-center mb-6 slide-down">
             <div>

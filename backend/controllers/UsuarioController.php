@@ -84,6 +84,7 @@ class UsuarioController
 
         if ($resultado['success']) {
             // Reabrir sesión para escritura (security.php la cerró después de leer)
+            session_name('SESS_INCUBA'); 
             session_start();
             $_SESSION['id_usuario'] = $resultado['data']['id_usuario'];
             $_SESSION['username'] = $resultado['data']['username'];

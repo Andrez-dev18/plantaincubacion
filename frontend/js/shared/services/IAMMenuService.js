@@ -130,14 +130,12 @@ class IAMMenuService extends Service {
         // Ej: "Programa de CargaGest. Objetivos" -> "Programa de Carga"
         function limpiarTextoModulo(texto) {
             if (!texto) return '';
-            // Detecta dónde se une una palabra minúscula con una mayúscula (CamelCase pegado)
-            // o patrones como "Gest. Objetivos", "Carga Pollo" pegados al final
             let textoLimpio = texto.replace(/([a-z])([A-Z])/g, '$1 $2');
 
-            // Eliminar colas de desarrollo repetitivas comunes detectadas en la captura
-            textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos.*/i, '');
-            textoLimpio = textoLimpio.replace(/\s*Config\s*Roles.*/i, '');
-            textoLimpio = textoLimpio.replace(/\s*Carga\s*Pollo.*/i, '');
+            // Eliminar colas sólo si están al final estricto del string
+            textoLimpio = textoLimpio.replace(/\s*Gest\.\s*Objetivos$/i, '');
+            textoLimpio = textoLimpio.replace(/\s*Config\s*Roles$/i, '');
+            textoLimpio = textoLimpio.replace(/\s*Carga\s*Pollo$/i, '');
 
             return textoLimpio.trim();
         }
@@ -164,7 +162,6 @@ class IAMMenuService extends Service {
         // Función recursiva para aplanar el árbol
         function aplanarNodo(nodo, parentCod = null) {
             const nombreLimpio = limpiarTextoModulo(nodo.nom_mod || nodo.label_short || 'Módulo');
-            const labelCortoLimpio = extraerLabelCorto(nodo);
 
             const item = {
                 cod_mod: nodo.cod_mod,
@@ -173,7 +170,7 @@ class IAMMenuService extends Service {
                 tipo: nodo.tipo || 'item',
                 orden: nodo.orden || 0,
                 url: nodo.url || 'pages/trabajando.html',
-                label_short: labelCortoLimpio,
+                label_short: null, // CORRECCIÓN: Ya no necesitamos arrastrar datos cortos
                 parent_cod: parentCod,
                 permiso: nodo.permiso || null,
                 tipo_param: nodo.tipo_param || 'modulo',
@@ -201,7 +198,7 @@ class IAMMenuService extends Service {
                 icono: 'fas fa-folder',
                 tipo: 'group',
                 orden: programaIndex + 1,
-                label_short: nombreProgramaLimpio.substring(0, 4).toUpperCase(),
+                label_short: null, // Eliminado
                 parent_cod: null,
                 url: null,
                 permiso: null,
