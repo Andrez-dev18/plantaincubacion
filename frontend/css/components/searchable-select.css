@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════════════
    SearchableSelect - Estilos para selectores con búsqueda integrada
    ══════════════════════════════════════════════════════════════════════ */
-
+@charset "UTF-8";
 .searchable-select {
     position: relative;
     display: inline-block;
@@ -30,8 +30,9 @@
     color: #9ca3af;
 }
 
+/* CÓDIGO CORREGIDO (Usa el escape Unicode seguro): */
 .searchable-select-display::after {
-    content: '▼';
+    content: '\25bc';
     position: absolute;
     right: 0.5rem;
     top: 50%;
