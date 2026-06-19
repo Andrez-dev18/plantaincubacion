@@ -35,6 +35,103 @@
         .form-label { font-size: 12.5px; font-weight: 600; color: #495057; margin-bottom: 3px; }
         .form-control, .form-select { font-size: 13px; border-radius: 6px; }
         .form-control:focus { border-color: #6f42c1; box-shadow: 0 0 0 3px rgba(111,66,193,.15); }
+
+        /* ── Sincronización con el Modo Oscuro del Sistema ── */
+        body.dark-mode {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* Tarjetas, contenedores y modales principales */
+        body.dark-mode .table-card,
+        body.dark-mode .modal-content {
+            background: #111827 !important;
+            border-color: #334155 !important;
+            color: #e5e7eb !important;
+        }
+
+        /* Encabezados de DataTables */
+        body.dark-mode table.dataTable thead th {
+            background: #4a148c !important; /* Mantenemos consistencia con el morado de roles */
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        /* Celdas del cuerpo de la tabla */
+        body.dark-mode table.dataTable tbody tr,
+        body.dark-mode table.dataTable tbody td {
+            background-color: #18243a !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
+        /* Efecto hover nocturno en las filas */
+        body.dark-mode table.dataTable.table-hover tbody tr:hover td {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        /* Elementos informativos inferiores, buscador e inputs */
+        body.dark-mode .dataTables_wrapper .dataTables_length, 
+        body.dark-mode .dataTables_wrapper .dataTables_filter, 
+        body.dark-mode .dataTables_wrapper .dataTables_info, 
+        body.dark-mode .dataTables_wrapper .dataTables_paginate {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_length select,
+        body.dark-mode .dataTables_wrapper .dataTables_filter input {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        /* Formularios, selects e inputs de Bootstrap */
+        body.dark-mode .form-label {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select,
+        body.dark-mode .input-group-text {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .form-control:disabled,
+        body.dark-mode .form-control[readonly] {
+            background-color: #1f2937 !important;
+            opacity: 0.6;
+        }
+
+        /* ── Popups de SweetAlert2 en Modo Oscuro ── */
+        body.dark-mode .swal2-popup {
+            background-color: #111827 !important;
+            color: #e5e7eb !important;
+            border: 1px solid #334155 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            border-radius: 1rem !important;
+        }
+
+        body.dark-mode .swal2-title {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .swal2-html-container {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .swal2-cancel {
+            background-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+
+        body.dark-mode .swal2-confirm,
+        body.dark-mode .swal2-cancel {
+            border-radius: 0.5rem !important;
+            font-weight: 600 !important;
+        }
     </style>
 </head>
 <body>
@@ -229,6 +326,7 @@ async function cargarTabla() {
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json' },
             pageLength: 25,
             order: [[2, 'asc']],
+            dom: '<"d-flex justify-content-between mb-2"lf>rt<"d-flex justify-content-between mt-2"ip>',
             columns: [
                 { data: null, render: (d,t,r,m) => m.row+1, orderable:false, searchable:false, width:'40px', className:'text-center' },
                 { data: 'codigo', width: '110px' },

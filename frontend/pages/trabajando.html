@@ -4,315 +4,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabajando para usted</title>
+    <title>Módulo en Desarrollo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dark-theme.css">
-    <script>
-        (function() {
-            const THEME_STORAGE_KEY = 'appTheme';
-            let theme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
 
-            try {
-                if (window.parent && window.parent !== window && window.parent.document && window.parent.document.body) {
-                    theme = window.parent.document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-                }
-            } catch (error) {
-                // Si no se puede acceder al parent, mantener tema desde localStorage.
-            }
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+   
 
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark-mode-bootstrap');
-            }
-        })();
-    </script>
     <style>
-        :root {
-            --ink: #0b1220;
-            --muted: #52607a;
-            --card: #ffffff;
-            --accent: #facc15;
-            --accent-deep: #f59e0b;
-            --blue: #2563eb;
-            --slate: #0f172a;
-        }
-
+        /* Estilos base refinados */
         body {
-            font-family: "Sora", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--page-bg);
+            font-family: 'Sora', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             min-height: 100vh;
-        }
-
-        html.dark-mode-bootstrap body {
-            background: #0f172a !important;
-            color: #e2e8f0 !important;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow: hidden;
         }
 
         .panel-wrap {
-            min-height: 100vh;
+            width: 100%;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            position: relative;
-            overflow: hidden;
+            padding: 40px;
+            box-sizing: border-box;
         }
 
-        .panel-wrap::before,
-        .panel-wrap::after {
-            content: "";
-            position: absolute;
-            border-radius: 999px;
-            filter: blur(0);
-            opacity: 0.4;
-            z-index: 0;
-        }
-
-        .panel-wrap::before {
-            width: 280px;
-            height: 280px;
-            background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa);
-            top: -60px;
-            right: -80px;
-        }
-
-        .panel-wrap::after {
-            width: 360px;
-            height: 360px;
-            background: radial-gradient(circle at 70% 70%, #fde68a, #f59e0b);
-            bottom: -120px;
-            left: -120px;
-        }
-
+        /* DISEÑO REDEFINIDO: Más ancho, espacioso y con dimensiones fijas */
         .panel-card {
-            max-width: 720px;
-            width: 100%;
-            background: var(--card);
-            border: 1px solid var(--border-color);
-            border-radius: 1.5rem;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
-            padding: 2.75rem 2.25rem;
+            background: #ffffff !important;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 10px 10px -6px rgba(15, 23, 42, 0.08) !important;
+            padding: 60px 50px !important;
+            /* Más respiro interno */
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 680px;
+            /* Incrementamos de 520px a 680px para llenar el aire */
+            min-height: 440px;
+            /* Forzamos una altura mínima fija idéntica para ambos modos */
+            box-sizing: border-box;
+        }
+
+        /* Icono tecnológico animado (Agrandado para dar peso visual) */
+        .icon-container {
+            width: 100px;
+            height: 100px;
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            margin-bottom: 28px;
             position: relative;
-            z-index: 1;
+        }
+
+        .icon-gear-sub {
+            position: absolute;
+            font-size: 20px;
+            bottom: 24px;
+            right: 24px;
+            background: #eff6ff !important;
+            padding: 2px;
+            border-radius: 50%;
+        }
+
+        /* Animación suave de rotación */
+        .spin-slow {
+            animation: spin 8s linear infinite;
+        }
+
+        .spin-reverse {
+            animation: spin-back 4s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin-back {
+            from {
+                transform: rotate(360deg);
+            }
+
+            to {
+                transform: rotate(0deg);
+            }
         }
 
         .panel-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.9rem;
-            border-radius: 999px;
-            background: #0f172a;
-            color: #f8fafc;
-            font-size: 0.85rem;
-            letter-spacing: 0.08em;
+            background: #e0f2fe !important;
+            color: #0369a1 !important;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .panel-illustration {
-            width: min(320px, 90%);
-            margin: 1.5rem auto 0.75rem;
-            display: block;
-            animation: float 6s ease-in-out infinite;
-            filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.2));
-        }
-
-        .panel-stripe {
-            height: 16px;
-            width: 70%;
-            margin: 0.75rem auto 1.5rem;
-            border-radius: 999px;
-            background: repeating-linear-gradient(
-                135deg,
-                #0f172a 0px,
-                #0f172a 12px,
-                #facc15 12px,
-                #facc15 24px
-            );
-            position: relative;
-            overflow: hidden;
-        }
-
-        .panel-stripe::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-            transform: translateX(-100%);
-            animation: shine 3s ease-in-out infinite;
+            letter-spacing: 0.06em;
+            padding: 6px 18px;
+            border-radius: 30px;
+            margin-bottom: 24px;
+            display: inline-block;
         }
 
         .panel-title {
-            font-size: clamp(1.9rem, 2.6vw, 2.4rem);
+            font-size: 28px;
+            /* Subimos de 22px a 28px */
             font-weight: 700;
-            color: var(--ink);
-            margin-top: 0.5rem;
+            color: #0f172a !important;
+            margin: 0 0 16px 0;
+            letter-spacing: -0.02em;
         }
 
         .panel-subtitle {
-            margin-top: 0.75rem;
-            color: var(--muted);
-            font-size: 1rem;
+            font-size: 15px;
+            /* Más legible */
+            line-height: 1.6;
+            color: #64748b !important;
+            margin: 0;
+            max-w: 520px;
+        }
+
+        .panel-divider {
+            width: 60px;
+            height: 3px;
+            background: #e2e8f0 !important;
+            border-radius: 2px;
+            margin: 32px 0;
         }
 
         .panel-note {
-            margin-top: 1.5rem;
-            font-size: 0.875rem;
-            color: var(--muted);
+            font-size: 13px;
+            color: #94a3b8 !important;
+            font-weight: 500;
+            margin: 0;
         }
 
-        .panel-cta {
-            margin-top: 1.5rem;
-            font-size: 0.95rem;
-            color: var(--ink);
-            font-weight: 600;
-        }
-
-        .notify {
-            margin-top: 1.75rem;
-            display: flex;
-            gap: 0.75rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .notify input {
-            min-width: 240px;
-            padding: 0.75rem 1rem;
-            border: 1px solid #cbd5f5;
-            border-radius: 0.75rem;
-            font-size: 0.95rem;
-            outline: none;
-            transition: box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .notify input:focus {
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-
-        .notify button {
-            padding: 0.75rem 1.25rem;
-            background: linear-gradient(135deg, var(--accent), var(--accent-deep));
-            color: #111827;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(250, 204, 21, 0.35);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .notify button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 14px 24px rgba(250, 204, 21, 0.45);
-        }
-
-        @keyframes float {
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        @keyframes shine {
-            0% {
-                transform: translateX(-100%);
-            }
-            60% {
-                transform: translateX(100%);
-            }
-            100% {
-                transform: translateX(100%);
-            }
-        }
-
-        /* ========================================
-           ESTILOS PARA MODO OSCURO EN TRABAJANDO
-           ======================================== */
-
+        /* ── Blindaje estricto para Modo Oscuro (Evita el estiramiento por herencia) ── */
         body.dark-mode {
             background: #0f172a !important;
             color: #e2e8f0 !important;
         }
 
-        body.dark-mode .panel-wrap {
-            background: #0f172a !important;
-        }
-
-        body.dark-mode .panel-wrap::before,
-        body.dark-mode .panel-wrap::after {
-            opacity: 0.2 !important;
-        }
-
         body.dark-mode .panel-card {
-            background: #1f2937 !important;
-            border-color: #334155 !important;
+            background: #111827 !important;
+            border-color: #1e293b !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+            min-height: 440px !important;
+            /* Mantiene la misma escala que el modo claro */
+            padding: 60px 50px !important;
         }
 
-        body.dark-mode .panel-title {
-            color: #f1f5f9 !important;
+        body.dark-mode .icon-container {
+            background: #1e293b !important;
+            color: #3b82f6 !important;
         }
 
-        body.dark-mode .panel-subtitle {
-            color: #cbd5e1 !important;
-        }
-
-        body.dark-mode .panel-note {
-            color: #94a3b8 !important;
-        }
-
-        body.dark-mode .panel-cta {
-            color: #e2e8f0 !important;
+        body.dark-mode .icon-gear-sub {
+            background: #1e293b !important;
         }
 
         body.dark-mode .panel-badge {
-            background: #60a5fa !important;
-            color: #0f172a !important;
+            background: #1e3a8a !important;
+            color: #93c5fd !important;
         }
 
-        body.dark-mode .panel-stripe {
-            background: repeating-linear-gradient(
-                135deg,
-                #60a5fa 0px,
-                #60a5fa 12px,
-                #1e293b 12px,
-                #1e293b 24px
-            ) !important;
+        body.dark-mode .panel-title {
+            color: #f8fafc !important;
         }
 
-        body.dark-mode .notify input {
-            background-color: #1e293b !important;
-            color: #e2e8f0 !important;
-            border-color: #475569 !important;
+        body.dark-mode .panel-subtitle {
+            color: #94a3b8 !important;
         }
 
-        body.dark-mode .notify input::placeholder {
-            color: #64748b !important;
-        }
-
-        body.dark-mode .notify input:focus {
-            border-color: #60a5fa !important;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
-            background-color: #1e293b !important;
-        }
-
-        body.dark-mode .notify button {
-            background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
-            color: #ffffff !important;
-            box-shadow: 0 10px 20px rgba(96, 165, 250, 0.35) !important;
-        }
-
-        body.dark-mode .notify button:hover {
-            box-shadow: 0 14px 24px rgba(96, 165, 250, 0.45) !important;
+        body.dark-mode .panel-divider {
+            background: #334155 !important;
         }
     </style>
 </head>
@@ -320,18 +206,20 @@
 <body>
     <main class="panel-wrap">
         <section class="panel-card">
-            <span class="panel-badge">En construccion</span>
-            <img class="panel-illustration" src="../assets/images/logo_construccion.png" alt="Ilustracion en construccion">
-            <div class="panel-stripe" aria-hidden="true"></div>
-            <h1 class="panel-title">Bajo construccion</h1>
-            <p class="panel-subtitle">Este modulo esta en preparacion. Muy pronto estara disponible.</p>
-            <p class="panel-subtitle">Trabajamos para brindarle la mejor experiencia.</p>
-            <p class="panel-cta">Avisame cuando este listo</p>
-            <form class="notify" action="#" onsubmit="return false;">
-                <input type="email" name="email" placeholder="EMAIL" aria-label="Email">
-                <button type="submit">NOTIFICARME</button>
-            </form>
-            <p class="panel-note">Gracias por su paciencia.</p>
+            <span class="panel-badge">Módulo en Desarrollo</span>
+
+            <div class="icon-container">
+                <i class="fas fa-cog spin-slow"></i>
+                <i class="fas fa-cog icon-gear-sub spin-reverse"></i>
+            </div>
+
+            <h1 class="panel-title">Sección en Preparación</h1>
+            <p class="panel-subtitle">Estamos trabajando en la implementación de esta funcionalidad para integrarla a la
+                plataforma de la planta.</p>
+
+            <div class="panel-divider" aria-hidden="true"></div>
+
+            <p class="panel-note"><i class="fas fa-info-circle me-1"></i>Agradecemos su paciencia.</p>
         </section>
     </main>
 

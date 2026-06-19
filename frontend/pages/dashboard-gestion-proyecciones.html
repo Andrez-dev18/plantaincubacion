@@ -1,24 +1,56 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Proyecciones - Sistema GRS</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
 
-    
+
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="../css/dark-theme.css">
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/scroller/2.3.0/css/scroller.dataTables.min.css">
-    
+
     <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
     <link rel="stylesheet" href="../assets/css/dashboard-style.css">
     <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
 
+    <style>
+        /* Fuerza los bordes internos en las celdas de la tabla */
+        #tablaProyecciones th,
+        #tablaProyecciones td {
+            border: 1px solid #e5e7eb !important;
+            padding: 10px 16px !important;
+        }
+
+        /* Ajuste de color de bordes para el encabezado */
+        #tablaProyecciones thead th {
+            background-color: #2563eb !important;
+            /* Mantiene tu azul de marca */
+            color: white !important;
+            border-color: #1e40af !important;
+            font-weight: 700;
+        }
+
+        /* Sincronización automática con las reglas de tu Modo Oscuro (dark-theme.css) */
+        body.dark-mode #tablaProyecciones,
+        body.dark-mode #tablaProyecciones th,
+        body.dark-mode #tablaProyecciones td {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #tablaProyecciones thead th {
+            background-color: #0f213a !important;
+            border-color: #1e293b !important;
+        }
+    </style>
+
 </head>
+
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
 
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
@@ -43,7 +75,8 @@
                 </button>-->
             </div>
             <div class="flex flex-wrap gap-3">
-                <button id="btnNueva" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale flex items-center gap-2">
+                <button id="btnNueva"
+                    class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale flex items-center gap-2">
                     <i class="fas fa-plus"></i>
                     Nueva Proyección
                 </button>
@@ -84,7 +117,8 @@
                             <i class="fas fa-list text-blue-600 mr-1"></i>
                             Estado
                         </label>
-                        <select id="filterEstado" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                        <select id="filterEstado"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                             <option value="">Todos</option>
                             <option value="valid">Válido</option>
                             <option value="invalid">Inválido</option>
@@ -93,7 +127,8 @@
                 </div>
                 <!-- Botones de acción de filtros -->
                 <div class="flex gap-2 mt-4">
-                    <button id="btnAplicarFiltros" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <button id="btnAplicarFiltros"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
                         <i class="fa-solid fa-filter mr-2"></i>
                         Filtrar
                     </button>
@@ -102,21 +137,25 @@
         </section>
 
         <!-- Tabla -->
-        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
-            <div class="p-5 border-b border-gray-100 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <div class="bg-blue-50 text-blue-600 p-2 rounded-lg">
+        <section class="bg-white rounded-2xl card-shadow p-3 slide-down">
+            <div>
+                <div class="flex items-center gap-3 w-full md:w-auto mb-4">
+                    <div class="bg-blue-50 text-blue-600 p-4">
                         <i class="fas fa-list-ul"></i>
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-gray-800">Listado de Proyecciones</h2>
-                        <span id="totalProyecciones" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">0 registros encontrados</span>
+                        <span id="totalProyecciones"
+                            class="text-xs font-semibold text-gray-400 uppercase tracking-wide">0 registros
+                            encontrados</span>
                     </div>
                 </div>
             </div>
             <div class="relative bg-white">
                 <div class="table-container">
-                    <table id="tablaProyecciones">
+                    <table id="tablaProyecciones"
+                        class="w-full text-sm text-left whitespace-nowrap border border-gray-200"
+                        style="border-radius: 0px !important;">
                         <thead>
                             <tr>
                                 <th class="w-24 text-center">ID</th>
@@ -134,8 +173,10 @@
                             <i class="fas fa-folder-open text-gray-300 text-5xl"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-800 mb-1">No hay proyecciones</h3>
-                        <p class="text-gray-500 text-sm max-w-xs mx-auto mb-6">Actualmente no existen registros. Comienza creando una nueva proyección.</p>
-                        <button onclick="document.getElementById('btnNueva').click()" class="text-blue-600 font-semibold hover:underline text-sm">
+                        <p class="text-gray-500 text-sm max-w-xs mx-auto mb-6">Actualmente no existen registros.
+                            Comienza creando una nueva proyección.</p>
+                        <button onclick="document.getElementById('btnNueva').click()"
+                            class="text-blue-600 font-semibold hover:underline text-sm">
                             + Crear primera proyección
                         </button>
                     </div>
@@ -155,13 +196,13 @@
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/scroller/2.3.0/js/dataTables.scroller.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <script src="../js/core/Store.js"></script>
     <script src="../js/core/Service.js"></script>
     <script src="../js/core/Component.js"></script>
     <script src="../js/core/Http.js"></script>
     <script src="../js/config/config.js"></script>
-    
+
     <script>
         if (typeof AppStore === 'undefined') {
             window.AppStore = new Store({
@@ -171,16 +212,16 @@
             });
         }
     </script>
-    
+
     <script src="../js/shared/components/Modal.js"></script>
     <script src="../js/shared/components/Notification.js"></script>
     <script src="../js/shared/utils/swal-helpers.js"></script>
     <script src="../js/shared/utils/theme-sync.js?v=20260325"></script>
-    
+
     <script src="../js/modules/auth/auth.service.js"></script>
     <script src="../js/modules/secuencia-base-proyeccion/secuencia-base-proyeccion.service.js"></script>
     <script src="../js/modules/secuencia-base-proyeccion/GestionProyeccionesController.js"></script>
-    
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Validar sesión
@@ -196,7 +237,7 @@
 
             // Animación de entrada
             const tableContainer = document.querySelector('.table-container');
-            if(tableContainer) {
+            if (tableContainer) {
                 tableContainer.scrollTop = 0;
             }
 
@@ -307,4 +348,5 @@
         });
     </script>
 </body>
+
 </html>

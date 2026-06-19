@@ -9,7 +9,7 @@ class GestionProyeccionesController {
         this.proyeccionesOriginal = []; // Para filtros
         this.proyeccionSeleccionada = null;
         this.dataTableInstance = null; // Instancia de DataTable
-        
+
         this.initElements();
         this.initEventListeners();
         this.cargarProyecciones();
@@ -48,9 +48,9 @@ class GestionProyeccionesController {
     async cargarProyecciones() {
         try {
             this.showLoading(true);
-            
+
             const response = await this.service.listarProyecciones();
-            
+
             if (response.success && Array.isArray(response.data)) {
                 this.proyecciones = response.data;
                 this.proyeccionesOriginal = [...response.data]; // Guardar copia original
@@ -97,16 +97,16 @@ class GestionProyeccionesController {
             const tr = document.createElement('tr');
             tr.className = 'cursor-pointer';
             tr.dataset.nombre = proyeccion.nombre;
-            
+
             // Construir nombre con semana
             const semanaTexto = proyeccion.semana ? ` (${proyeccion.semana} SEM)` : '';
             const nombreCompleto = proyeccion.nombre + semanaTexto;
-            
+
             // Validar estado
             const esValida = String(proyeccion.indicador || '').trim().toUpperCase() === 'VALIDO';
             const badgeClass = esValida ? 'badge badge-valid' : 'badge badge-invalid';
             const badgeText = esValida ? '✓ VALIDO' : 'NO VALIDO';
-            
+
             // Construir fila con innerHTML
             tr.innerHTML = `
                 <td class="text-center font-semibold" style="color: #6b7280;">${index + 1}</td>
@@ -125,26 +125,26 @@ class GestionProyeccionesController {
                     </div>
                 </td>
             `;
-            
+
             // Event listeners para botones
             const btnEditar = tr.querySelector('.btn-editar');
             const btnEliminar = tr.querySelector('.btn-eliminar');
-            
+
             btnEditar.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.proyeccionSeleccionada = proyeccion.nombre;
                 this.editarProyeccion();
             });
-            
+
             btnEliminar.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.proyeccionSeleccionada = proyeccion.nombre;
                 this.eliminarProyeccion();
             });
-            
+
             // Event listener para selección de fila
             tr.addEventListener('click', () => this.seleccionarProyeccion(tr));
-            
+
             this.tbodyProyecciones.appendChild(tr);
         });
 
@@ -159,7 +159,7 @@ class GestionProyeccionesController {
         // Quitar selección anterior
         const selectedRows = this.tbodyProyecciones.querySelectorAll('tr.selected');
         selectedRows.forEach(row => row.classList.remove('selected'));
-        
+
         // Agregar selección nueva
         tr.classList.add('selected');
         this.proyeccionSeleccionada = tr.dataset.nombre;
@@ -185,11 +185,11 @@ class GestionProyeccionesController {
             title: 'Nueva Proyección',
             html: `
                 <div class="text-left" style="padding: 0 20px;">
-                    <label for="swal-input-nombre" class="block text-sm font-medium mb-2">Nombre de la proyección:</label>
-                    <input id="swal-input-nombre" class="swal2-input" placeholder="Ej: CARGA 2026 (13.5 SEM) v1" style="width: 100%; margin: 0 0 15px 0;">
+                    <label for="swal-input-nombre" class="block text-sm font-semibold text-gray-700 mb-2">Nombre de la proyección:</label>
+                    <input id="swal-input-nombre" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all" placeholder="Ej: CARGA 2026 (13.5 SEM) v1" style="margin: 0 0 15px 0;">
                     
-                    <label for="swal-input-indicador" class="block text-sm font-medium mb-2">Estado:</label>
-                    <select id="swal-input-indicador" class="swal2-select" style="width: 100%; margin: 0;">
+                    <label for="swal-input-indicador" class="block text-sm font-semibold text-gray-700 mb-2">Estado:</label>
+                    <select id="swal-input-indicador" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all" style="margin: 0;">
                         <option value="NO VALIDO">NO VALIDO</option>
                         <option value="VALIDO">VALIDO</option>
                     </select>
@@ -200,10 +200,17 @@ class GestionProyeccionesController {
             confirmButtonText: 'Crear',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#6b7280',
+            // ── PERSONALIZACIÓN DE BORDES Y SOMBRAS GENERALES ──
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border border-gray-100', // Redondeado suave y sombra profunda
+                confirmButton: 'rounded-lg font-semibold px-5 py-2.5', // Botón de confirmación redondeado
+                cancelButton: 'rounded-lg font-semibold px-5 py-2.5'   // Botón de cancelación redondeado
+            },
             preConfirm: () => {
                 const nombre = document.getElementById('swal-input-nombre').value;
                 const indicador = document.getElementById('swal-input-indicador').value;
-                
+
                 if (!nombre || nombre.trim() === '') {
                     Swal.showValidationMessage('Debes ingresar un nombre');
                     return false;
@@ -212,7 +219,7 @@ class GestionProyeccionesController {
                     Swal.showValidationMessage('El nombre no puede tener más de 100 caracteres');
                     return false;
                 }
-                
+
                 return { nombre: nombre.trim(), indicador: indicador };
             }
         });
@@ -220,10 +227,10 @@ class GestionProyeccionesController {
         if (formValues) {
             // Si está intentando crear como VALIDO, verificar si ya existe otro
             if (formValues.indicador === 'VALIDO') {
-                const validoActual = this.proyecciones.find(p => 
+                const validoActual = this.proyecciones.find(p =>
                     String(p.indicador).trim().toUpperCase() === 'VALIDO'
                 );
-                
+
                 if (validoActual) {
                     // Preguntar y actualizar automáticamente si el usuario confirma
                     const permitirCambio = await this.preguntarCambioValido(validoActual.nombre);
@@ -231,15 +238,14 @@ class GestionProyeccionesController {
                         // Usuario canceló, marcar esta nueva como NO VALIDO
                         formValues.indicador = 'NO VALIDO';
                     }
-                    // Si permitirCambio es true, la proyección existente ya fue actualizada a NO VALIDO
                 }
             }
-            
+
             try {
                 this.showLoading(true);
-                
+
                 const response = await this.service.nuevaProyeccion(formValues);
-                
+
                 if (response.success) {
                     this.showSuccess('Proyección creada exitosamente');
                     await this.cargarProyecciones();
@@ -258,6 +264,9 @@ class GestionProyeccionesController {
     /**
      * Eliminar proyección seleccionada
      */
+    /**
+     * Eliminar proyección seleccionada con ventana estilizada
+     */
     async eliminarProyeccion() {
         if (!this.proyeccionSeleccionada) {
             this.showWarning('Selecciona una proyección primero');
@@ -267,15 +276,19 @@ class GestionProyeccionesController {
         const result = await Swal.fire({
             title: '¿Eliminar proyección completa?',
             html: `
-                <p>Se eliminará <strong class="text-red-600">${this.proyeccionSeleccionada}</strong> y todos sus datos asociados:</p>
-                <ul class="text-left mt-3 text-sm">
-                    <li>• <!--Tabla ccosbase--> (secuencia base)</li>
-                    <li>• <!--Tabla ccosproy--> (secuencia generada)</li>
-                    <li>• <!--Tabla fechaproy--> (calendario)</li>
-                    <li>• <!--Tabla fechasemproy--> (resumen semanal)</li>
-                    <li>• <!--Tabla ccoscargapollo--> (cargas pollos por día)</li>
-                </ul>
-                <p class="text-red-600 font-bold mt-3">⚠️ Esta acción no se puede deshacer</p>
+                <div class="text-left px-4">
+                    <p class="text-gray-700 text-sm leading-relaxed">Se eliminará <strong class="text-red-600 font-bold">${this.proyeccionSeleccionada}</strong> y todos sus datos asociados de forma permanente:</p>
+                    <ul class="text-left mt-3 text-xs space-y-1.5 text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100 font-mono">
+                        <li>• (secuencia base)</li>
+                        <li>• (secuencia generada)</li>
+                        <li>• (calendario)</li>
+                        <li>• (resumen semanal)</li>
+                        <li>• (cargas pollos por día)</li>
+                    </ul>
+                    <p class="text-red-600 font-semibold text-xs mt-3 flex items-center gap-1.5">
+                        <i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer
+                    </p>
+                </div>
             `,
             icon: 'warning',
             showCancelButton: true,
@@ -286,6 +299,13 @@ class GestionProyeccionesController {
             input: 'checkbox',
             inputValue: 0,
             inputPlaceholder: 'Confirmo que quiero eliminar esta proyección',
+            // ── DISEÑO COMPACTO Y REDONDEADO ──
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border border-gray-100',
+                confirmButton: 'rounded-lg font-semibold px-5 py-2.5 text-sm',
+                cancelButton: 'rounded-lg font-semibold px-5 py-2.5 text-sm',
+                input: 'font-sans text-sm rounded' // Estiliza el checkbox nativo
+            },
             inputValidator: (result) => {
                 if (!result) {
                     return 'Debes confirmar la eliminación';
@@ -296,9 +316,9 @@ class GestionProyeccionesController {
         if (result.isConfirmed && result.value === 1) {
             try {
                 this.showLoading(true);
-                
+
                 const response = await this.service.eliminarProyeccion({ proyeccion: this.proyeccionSeleccionada });
-                
+
                 if (response.success) {
                     this.showSuccess('Proyección eliminada completamente');
                     this.proyeccionSeleccionada = null;
@@ -316,7 +336,7 @@ class GestionProyeccionesController {
     }
 
     /**
-     * Editar proyección seleccionada
+     * Editar proyección seleccionada con ventana estilizada
      */
     async editarProyeccion() {
         if (!this.proyeccionSeleccionada) {
@@ -331,12 +351,12 @@ class GestionProyeccionesController {
         const { value: formValues } = await Swal.fire({
             title: 'Editar Proyección',
             html: `
-                <div class="text-left" style="padding: 0 20px;">
-                    <label for="swal-input-nombre" class="block text-sm font-medium mb-2">Nombre de la proyección:</label>
-                    <input id="swal-input-nombre" class="swal2-input" value="${this.proyeccionSeleccionada}" style="width: 100%; margin: 0 0 15px 0;">
+                <div class="text-left px-4">
+                    <label for="swal-input-nombre" class="block text-sm font-semibold text-gray-700 mb-2">Nombre de la proyección:</label>
+                    <input id="swal-input-nombre" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all" value="${this.proyeccionSeleccionada}" style="margin: 0 0 15px 0;">
                     
-                    <label for="swal-input-indicador" class="block text-sm font-medium mb-2">Estado:</label>
-                    <select id="swal-input-indicador" class="swal2-select" style="width: 100%; margin: 0;">
+                    <label for="swal-input-indicador" class="block text-sm font-semibold text-gray-700 mb-2">Estado:</label>
+                    <select id="swal-input-indicador" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all" style="margin: 0;">
                         <option value="NO VALIDO" ${estadoActual === 'NO VALIDO' ? 'selected' : ''}>NO VALIDO</option>
                         <option value="VALIDO" ${estadoActual === 'VALIDO' ? 'selected' : ''}>VALIDO</option>
                     </select>
@@ -347,10 +367,17 @@ class GestionProyeccionesController {
             confirmButtonText: 'Guardar',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#6b7280',
+            // ── DISEÑO COMPACTO Y REDONDEADO ──
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border border-gray-100',
+                confirmButton: 'rounded-lg font-semibold px-5 py-2.5 text-sm',
+                cancelButton: 'rounded-lg font-semibold px-5 py-2.5 text-sm'
+            },
             preConfirm: () => {
                 const nombre = document.getElementById('swal-input-nombre').value;
                 const indicador = document.getElementById('swal-input-indicador').value;
-                
+
                 if (!nombre || nombre.trim() === '') {
                     Swal.showValidationMessage('Debes ingresar un nombre');
                     return false;
@@ -359,7 +386,7 @@ class GestionProyeccionesController {
                     Swal.showValidationMessage('El nombre no puede tener más de 100 caracteres');
                     return false;
                 }
-                
+
                 return { nombre: nombre.trim(), indicador: indicador };
             }
         });
@@ -367,10 +394,10 @@ class GestionProyeccionesController {
         if (formValues) {
             // Si está intentando poner VALIDO, verificar si ya existe otro
             if (formValues.indicador === 'VALIDO' && estadoActual !== 'VALIDO') {
-                const validoActual = this.proyecciones.find(p => 
+                const validoActual = this.proyecciones.find(p =>
                     String(p.indicador).trim().toUpperCase() === 'VALIDO' && p.nombre !== this.proyeccionSeleccionada
                 );
-                
+
                 if (validoActual) {
                     // Preguntar y actualizar automáticamente si el usuario confirma
                     const permitirCambio = await this.preguntarCambioValido(validoActual.nombre);
@@ -378,20 +405,19 @@ class GestionProyeccionesController {
                         // Usuario canceló, mantener esta como NO VALIDO
                         formValues.indicador = 'NO VALIDO';
                     }
-                    // Si permitirCambio es true, la proyección existente ya fue actualizada a NO VALIDO
                 }
             }
-            
+
             try {
                 this.showLoading(true);
-                
+
                 // Actualizar nombre e indicador en una sola llamada
                 const response = await this.service.editarProyeccion({
                     proyeccionActual: this.proyeccionSeleccionada,
                     proyeccionNueva: formValues.nombre,
                     indicador: formValues.indicador
                 });
-                
+
                 if (response.success) {
                     this.showSuccess('Proyección actualizada exitosamente');
                     this.proyeccionSeleccionada = formValues.nombre;
@@ -413,15 +439,15 @@ class GestionProyeccionesController {
      */
     aplicarFiltros(searchTerm = '', estado = '') {
         let proyeccionesFiltradas = [...this.proyeccionesOriginal];
-        
+
         // Filtrar por búsqueda
         if (searchTerm && searchTerm.trim() !== '') {
             const termino = searchTerm.toLowerCase().trim();
-            proyeccionesFiltradas = proyeccionesFiltradas.filter(p => 
+            proyeccionesFiltradas = proyeccionesFiltradas.filter(p =>
                 p.nombre.toLowerCase().includes(termino)
             );
         }
-        
+
         // Filtrar por estado
         if (estado && estado.trim() !== '') {
             proyeccionesFiltradas = proyeccionesFiltradas.filter(p => {
@@ -431,7 +457,7 @@ class GestionProyeccionesController {
                 return true;
             });
         }
-        
+
         this.proyecciones = proyeccionesFiltradas;
         this.renderProyecciones();
     }
@@ -492,7 +518,7 @@ class GestionProyeccionesController {
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#6c757d'
         });
-        
+
         // Si el usuario confirma, necesitamos invalidar la proyección existente
         if (result.isConfirmed) {
             try {
@@ -504,7 +530,7 @@ class GestionProyeccionesController {
                 return false;
             }
         }
-        
+
         return false;
     }
 
@@ -558,7 +584,29 @@ class GestionProyeccionesController {
                 // language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' }, // Deshabilitado por error CORS
                 order: [[0, 'asc']],
                 retrieve: true, // Permite reutilizar la instancia existente
-                deferRender: true // Mejora el rendimiento
+                deferRender: true, // Mejora el rendimiento
+                language: {
+                    processing: "Procesando...",
+                    search: "Buscar:",
+                    lengthMenu: "Mostrar _MENU_ registros",
+                    info: "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    infoEmpty: "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    infoFiltered: "(filtrado de un total de _MAX_ registros)",
+                    infoPostFix: "",
+                    loadingRecords: "Cargando...",
+                    zeroRecords: "No se encontraron resultados",
+                    emptyTable: "Ningún dato disponible en esta tabla",
+                    paginate: {
+                        first: "Primero",
+                        previous: "Anterior",
+                        next: "Siguiente",
+                        last: "Último"
+                    },
+                    aria: {
+                        sortAscending: ": Activar para ordenar la columna de manera ascendente",
+                        sortDescending: ": Activar para ordenar la columna de manera descendente"
+                    }
+                }
             });
             console.log('✅ DataTable inicializado para proyecciones');
         } catch (error) {

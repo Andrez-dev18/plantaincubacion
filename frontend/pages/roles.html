@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
+    <link rel="stylesheet" href="../css/dark-theme.css">
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -175,6 +177,127 @@
         .modal-header .btn-close {
             filter: invert(1) brightness(2);
         }
+
+        /* ── Sincronización de Bootstrap 5 con el Modo Oscuro ── */
+        body.dark-mode {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* Tarjeta contenedora principal */
+        body.dark-mode .table-card,
+        body.dark-mode .modal-content {
+            background: #111827 !important;
+            border-color: #334155 !important;
+            color: #e5e7eb !important;
+        }
+
+        /* Cabecera de la tabla DataTable en modo oscuro */
+        body.dark-mode table.dataTable thead th {
+            background: #4a148c !important;
+            /* Un morado más oscuro y elegante para la noche */
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        /* Corrección crítica para las filas y celdas blancas de Bootstrap */
+        body.dark-mode table.dataTable tbody tr,
+        body.dark-mode table.dataTable tbody td {
+            background-color: #18243a !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
+        /* Hover de las filas de la tabla */
+        body.dark-mode table.dataTable.table-hover tbody tr:hover td {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        /* Estilos para los textos e inputs informativos inferiores de DataTables */
+        body.dark-mode .dataTables_wrapper .dataTables_length,
+        body.dark-mode .dataTables_wrapper .dataTables_filter,
+        body.dark-mode .dataTables_wrapper .dataTables_info,
+        body.dark-mode .dataTables_wrapper .dataTables_paginate {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .dataTables_wrapper .dataTables_length select,
+        body.dark-mode .dataTables_wrapper .dataTables_filter input {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        /* Modales e inputs de Bootstrap en modo oscuro */
+        body.dark-mode .form-control,
+        body.dark-mode .form-select,
+        body.dark-mode .input-group-text {
+            background-color: #0b1220 !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .form-control:disabled {
+            background-color: #1f2937 !important;
+            opacity: 0.6;
+        }
+
+        /* Árbol de menús dinámico dentro de los modales */
+        body.dark-mode .menu-tree {
+            background: #0b1220 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .menu-group-header {
+            color: #a78bfa !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode .menu-item-row:hover {
+            background: #1e1b4b !important;
+        }
+
+        /* ── Sincronización de SweetAlert2 con el Modo Oscuro ── */
+        body.dark-mode .swal2-popup {
+            background-color: #111827 !important;
+            /* Fondo gris oscuro */
+            color: #e5e7eb !important;
+            /* Texto general claro */
+            border: 1px solid #334155 !important;
+            /* Borde sutil perimetral */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            /* Sombra profunda */
+        }
+
+        /* Títulos principales de los alerts */
+        body.dark-mode .swal2-title {
+            color: #f8fafc !important;
+        }
+
+        /* Descripciones o textos secundarios */
+        body.dark-mode .swal2-html-container {
+            color: #cbd5e1 !important;
+        }
+
+        /* Botón de Cancelar estándar de SweetAlert */
+        body.dark-mode .swal2-cancel {
+            background-color: #4b5563 !important;
+            /* Gris neutral oscuro */
+            color: #f3f4f6 !important;
+        }
+
+        body.dark-mode .swal2-cancel:hover {
+            background-color: #374151 !important;
+        }
+
+        /* Estilos para el texto de validación o errores internos del alert */
+        body.dark-mode .swal2-validation-message {
+            background-color: #1f2937 !important;
+            color: #f87171 !important;
+            border: 1px solid #f87171 / 20;
+        }
+        
     </style>
 </head>
 
@@ -461,6 +584,7 @@
                         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json' },
                         pageLength: 25,
                         order: [[0, 'asc']],
+                        dom: '<"d-flex justify-content-between mb-2"lf>rt<"d-flex justify-content-between mt-2"ip>',
                         columns: [
                             { data: null, render: (d, t, r, m) => m.row + 1, orderable: false, searchable: false, width: '40px', className: 'text-center' },
                             { data: 'cod_rol', width: '120px', render: v => `<code style="background:#f3e8ff;color:#6f42c1;padding:2px 6px;border-radius:4px;font-size:12px">${v}</code>` },

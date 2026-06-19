@@ -1824,7 +1824,29 @@ class SecuenciaBaseProyeccionController {
                 scrollY: '70vh',
                 scrollX: true,
                 scrollCollapse: true,
-                order: [[5, 'asc']]  // Columna 5 = Secuencia (Código=0, Nombre=1, Área=2, Densidad=3, Zona=4, Secuencia=5)
+                order: [[5, 'asc']],  // Columna 5 = Secuencia (Código=0, Nombre=1, Área=2, Densidad=3, Zona=4, Secuencia=5)
+                language: {
+                    processing:     "Procesando...",
+                    search:         "Buscar:",
+                    lengthMenu:    "Mostrar _MENU_ registros",
+                    info:           "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    infoEmpty:      "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    infoFiltered:   "(filtrado de un total de _MAX_ registros)",
+                    infoPostFix:    "",
+                    loadingRecords: "Cargando...",
+                    zeroRecords:    "No se encontraron resultados",
+                    emptyTable:     "Ningún dato disponible en esta tabla",
+                    paginate: {
+                        first:      "Primero",
+                        previous:   "Anterior",
+                        next:       "Siguiente",
+                        last:       "Último"
+                    },
+                    aria: {
+                        sortAscending:  ": Activar para ordenar la columna de manera ascendente",
+                        sortDescending: ": Activar para ordenar la columna de manera descendente"
+                    }
+                }
             });
             console.log('✅ DataTable inicializado para proyecciones de cargas');
         } catch (error) {
