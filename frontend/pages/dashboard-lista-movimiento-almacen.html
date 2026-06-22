@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listado de Movimientos de Almacen</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '.dark-mode']
+        }
+    </script>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/dark-theme.css">
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
@@ -172,8 +177,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(15,23,42,0.62);
+            background: rgba(15, 23, 42, 0.62);
         }
+
         .me-lm-panel {
             background: var(--card);
             border: 1px solid var(--border);
@@ -182,10 +188,22 @@
             max-height: 90vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.35);
             animation: meLmIn .2s ease-out;
         }
-        @keyframes meLmIn { from{transform:scale(.95);opacity:0} to{transform:scale(1);opacity:1} }
+
+        @keyframes meLmIn {
+            from {
+                transform: scale(.95);
+                opacity: 0
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
         .me-lm-header {
             background: #1e3a5f;
             color: #fff;
@@ -196,11 +214,13 @@
             border-radius: 0.85rem 0.85rem 0 0;
             flex-shrink: 0;
         }
+
         .me-lm-body {
             padding: 1rem;
             overflow-y: auto;
             flex: 1;
         }
+
         .me-lm-footer {
             padding: 0.7rem 1rem;
             border-top: 1px solid var(--border);
@@ -212,6 +232,7 @@
             border-radius: 0 0 0.85rem 0.85rem;
             flex-shrink: 0;
         }
+
         .me-lm-info-bar {
             background: #1e3a5f;
             color: #e2e8f0;
@@ -220,14 +241,28 @@
             font-size: 11px;
             margin-bottom: 12px;
         }
+
         .me-lm-field-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
             margin-bottom: 12px;
         }
-        .me-lm-field { display: flex; flex-direction: column; gap: 3px; }
-        .me-lm-label { font-size: 10px; font-weight: 700; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: .05em; }
+
+        .me-lm-field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .me-lm-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
         .me-lm-input {
             border: 1px solid var(--border);
             border-radius: 5px;
@@ -236,8 +271,18 @@
             background: var(--card);
             color: var(--foreground);
         }
-        .me-lm-input:focus { outline: 2px solid #3b82f6; outline-offset: -1px; }
-        .me-lm-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+        .me-lm-input:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: -1px;
+        }
+
+        .me-lm-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
         .me-lm-tbl thead th {
             background: #1e3a5f;
             color: #fff;
@@ -248,7 +293,10 @@
             position: sticky;
             top: 0;
         }
-        .me-lm-tbl tbody td { border-bottom: 1px solid var(--border); }
+
+        .me-lm-tbl tbody td {
+            border-bottom: 1px solid var(--border);
+        }
 
         .pagination-btn {
             border: 1px solid var(--border);
@@ -400,38 +448,9 @@
             box-shadow: 0 12px 24px rgba(2, 6, 23, 0.35);
         }
 
-        .detalle-cabecera-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.6rem;
-            margin-bottom: 1rem;
-        }
 
-        .detalle-campo {
-            border: 1px solid var(--border);
-            border-radius: 0.55rem;
-            padding: 0.55rem 0.7rem;
-            background: color-mix(in srgb, var(--card) 84%, #0ea5e9 16%);
-            display: grid;
-            gap: 0.2rem;
-        }
 
-        .detalle-label {
-            font-size: 0.7rem;
-            color: var(--muted-foreground);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-weight: 700;
-        }
 
-        .detalle-value {
-            font-size: 0.88rem;
-            color: var(--foreground);
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
 
         .loading-overlay {
             display: none;
@@ -502,11 +521,13 @@
                 Acciones
             </h2>
             <div class="flex flex-wrap gap-3">
-                <button id="btnNuevoMovimiento" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                <button id="btnNuevoMovimiento"
+                    class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
                     <i class="fas fa-plus mr-2"></i>
                     Nuevo Movimiento
                 </button>
-                <button id="btnActualizarLista" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                <button id="btnActualizarLista"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
                     <i class="fas fa-rotate-right mr-2"></i>
                     Actualizar Listado
                 </button>
@@ -520,8 +541,8 @@
                     Filtros
                 </h2>
                 <button id="btnToggleFiltros" class="text-gray-500 hover:text-blue-600 transition">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
                 <div class="flex items-center gap-3">
                     <button id="btnLimpiarFiltros" class="text-blue-600 hover:text-blue-700 font-semibold">
                         <i class="fas fa-eraser mr-1"></i>
@@ -546,7 +567,8 @@
                             <i class="fas fa-warehouse text-blue-600 mr-1"></i>
                             Almacen
                         </label>
-                        <select id="filterAlmacen" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                        <select id="filterAlmacen"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                             <option value="">Todos los almacenes</option>
                         </select>
                     </div>
@@ -556,7 +578,8 @@
                             <i class="fas fa-right-left text-blue-600 mr-1"></i>
                             Transaccion
                         </label>
-                        <select id="filterTransaccion" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                        <select id="filterTransaccion"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                             <option value="">Todas las transacciones</option>
                         </select>
                     </div>
@@ -564,17 +587,20 @@
                     <div class="grid grid-cols-2 gap-2 md:col-span-1">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-                            <input id="filterFechaInicio" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                            <input id="filterFechaInicio" type="date"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-                            <input id="filterFechaFin" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                            <input id="filterFechaFin" type="date"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex gap-2 mt-4">
-                    <button id="btnAplicarFiltros" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                    <button id="btnAplicarFiltros"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
                         <i class="fas fa-filter mr-2"></i>
                         Aplicar filtros
                     </button>
@@ -642,74 +668,104 @@
         </section>
     </main>
 
-    <div id="modalDetalleMovimiento" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="detalleModalTitle">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="detalleModalTitle" class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-receipt text-blue-600"></i>
-                    Detalle del movimiento
+    <div id="modalDetalleMovimiento" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="detalleModalTitle">
+        <div
+            class="modal-content w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300">
+
+            <div
+                class="flex justify-between items-center px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                <h3 id="detalleModalTitle"
+                    class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i class="fas fa-file-invoice text-blue-600 dark:text-blue-500"></i>
+                    Detalle del Movimiento
                 </h3>
-                <button id="btnCerrarDetalle" type="button" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">&times;</button>
+                <button id="btnCerrarDetalle" type="button"
+                    class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-2xl leading-none">&times;</button>
             </div>
-            <div class="modal-body">
-                <div id="detalleCabeceraCampos" class="detalle-cabecera-grid"></div>
-                <div class="table-scroll" style="max-height: 340px; min-height: 280px;">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr>
-                                <th class="px-3 py-2 text-center">#</th>
-                                <th class="px-3 py-2 text-left">Codigo</th>
-                                <th class="px-3 py-2 text-left">Descripcion</th>
-                                <th class="px-3 py-2 text-left">Lote</th>
-                                <th class="px-3 py-2 text-right">Cantidad</th>
-                                <th class="px-3 py-2 text-right">Peso</th>
-                                <th class="px-3 py-2 text-right">Precio</th>
-                                <th class="px-3 py-2 text-right">Importe</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detalleItemsBody"></tbody>
-                    </table>
+
+            <div class="flex-1 overflow-y-auto">
+                <div id="detalleCabeceraCampos"
+                    class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/40 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                </div>
+
+                <div class="px-6 py-4">
+                    <div class="w-full">
+                        <table class="w-full text-sm text-left">
+                            <thead
+                                class="text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b-2 border-slate-100 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-2 py-3 text-center font-bold">#</th>
+                                    <th class="px-2 py-3 font-bold">Código</th>
+                                    <th class="px-2 py-3 font-bold">Descripción</th>
+                                    <th class="px-2 py-3 font-bold">Lote</th>
+                                    <th class="px-2 py-3 text-right font-bold">Cant.</th>
+                                    <th class="px-2 py-3 text-right font-bold">Peso</th>
+                                    <th class="px-2 py-3 text-right font-bold">Precio</th>
+                                    <th class="px-2 py-3 text-right font-bold">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detalleItemsBody"
+                                class="divide-y divide-slate-50 dark:divide-slate-800/60 text-slate-600 dark:text-slate-300">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <div class="flex gap-2">
-                    <button id="btnDescargarPdfA4" type="button" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg">
-                        <i class="fas fa-file-pdf mr-1"></i>
-                        PDF A4
-                    </button>
-                    <button id="btnDescargarPdf80" type="button" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-lg">
-                        <i class="fas fa-receipt mr-1"></i>
-                        Ticket 80mm
-                    </button>
-                </div>
-                <button id="btnCerrarDetalleFooter" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg">
+
+            <div
+                class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center">
+                <button id="btnAbrirPreviewModal" type="button"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-5 rounded-xl text-sm shadow-sm transition-all flex items-center gap-2">
+                    <i class="fas fa-file-invoice"></i>
+                    Vista previa PDF
+                </button>
+                <button id="btnCerrarDetalleFooter" type="button"
+                    class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium py-2 px-5 rounded-xl text-sm shadow-sm transition-all">
                     Cerrar
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="modalPreviewPdfMovimiento" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="previewPdfTitleMovimiento">
+    <div id="modalPreviewPdfMovimiento" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="previewPdfTitleMovimiento">
         <div class="pdf-preview-dialog">
             <div class="pdf-preview-toolbar">
                 <i class="fa-solid fa-file"></i>
                 <h3 id="previewPdfTitleMovimiento" class="pdf-preview-title text-white">Vista previa PDF</h3>
-                <div class="pdf-preview-actions">
-                    <button type="button" id="btnPreviewDescargarPdf" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded-lg text-sm">
-                        <i class="fas fa-download mr-1"></i>
-                        Descargar
+
+                <div class="flex bg-black/20 p-1 rounded-lg border border-white/10 mx-4">
+                    <button type="button" id="tabPdfA4"
+                        class="px-3 py-1 text-xs font-bold rounded-md transition-all text-white bg-blue-600 shadow-sm"
+                        onclick="window.dashboardListaMovimientoAlmacenCtrl?._cambiarTabFormato('a4')">
+                        Formato A4
                     </button>
-                    <button type="button" id="btnPreviewImprimirPdf" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded-lg text-sm">
-                        <i class="fas fa-print mr-1"></i>
-                        Imprimir
+                    <button type="button" id="tabPdf80"
+                        class="px-3 py-1 text-xs font-bold rounded-md transition-all text-gray-300 hover:text-white"
+                        onclick="window.dashboardListaMovimientoAlmacenCtrl?._cambiarTabFormato('80mm')">
+                        Ticket 80mm
                     </button>
-                    <button type="button" id="btnPreviewCerrarPdf" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1.5 px-3 rounded-lg text-sm">
+                </div>
+
+                <div class="pdf-preview-actions" style="margin-left: auto;">
+                    <button type="button" id="btnPreviewDescargarPdf"
+                        class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded-lg text-sm">
+                        <i class="fas fa-download mr-1"></i> Descargar
+                    </button>
+                    <button type="button" id="btnPreviewImprimirPdf"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded-lg text-sm">
+                        <i class="fas fa-print mr-1"></i> Imprimir
+                    </button>
+                    <button type="button" id="btnPreviewCerrarPdf"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1.5 px-3 rounded-lg text-sm">
                         Cerrar
                     </button>
                 </div>
             </div>
             <div class="pdf-preview-frame">
-                <iframe id="iframePreviewPdfMovimiento" src="" title="Vista previa de comprobante PDF"></iframe>
+                <iframe id="iframePreviewPdfA4" src="" title="Vista previa A4" style="display: block;"></iframe>
+                <iframe id="iframePreviewPdf80" src="" title="Vista previa Ticket" style="display: none;"></iframe>
             </div>
         </div>
     </div>
@@ -718,8 +774,10 @@
     <div id="modalEditarMovimiento" class="me-lm-overlay" style="display:none;">
         <div class="me-lm-panel">
             <div class="me-lm-header">
-                <strong style="font-size:14px;">&#9998; Editar Movimiento &mdash; REG: <span id="me-lm-treg">--</span></strong>
-                <button id="me-lm-btn-cancelar" style="background:none;border:none;color:#93c5fd;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+                <strong style="font-size:14px;">&#9998; Editar Movimiento &mdash; REG: <span
+                        id="me-lm-treg">--</span></strong>
+                <button id="me-lm-btn-cancelar"
+                    style="background:none;border:none;color:#93c5fd;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
             </div>
             <div class="me-lm-body">
                 <div class="me-lm-info-bar" id="me-lm-info">Cargando...</div>
@@ -737,7 +795,9 @@
                         <input type="text" id="me-lm-glosa" class="me-lm-input" placeholder="Glosa del movimiento">
                     </div>
                 </div>
-                <div style="font-size:11px;font-weight:700;color:var(--foreground);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">&#128230; Detalle de Items</div>
+                <div
+                    style="font-size:11px;font-weight:700;color:var(--foreground);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">
+                    &#128230; Detalle de Items</div>
                 <div style="overflow:auto;max-height:320px;border:1px solid var(--border);border-radius:0.5rem;">
                     <table class="me-lm-tbl">
                         <thead>
@@ -753,16 +813,21 @@
                             </tr>
                         </thead>
                         <tbody id="me-lm-tbody">
-                            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:14px;">Cargando...</td></tr>
+                            <tr>
+                                <td colspan="8" style="text-align:center;color:#9ca3af;padding:14px;">Cargando...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
             <div class="me-lm-footer">
                 <span id="me-lm-error" style="color:#dc2626;font-size:12px;font-weight:600;margin-right:auto;"></span>
-                <button id="me-lm-btn-cancelar2" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg text-sm"
+                <button id="me-lm-btn-cancelar2"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg text-sm"
                     onclick="document.getElementById('modalEditarMovimiento').style.display='none'">Cancelar</button>
-                <button id="me-lm-btn-guardar" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm" disabled>
+                <button id="me-lm-btn-guardar"
+                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                    disabled>
                     &#10003; Guardar cambios
                 </button>
             </div>
@@ -778,8 +843,10 @@
     <script src="../js/shared/utils/swal-helpers.js"></script>
     <script src="../js/shared/utils/theme-sync.js"></script>
 
-    <script src="../js/modules/dashboard-lista-movimiento-almacen/dashboard-lista-movimiento-almacen.service.js?v=20260331"></script>
-    <script src="../js/modules/dashboard-lista-movimiento-almacen/dashboard-lista-movimiento-almacen.controller.js?v=20260331"></script>
+    <script
+        src="../js/modules/dashboard-lista-movimiento-almacen/dashboard-lista-movimiento-almacen.service.js?v=20260332"></script>
+    <script
+        src="../js/modules/dashboard-lista-movimiento-almacen/dashboard-lista-movimiento-almacen.controller.js"></script>
 
     <script>
         if (typeof AppStore === 'undefined') {

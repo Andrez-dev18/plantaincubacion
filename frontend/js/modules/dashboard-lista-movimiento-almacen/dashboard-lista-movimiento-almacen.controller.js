@@ -153,11 +153,8 @@ class DashboardListaMovimientoAlmacenController {
             if (action === 'ver') {
                 this._abrirModalDetalle(treg);
             }
-            if (action === 'pdf-a4') {
-                this._abrirModalPreviewPdf(treg, 'a4');
-            }
-            if (action === 'pdf-80') {
-                this._abrirModalPreviewPdf(treg, '80mm');
+            if (action === 'preview-pdf') {
+                this._abrirModalPreviewPdf(treg, 'a4'); // Abre por defecto en formato A4
             }
             if (action === 'editar') {
                 this._abrirModalEditar(treg);
@@ -179,15 +176,9 @@ class DashboardListaMovimientoAlmacenController {
             }
         });
 
-        this.el.btnPdfA4?.addEventListener('click', () => {
+        document.getElementById('btnAbrirPreviewModal')?.addEventListener('click', () => {
             if (this.currentDetailTreg) {
-                this._abrirModalPreviewPdf(this.currentDetailTreg, 'a4');
-            }
-        });
-
-        this.el.btnPdf80?.addEventListener('click', () => {
-            if (this.currentDetailTreg) {
-                this._abrirModalPreviewPdf(this.currentDetailTreg, '80mm');
+                this._abrirModalPreviewPdf(this.currentDetailTreg, 'a4'); // Abre el modal unificado con pestañas
             }
         });
 
@@ -372,11 +363,8 @@ class DashboardListaMovimientoAlmacenController {
                             <button class="action-btn action-view" data-action="ver" data-treg="${this._escapeHtml(row.treg)}" title="Ver detalle">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="action-btn action-pdf" data-action="pdf-a4" data-treg="${this._escapeHtml(row.treg)}" title="Descargar PDF A4">
-                                <i class="fas fa-file-pdf"></i>
-                            </button>
-                            <button class="action-btn action-ticket" data-action="pdf-80" data-treg="${this._escapeHtml(row.treg)}" title="Descargar Ticket 80mm">
-                                <i class="fas fa-receipt"></i>
+                            <button class="action-btn action-pdf" data-action="preview-pdf" data-treg="${this._escapeHtml(row.treg)}" title="Vista previa Comprobante">
+                                <i class="fas fa-file-invoice"></i>
                             </button>
                             <button class="action-btn action-edit" data-action="editar" data-treg="${this._escapeHtml(row.treg)}" title="Editar movimiento">
                                 <i class="fas fa-pen"></i>
@@ -444,22 +432,29 @@ class DashboardListaMovimientoAlmacenController {
 
         const doc = this._buildDocumento(cabecera);
 
+        // Arreglo de campos con iconos y colores de Tailwind para darle vida
         const campos = [
-            ['Registro', cabecera.treg || '-'],
-            ['Fecha', this._formatFecha(cabecera.tfectra)],
-            ['Hora', this._formatHora(cabecera.ttime) || '-'],
-            ['Transaccion', `${cabecera.tcodtra || '-'} - ${cabecera.nom_transaccion || '-'}`],
-            ['Almacen', `${cabecera.talm || '-'} - ${cabecera.nom_almacen || '-'}`],
-            ['Cliente / Proveedor', cabecera.tprocli || '-'],
-            ['Documento', doc],
-            ['Glosa', cabecera.tglosa || '-'],
-            ['Importe', this._formatMoneda(cabecera.timport || 0)]
+            { label: 'Registro', value: cabecera.treg || '-', icon: 'fa-hashtag', color: 'text-blue-500 dark:text-blue-400' },
+            { label: 'Fecha', value: this._formatFecha(cabecera.tfectra), icon: 'fa-calendar-day', color: 'text-emerald-500 dark:text-emerald-400' },
+            { label: 'Hora', value: this._formatHora(cabecera.ttime) || '-', icon: 'fa-clock', color: 'text-amber-500 dark:text-amber-400' },
+            { label: 'Transacción', value: `${cabecera.tcodtra || '-'} - ${cabecera.nom_transaccion || '-'}`, icon: 'fa-right-left', color: 'text-indigo-500 dark:text-indigo-400' },
+            { label: 'Almacén', value: `${cabecera.talm || '-'} - ${cabecera.nom_almacen || '-'}`, icon: 'fa-warehouse', color: 'text-purple-500 dark:text-purple-400' },
+            { label: 'Cliente / Prov', value: cabecera.tprocli || '-', icon: 'fa-user-tag', color: 'text-teal-500 dark:text-teal-400' },
+            { label: 'Documento', value: doc, icon: 'fa-file-lines', color: 'text-sky-500 dark:text-sky-400' },
+            { label: 'Glosa', value: cabecera.tglosa || '-', icon: 'fa-comment-dots', color: 'text-slate-400 dark:text-slate-500' },
+            { label: 'Importe', value: this._formatMoneda(cabecera.timport || 0), icon: 'fa-sack-dollar', color: 'text-green-600 dark:text-green-400' }
         ];
 
-        this.el.modalCabecera.innerHTML = campos.map(([label, value]) => `
-            <div class="detalle-campo">
-                <span class="detalle-label">${this._escapeHtml(label)}</span>
-                <span class="detalle-value">${this._escapeHtml(value)}</span>
+        // Renderizado de mini-tarjetas con iconos
+        this.el.modalCabecera.innerHTML = campos.map(c => `
+            <div class="flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                <div class="mt-0.5 ${c.color}">
+                    <i class="fas ${c.icon} w-4 text-center text-sm"></i>
+                </div>
+                <div class="flex flex-col overflow-hidden w-full">
+                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">${this._escapeHtml(c.label)}</span>
+                    <span class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate" title="${this._escapeHtml(c.value)}">${this._escapeHtml(c.value)}</span>
+                </div>
             </div>
         `).join('');
     }
@@ -468,21 +463,22 @@ class DashboardListaMovimientoAlmacenController {
         if (!this.el.modalDetalleBody) return;
 
         if (!items.length) {
-            this.el.modalDetalleBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-500">Sin items registrados.</td></tr>';
+            this.el.modalDetalleBody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">Sin items registrados.</td></tr>';
             return;
         }
 
+        // Diseño limpio sin bordes laterales, puro Tailwind
         this.el.modalDetalleBody.innerHTML = items.map((item, idx) => {
             return `
-                <tr>
-                    <td class="px-3 py-2 text-center">${idx + 1}</td>
-                    <td class="px-3 py-2">${this._escapeHtml(item.tcodigo || '-')}</td>
-                    <td class="px-3 py-2">${this._escapeHtml(item.nom_producto || item.tdescri || '-')}</td>
-                    <td class="px-3 py-2">${this._escapeHtml(item.tlote || item.tnumlot || '-')}</td>
-                    <td class="px-3 py-2 text-right">${this._formatDecimal(item.tcantid || 0)}</td>
-                    <td class="px-3 py-2 text-right">${this._formatDecimal(item.tpeso || 0)}</td>
-                    <td class="px-3 py-2 text-right">${this._formatDecimal(item.tpreuni || 0)}</td>
-                    <td class="px-3 py-2 text-right">${this._formatDecimal(item.timport || 0)}</td>
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td class="px-2 py-3 text-center text-xs font-medium text-slate-400 dark:text-slate-500">${idx + 1}</td>
+                    <td class="px-2 py-3 font-medium text-slate-700 dark:text-slate-300">${this._escapeHtml(item.tcodigo || '-')}</td>
+                    <td class="px-2 py-3 text-slate-600 dark:text-slate-400">${this._escapeHtml(item.nom_producto || item.tdescri || '-')}</td>
+                    <td class="px-2 py-3 text-slate-500">${this._escapeHtml(item.tlote || item.tnumlot || '-')}</td>
+                    <td class="px-2 py-3 text-right font-medium">${this._formatDecimal(item.tcantid || 0)}</td>
+                    <td class="px-2 py-3 text-right text-slate-500">${this._formatDecimal(item.tpeso || 0)}</td>
+                    <td class="px-2 py-3 text-right text-slate-500">${this._formatDecimal(item.tpreuni || 0)}</td>
+                    <td class="px-2 py-3 text-right font-semibold text-slate-800 dark:text-slate-200">${this._formatDecimal(item.timport || 0)}</td>
                 </tr>
             `;
         }).join('');
@@ -494,8 +490,8 @@ class DashboardListaMovimientoAlmacenController {
     }
 
     _abrirModalPreviewPdf(treg, formato = 'a4') {
-        if (!this.el.modalPreviewPdf || !this.el.iframePreviewPdf) return;
-
+        if (!this.el.modalPreviewPdf) return;
+        
         this.previewPdf.treg = String(treg || '').trim();
         if (!this.previewPdf.treg) return;
 
@@ -503,13 +499,49 @@ class DashboardListaMovimientoAlmacenController {
             this.el.previewPdfTitle.textContent = `Vista previa PDF - Movimiento ${this.previewPdf.treg}`;
         }
 
-        this._setFormatoPreviewPdf(formato, false);
-        this._cargarIframePreviewPdf();
+        // 1. Reiniciamos el estado visual de las pestañas a A4
+        this._cambiarTabFormato('a4', false); 
 
+        // 2. Obtenemos las URLs de ambos formatos
+        const urlA4 = this.service.getComprobantePdfUrl(this.previewPdf.treg, 'a4', false);
+        const url80 = this.service.getComprobantePdfUrl(this.previewPdf.treg, '80mm', false);
+
+        // 3. Cargamos AMBOS iframes en paralelo al instante (con un pequeño anti-cache)
+        const frameA4 = document.getElementById('iframePreviewPdfA4');
+        const frame80 = document.getElementById('iframePreviewPdf80');
+        
+        if (frameA4) frameA4.src = `${urlA4}${urlA4.includes('?') ? '&' : '?'}v=${Date.now()}`;
+        if (frame80) frame80.src = `${url80}${url80.includes('?') ? '&' : '?'}v=${Date.now()}`;
+
+        // 4. Mostramos el modal
         this.el.modalPreviewPdf.style.display = 'flex';
         setTimeout(() => {
             this.el.modalPreviewPdf?.classList.add('show');
         }, 10);
+    }
+
+    _cambiarTabFormato(formato, actualizarEstado = true) {
+        const btnA4 = document.getElementById('tabPdfA4');
+        const btn80 = document.getElementById('tabPdf80');
+        const frameA4 = document.getElementById('iframePreviewPdfA4');
+        const frame80 = document.getElementById('iframePreviewPdf80');
+
+        if (!btnA4 || !btn80 || !frameA4 || !frame80) return;
+
+        if (actualizarEstado) this.previewPdf.formato = formato;
+
+        // Cambio INSTANTÁNEO de visibilidad, sin peticiones de red
+        if (formato === '80mm') {
+            btn80.className = "px-3 py-1 text-xs font-bold rounded-md transition-all text-white bg-blue-600 shadow-sm";
+            btnA4.className = "px-3 py-1 text-xs font-bold rounded-md transition-all text-gray-300 hover:text-white";
+            frameA4.style.display = 'none';
+            frame80.style.display = 'block';
+        } else {
+            btnA4.className = "px-3 py-1 text-xs font-bold rounded-md transition-all text-white bg-blue-600 shadow-sm";
+            btn80.className = "px-3 py-1 text-xs font-bold rounded-md transition-all text-gray-300 hover:text-white";
+            frameA4.style.display = 'block';
+            frame80.style.display = 'none';
+        }
     }
 
     _cerrarModalPreviewPdf() {
@@ -517,12 +549,12 @@ class DashboardListaMovimientoAlmacenController {
 
         this.el.modalPreviewPdf.classList.remove('show');
         setTimeout(() => {
-            if (this.el.modalPreviewPdf) {
-                this.el.modalPreviewPdf.style.display = 'none';
-            }
-            if (this.el.iframePreviewPdf) {
-                this.el.iframePreviewPdf.src = '';
-            }
+            this.el.modalPreviewPdf.style.display = 'none';
+            
+            const frameA4 = document.getElementById('iframePreviewPdfA4');
+            const frame80 = document.getElementById('iframePreviewPdf80');
+            if (frameA4) frameA4.src = '';
+            if (frame80) frame80.src = '';
         }, 150);
     }
 
@@ -539,12 +571,21 @@ class DashboardListaMovimientoAlmacenController {
         if (!this.el.iframePreviewPdf) return;
         if (!this.previewPdf.treg) return;
 
-        const url = this.service.getComprobantePdfUrl(
-            this.previewPdf.treg,
-            this.previewPdf.formato,
-            false
-        );
-        this.el.iframePreviewPdf.src = `${url}&_ts=${Date.now()}`;
+        // 1. Vaciamos el iframe un instante para dar un efecto visual de "Cargando..." al cambiar de Tab
+        this.el.iframePreviewPdf.src = 'about:blank';
+
+        // 2. Le damos unos milisegundos para que limpie y luego inyectamos el nuevo formato
+        setTimeout(() => {
+            const url = this.service.getComprobantePdfUrl(
+                this.previewPdf.treg,
+                this.previewPdf.formato,
+                false
+            );
+            
+            // 3. LA CORRECCIÓN CLAVE: Usar "?" o "&" según corresponda para no romper la URL del backend
+            const separador = url.includes('?') ? '&' : '?';
+            this.el.iframePreviewPdf.src = `${url}${separador}_ts=${Date.now()}`;
+        }, 50);
     }
 
     _descargarPreviewPdf() {
@@ -553,7 +594,12 @@ class DashboardListaMovimientoAlmacenController {
     }
 
     _imprimirPreviewPdf() {
-        const frameWindow = this.el.iframePreviewPdf?.contentWindow;
+        // Determinamos cuál de los dos iframes está activo actualmente
+        const activeIframe = this.previewPdf.formato === '80mm' 
+            ? document.getElementById('iframePreviewPdf80') 
+            : document.getElementById('iframePreviewPdfA4');
+
+        const frameWindow = activeIframe?.contentWindow;
         if (!frameWindow) {
             window.SwalHelpers?.showWarning('No se pudo abrir el documento para imprimir.');
             return;

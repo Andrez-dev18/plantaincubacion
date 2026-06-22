@@ -573,28 +573,30 @@ const SalidasRapidas = (() => {
 
     function _showClienteDropdown(list) {
         var dd = document.getElementById('sr-cliente-dd');
+        var wrap = document.getElementById('sr-nombre-wrap');
+        
         if (!dd) {
             dd = document.createElement('div');
             dd.id = 'sr-cliente-dd';
-            dd.style.cssText = 'position:absolute;left:0;bottom:100%;top:auto;background:#fff;border:1px solid #d1d5db;' +
-                'border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:9999;' +
-                'max-height:220px;overflow-y:auto;min-width:280px;';
-            var nomInput = document.getElementById('sr-nombre');
-            if (nomInput) {
-                var wrap = nomInput.parentNode;
-                if (wrap.style.position !== 'relative') wrap.style.position = 'relative';
+            // FLOTA HACIA ARRIBA (bottom: 100%) CON MÁXIMA CAPA (z-index: 999999)
+            dd.style.cssText = 'position:absolute; left:0; bottom:calc(100% + 4px); top:auto; width:100%; ' +
+                'background:#fff; border:1px solid #cbd5e1; border-radius:8px; ' +
+                'box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.2); z-index: 999999; ' +
+                'max-height:180px; overflow-y:auto;';
+            if (wrap) {
                 wrap.appendChild(dd);
             }
         }
         if (!list.length) { dd.style.display = 'none'; return; }
+        
         dd.innerHTML = list.map(function(c) {
             var code = (c.tprocli || '').replace(/"/g, '&quot;');
             var nom  = (c.nombre  || '').replace(/"/g, '&quot;');
             return '<div data-code="' + code + '" data-nombre="' + nom + '" ' +
-                'style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #f3f4f6;" ' +
+                'style="padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f1f5f9;" ' +
                 'onmousedown="SalidasRapidas._seleccionarCliente(this)" ' +
                 'onmouseenter="this.style.background=\'#eff6ff\'" onmouseleave="this.style.background=\'\'">' +
-                '<span style="font-weight:600;color:#1d4ed8;">' + (c.tprocli || '') + '</span> — ' + (c.nombre || '') +
+                '<span style="font-weight:700; color:#1d4ed8;">' + (c.tprocli || '') + '</span> — ' + (c.nombre || '') +
                 '</div>';
         }).join('');
         dd.style.display = '';
@@ -656,7 +658,7 @@ const SalidasRapidas = (() => {
     // GENERAR (guardar movimiento)
     // ─────────────────────────────────────────────────────────────────
     async function generar() {
-        // Validaciones
+        // Validaciones iniciales
         const alma = document.getElementById('sr-alma').value;
         if (!alma) { Notification.error('Selecciona un almacén'); return; }
         if (!_seleccion.length) { Notification.error('Agrega al menos un producto'); return; }
@@ -669,14 +671,12 @@ const SalidasRapidas = (() => {
         const ruc    = document.getElementById('sr-ruc').value.trim();
         const nombre = document.getElementById('sr-nombre').value.trim();
 
-        // Para consumo, la cuenta corriente (solicitante) es obligatoria
         if (codtra === 'S003' && !ruc) {
             Notification.warning('Selecciona una cuenta corriente (solicitante) antes de generar el consumo.');
             document.getElementById('sr-ruc').focus();
             return;
         }
 
-        // Validar que ninguna cantidad supere el stock disponible
         const errStock = _seleccion.find(s => (parseFloat(s.stock) || 0) > 0 && parseFloat(s.tcantid) > parseFloat(s.stock));
         if (errStock) {
             Notification.error('Stock insuficiente para "' + errStock.descripcion + '". Disponible: ' + _num(errStock.stock) + ' | Solicitado: ' + _num(errStock.tcantid), 6000);
@@ -686,15 +686,31 @@ const SalidasRapidas = (() => {
         const hoy = new Date();
         const tfectra = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
 
+        // ── 1. LEVANTAMOS EL SWEETALERT DE CARGA ANTES DE IR AL SERVIDOR ──
+        Swal.fire({
+            title: 'Procesando Salida',
+            html: 'Guardando registro y preparando documento...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading(); // Activa el spinner de carga nativo
+            },
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl'
+            }
+        });
+
         // Verificar fecha antes de grabar
         try {
             const vRes = await fetch(BASE + '/verificar-fecha?fecha=' + encodeURIComponent(tfectra), { credentials: 'include' });
             const vJson = await vRes.json();
             if (!vJson.data?.valida) {
+                Swal.close(); // Cerramos el loading si falla
                 Notification.error('Fecha no válida: ' + (vJson.data?.mensaje || 'Período cerrado'));
                 return;
             }
         } catch (e) {
+            Swal.close();
             Notification.error('Error verificando fecha'); return;
         }
 
@@ -746,19 +762,31 @@ const SalidasRapidas = (() => {
                 body: JSON.stringify(payload),
             });
             const json = await res.json();
+            
             if (json.success) {
                 const treg = json.data?.treg || _tregActual;
                 const fmt = document.querySelector('input[name="sr-formato"]:checked')?.value || 'A4';
-                // Abrir ventana ANTES de cualquier await para evitar popup blocker
+                
+                // Abrir ventana antes de que termine para evitar bloqueador de popups
                 const printWin = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
                 if (printWin) printWin.document.write('<html><body style="font-family:Arial;padding:20px;color:#555">Generando impresión&hellip;</body></html>');
+                
                 await nuevo();
-                if (printWin) _cargarImpresionEnVentana(treg, fmt, printWin);
-                else Notification.info('Movimiento generado: REG ' + treg + ' — Habilita ventanas emergentes para imprimir');
+                
+                // ── 2. PROCESO TERMINADO: CERRAMOS EL LOADING Y PARAMOS EL SPINNER ──
+                Swal.close(); 
+                
+                if (printWin) {
+                    _cargarImpresionEnVentana(treg, fmt, printWin);
+                } else {
+                    Notification.info('Movimiento generado: REG ' + treg + ' — Habilita ventanas emergentes para imprimir');
+                }
             } else {
+                Swal.close(); // Cerramos el loading si el backend responde con error
                 Notification.error('Error al generar: ' + (json.error || json.message || JSON.stringify(json)), 6000);
             }
         } catch (e) {
+            Swal.close(); // Cerramos el loading si hay caída de red
             Notification.error('Error de comunicación: ' + e.message);
         }
     }

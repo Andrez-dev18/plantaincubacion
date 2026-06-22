@@ -1,170 +1,84 @@
 /**
- * Sistema de notificaciones
- * Muestra mensajes toast al usuario
+ * Sistema de notificaciones impulsado por SweetAlert2 (Toasts)
+ * Mantiene la compatibilidad con los llamados antiguos pero usa alertas modernas.
  */
 class Notification {
-    static instances = [];
-    static container = null;
-
+    
     /**
-     * Inicializa el contenedor de notificaciones
+     * Motor interno que configura y dispara el SweetAlert en modo Toast
      */
-    static init() {
-        if (!Notification.container) {
-            const container = document.createElement('div');
-            container.id = 'notifications-container';
-            container.className = 'fixed top-4 right-4 z-50 space-y-2';
-            document.body.appendChild(container);
-            Notification.container = container;
-        }
+    static _fireToast(message, type, duration = 3000) {
+        // Detectamos si el sistema está en modo oscuro para pintar el toast
+        const isDarkMode = document.body.classList.contains('dark-mode');
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: duration,
+            timerProgressBar: true,
+            // Pausa el tiempo si el usuario pasa el mouse por encima
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            },
+            // Estilos dinámicos para modo claro/oscuro
+            background: isDarkMode ? '#1e293b' : '#ffffff',
+            color: isDarkMode ? '#f8fafc' : '#1e293b',
+            iconColor: isDarkMode ? undefined : undefined, // Usa los colores nativos de Swal
+            customClass: {
+                popup: isDarkMode ? 'border border-slate-700' : 'border border-slate-100 shadow-xl'
+            }
+        });
+
+        Toast.fire({
+            icon: type,
+            title: message
+        });
     }
 
     /**
-     * Muestra una notificación
+     * Muestra una notificación general
      */
     static show(message, type = 'info', duration = 3000) {
-        Notification.init();
-
-        const notification = new NotificationInstance(message, type, duration);
-        Notification.instances.push(notification);
-        
-        return notification;
+        this._fireToast(message, type, duration);
     }
 
     /**
-     * Muestra notificación de éxito
+     * Muestra notificación de éxito (Check verde)
      */
     static success(message, duration) {
-        return Notification.show(message, 'success', duration);
+        this._fireToast(message, 'success', duration);
     }
 
     /**
-     * Muestra notificación de error
+     * Muestra notificación de error (X roja)
      */
     static error(message, duration) {
-        return Notification.show(message, 'error', duration);
+        this._fireToast(message, 'error', duration);
     }
 
     /**
-     * Muestra notificación de advertencia
+     * Muestra notificación de advertencia (Triángulo amarillo)
      */
     static warning(message, duration) {
-        return Notification.show(message, 'warning', duration);
+        this._fireToast(message, 'warning', duration);
     }
 
     /**
-     * Muestra notificación de información
+     * Muestra notificación de información (i azul)
      */
     static info(message, duration) {
-        return Notification.show(message, 'info', duration);
+        this._fireToast(message, 'info', duration);
     }
 
     /**
-     * Limpia todas las notificaciones
+     * Limpia todas las notificaciones en pantalla
      */
     static clearAll() {
-        Notification.instances.forEach(instance => instance.remove());
-        Notification.instances = [];
+        Swal.close();
     }
 }
 
-/**
- * Instancia individual de notificación
- */
-class NotificationInstance {
-    constructor(message, type, duration) {
-        this.message = message;
-        this.type = type;
-        this.duration = duration;
-        this.element = null;
-        this.timeout = null;
-
-        this.create();
-        this.show();
-    }
-
-    /**
-     * Obtiene el icono según el tipo
-     */
-    getIcon() {
-        const icons = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle'
-        };
-        return icons[this.type] || icons.info;
-    }
-
-    /**
-     * Obtiene los colores según el tipo
-     */
-    getColors() {
-        const colors = {
-            success: 'bg-green-50 border-green-200 text-green-800',
-            error: 'bg-red-50 border-red-200 text-red-800',
-            warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-            info: 'bg-blue-50 border-blue-200 text-blue-800'
-        };
-        return colors[this.type] || colors.info;
-    }
-
-    /**
-     * Crea el elemento de notificación
-     */
-    create() {
-        const div = document.createElement('div');
-        div.className = `notification flex items-center p-4 rounded-lg border shadow-lg ${this.getColors()} transition-all duration-300 transform translate-x-full`;
-        
-        div.innerHTML = `
-            <i class="fas ${this.getIcon()} text-xl mr-3"></i>
-            <span class="flex-1">${this.message}</span>
-            <button class="ml-3 text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-
-        const closeButton = div.querySelector('button');
-        closeButton.addEventListener('click', () => this.remove());
-
-        this.element = div;
-        Notification.container.appendChild(div);
-    }
-
-    /**
-     * Muestra la notificación con animación
-     */
-    show() {
-        setTimeout(() => {
-            this.element.classList.remove('translate-x-full');
-        }, 10);
-
-        if (this.duration > 0) {
-            this.timeout = setTimeout(() => {
-                this.remove();
-            }, this.duration);
-        }
-    }
-
-    /**
-     * Remueve la notificación
-     */
-    remove() {
-        if (this.timeout) {
-            clearTimeout(this.timeout);
-        }
-
-        this.element.classList.add('translate-x-full', 'opacity-0');
-        
-        setTimeout(() => {
-            this.element.remove();
-            const index = Notification.instances.indexOf(this);
-            if (index > -1) {
-                Notification.instances.splice(index, 1);
-            }
-        }, 300);
-    }
-}
-
-// Mantener compatibilidad con código antiguo
+// Mantener compatibilidad absoluta con el código antiguo
 window.Notification = Notification;

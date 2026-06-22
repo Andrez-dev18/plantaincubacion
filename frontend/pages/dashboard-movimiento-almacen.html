@@ -34,7 +34,7 @@
             flex-shrink: 0;
             display: flex;
             gap: 0;
-            background: #1e3a5f;
+            background: #1659E9;
             border-bottom: 2px solid #2563eb;
             border-top-right-radius: 8px;
             border-top-left-radius: 8px;
@@ -45,7 +45,7 @@
             padding: 9px 18px;
             font-size: 13px;
             font-weight: 600;
-            color: #93c5fd;
+            color: #ffffff;
             background: transparent;
             border: none;
             border-bottom: 3px solid transparent;
@@ -69,8 +69,7 @@
     </style>
     <div class="tab-nav">
         <button class="tab-btn active"><i class="fa-solid fa-folder"></i>Registro Completo</button>
-        <button class="tab-btn" onclick="window.location.href='dashboard-salidas-rapidas.html'"><i
-                class="fa-solid fa-truck-fast"></i> Salida Rápida</button>
+
     </div>
 
 
@@ -214,210 +213,228 @@
                                         placeholder="Detalles adicionales del movimiento...">
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    class="bg-white rounded-none shadow-sm border-t-0 border-b border-x border-gray-200 overflow-visible w-full"
+                    style="border-radius: 0px !important;">
+                    <div class="flex gap-3">
+                        <div class="flex flex-wrap gap-3 justify-between items-center">
+
 
                         </div>
                     </div>
-    </div>
-    </section>
-
-    <section
-        class="bg-white rounded-none shadow-sm border-t-0 border-b border-x border-gray-200 overflow-visible w-full"
-        style="border-radius: 0px !important;">
-        <div class="flex gap-3">
-            <div class="flex flex-wrap gap-3 justify-between items-center">
 
 
-            </div>
-        </div>
+                    <div>
+                        <div id="formulario-agregar-item"
+                            class="bg-gray-100 p-1.5 border border-gray-200 rounded-t-lg mt-4"
+                            style="display: none; opacity: 0; transform: translateY(-10px);">
+                            <!-- Fila inferior: Cencos primero → Producto → Lote → ... → ABC último -->
+                            <div class="mov-row p-2 rounded-md bg-white border border-gray-300">
+                                <div class="mov-field">
+                                    <label for="grid-tcencos"
+                                        class="mov-label text-gray-500 font-semibold">Cencos</label>
+                                    <select id="grid-tcencos" class="input-field mov-control text-xs px-1"
+                                        title="Centro de Costos">
+                                        <option value="">Buscar cencos...</option>
+                                    </select>
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
+                                <div class="mov-field mov-field-product">
+                                    <label class="mov-label text-gray-500 font-medium">🔍 Producto</label>
+                                    <select id="grid-buscar-producto"
+                                        class="input-field mov-control text-xs border-gray-300">
+                                        <option value="">Buscar producto...</option>
+                                    </select>
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
 
+                                <input type="hidden" id="tcodproc" value="00">
+                                <input type="hidden" id="tcodsubproc" value="00">
+                                <input type="hidden" id="tcodacti" value="00">
+                                <input type="hidden" id="tcodtarea" value="00">
+                                <input type="hidden" id="grid-tcodigo" value="">
+                                <input type="hidden" id="grid-tctabal" value="">
 
-        <div>
-            <div id="formulario-agregar-item" class="bg-gray-100 p-1.5 border border-gray-200 rounded-t-lg mt-4"
-                style="display: none; opacity: 0; transform: translateY(-10px);">
-                <!-- Fila inferior: Cencos primero → Producto → Lote → ... → ABC último -->
-                <div class="mov-row p-2 rounded-md bg-white border border-gray-300">
-                    <div class="mov-field">
-                        <label for="grid-tcencos" class="mov-label text-gray-500 font-semibold">Cencos</label>
-                        <select id="grid-tcencos" class="input-field mov-control text-xs px-1" title="Centro de Costos">
-                            <option value="">Buscar cencos...</option>
-                        </select>
-                        <span class="mov-helper mov-helper-spacer">.</span>
+                                <div class="mov-field">
+                                    <label for="grid-tlote" class="mov-label text-gray-500 font-semibold">Lote</label>
+                                    <select id="grid-tlote" class="input-field mov-control text-xs px-1" title="Lote">
+                                        <option value="">Buscar lote...</option>
+                                    </select>
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
+
+                                <div class="mov-field">
+                                    <label for="grid-tunidad"
+                                        class="mov-label text-gray-500 font-semibold">Unidad</label>
+                                    <input type="text" id="grid-tunidad"
+                                        class="input-field mov-control text-[10px] bg-gray-50 border-dashed text-gray-600 text-center px-1"
+                                        readonly placeholder="-" title="Unidad">
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-tcantid"
+                                        class="mov-label text-gray-500 font-semibold">Cantidad</label>
+                                    <input type="number" id="grid-tcantid"
+                                        class="input-field mov-control text-xs text-right font-bold text-blue-700 px-2 border-blue-400 focus:ring-blue-500"
+                                        step="0.001" min="0" placeholder="0.00" title="Cantidad">
+                                    <span id="grid-res-cantidad" class="mov-helper text-gray-500/70">Cantidad: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-tpeso" class="mov-label text-gray-500 font-semibold">Peso</label>
+                                    <input type="number" id="grid-tpeso"
+                                        class="input-field mov-control text-xs text-right px-2" step="0.001" min="0"
+                                        placeholder="0.00" title="Peso">
+                                    <span id="grid-res-peso" class="mov-helper text-gray-500/70">Peso: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-tpreuni"
+                                        class="mov-label text-gray-500 font-semibold">Precio</label>
+                                    <input type="number" id="grid-tpreuni"
+                                        class="input-field mov-control text-xs text-right px-2" step="0.01" min="0"
+                                        value="0" placeholder="0.0000" title="Precio">
+                                    <span id="grid-res-precio" class="mov-helper text-gray-500/70">Precio: 0</span>
+                                </div>
+                                <div class="mov-field">
+                                    <label for="grid-timport"
+                                        class="mov-label text-gray-500 font-semibold">Importe</label>
+                                    <input type="number" id="grid-timport"
+                                        class="input-field mov-control text-xs text-right px-2 bg-gray-50 border-dashed text-gray-600"
+                                        step="0.01" min="0" value="0" placeholder="0.00" title="Importe" readonly>
+                                    <span id="grid-res-importe" class="mov-helper text-gray-500/70">Importe: 0</span>
+                                </div>
+
+                                <!-- ABC al final (posición 9) -->
+                                <div class="mov-field">
+                                    <label for="grid-costoabc-display" class="mov-label text-gray-500 font-semibold">ABC
+                                        (F1)</label>
+                                    <input type="text" id="grid-costoabc-display"
+                                        class="input-field mov-control text-xs px-2 text-center font-mono" maxlength="8"
+                                        placeholder="00000000" title="Costo ABC (concatenado) - Presione F1 para modal">
+                                    <span id="grid-abc-ruta"
+                                        class="mov-helper text-gray-500/70 font-normal whitespace-nowrap overflow-hidden text-ellipsis block max-w-full"
+                                        title="Sin ruta seleccionada">Sin ruta seleccionada</span>
+                                </div>
+                                <div class="mov-action">
+                                    <span class="mov-label text-gray-400 font-mono text-right">Alt +</span>
+                                    <button type="button" id="btn-agregar-item"
+                                        class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-sm transition-all whitespace-nowrap active:transform active:scale-95">
+                                        ➕
+                                    </button>
+                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                </div>
+                            </div>
+
+                        </div>
+
                     </div>
-                    <div class="mov-field mov-field-product">
-                        <label class="mov-label text-gray-500 font-medium">🔍 Producto</label>
-                        <select id="grid-buscar-producto" class="input-field mov-control text-xs border-gray-300">
-                            <option value="">Buscar producto...</option>
-                        </select>
-                        <span class="mov-helper mov-helper-spacer">.</span>
+
+
+                    <div class="border border-gray-200 rounded-b-lg overflow-hidden relative z-0">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="text-gray-600 text-xs uppercase font-bold sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Código</th>
+                                        <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Descripción</th>
+                                        <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Cencos</th>
+                                        <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">ABC</th>
+                                        <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Lote</th>
+                                        <th class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Cant</th>
+                                        <th class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Peso KG
+                                        </th>
+                                        <th id="col-precio"
+                                            class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Precio
+                                        </th>
+                                        <th id="col-importe"
+                                            class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">
+                                            Importe</th>
+                                        <th class="px-4 py-3 text-center bg-gray-100 border-b border-gray-200">Acciones
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grid-tbody" class="divide-y divide-gray-100 bg-white">
+                                    <tr>
+                                        <td colspan="10" class="text-center text-gray-400 py-8">
+                                            <span class="block text-3xl mb-2">🛒</span>
+                                            Aún no has agregado ningún producto.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-blue-50/50 font-bold border-t-2 border-gray-200">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-3 text-right text-gray-600">TOTALES:</td>
+                                        <td class="px-4 py-3 text-right text-blue-700" id="total-cant">0.00</td>
+                                        <td class="px-4 py-3 text-right text-blue-700" id="total-peso">0.00</td>
+                                        <td id="col-precio-tot"></td>
+                                        <td class="px-4 py-3 text-right text-blue-700 text-base col-importe"
+                                            id="total-importe">0.00
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
+                </section>
 
-                    <input type="hidden" id="tcodproc" value="00">
-                    <input type="hidden" id="tcodsubproc" value="00">
-                    <input type="hidden" id="tcodacti" value="00">
-                    <input type="hidden" id="tcodtarea" value="00">
-                    <input type="hidden" id="grid-tcodigo" value="">
-                    <input type="hidden" id="grid-tctabal" value="">
+                <section class="bg-white rounded-none shadow-sm border-t-0 border-b border-x border-gray-200 p-4 w-full"
+                    style="border-bottom-left-radius: 0.75rem !important; border-bottom-right-radius: 0.75rem !important; border-top-left-radius: 0px !important; border-top-right-radius: 0px !important;">
+                    <div class="flex flex-wrap gap-3 items-center">
 
-                    <div class="mov-field">
-                        <label for="grid-tlote" class="mov-label text-gray-500 font-semibold">Lote</label>
-                        <select id="grid-tlote" class="input-field mov-control text-xs px-1" title="Lote">
-                            <option value="">Buscar lote...</option>
-                        </select>
-                        <span class="mov-helper mov-helper-spacer">.</span>
+                        <div class="flex flex-col items-center gap-1 shrink-0">
+                            <span class="text-[10px] text-gray-400 font-mono">Alt + L</span>
+                            <button type="button" id="btn-nuevo"
+                                class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                limpiar
+                            </button>
+                        </div>
+
+                        <div id="box-formato-impresion"
+                            class="flex flex-col items-start gap-1 bg-slate-50 border border-slate-200 rounded px-3 py-3 shrink-0">
+                            <span class="label-formato-impresion text-[10px] text-gray-500 font-mono">Formato de
+                                impresión</span>
+                            <div class="flex items-center gap-4">
+                                <label
+                                    class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
+                                    <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4"
+                                        checked>
+                                    A4
+                                </label>
+                                <label
+                                    class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
+                                    <input type="radio" name="formato-impresion" id="formato-impresion-80mm"
+                                        value="80mm">
+                                    Ticket 80mm
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3 ml-auto shrink-0 items-end">
+
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[10px] text-gray-400 font-mono">Alt + C</span>
+                                <button type="button" id="btn-grabar"
+                                    class="btn-primary bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded font-bold transition-colors flex items-center gap-2 shadow-md">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                                </button>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[10px] text-gray-400 font-mono">Alt + R</span>
+                                <button type="button" id="btn-generar-reporte"
+                                    class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
+                                    <i class="fa-solid fa-circle-question"></i> Vista previa
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                </section>
 
-                    <div class="mov-field">
-                        <label for="grid-tunidad" class="mov-label text-gray-500 font-semibold">Unidad</label>
-                        <input type="text" id="grid-tunidad"
-                            class="input-field mov-control text-[10px] bg-gray-50 border-dashed text-gray-600 text-center px-1"
-                            readonly placeholder="-" title="Unidad">
-                        <span class="mov-helper mov-helper-spacer">.</span>
-                    </div>
-                    <div class="mov-field">
-                        <label for="grid-tcantid" class="mov-label text-gray-500 font-semibold">Cantidad</label>
-                        <input type="number" id="grid-tcantid"
-                            class="input-field mov-control text-xs text-right font-bold text-blue-700 px-2 border-blue-400 focus:ring-blue-500"
-                            step="0.001" min="0" placeholder="0.00" title="Cantidad">
-                        <span id="grid-res-cantidad" class="mov-helper text-gray-500/70">Cantidad: 0</span>
-                    </div>
-                    <div class="mov-field">
-                        <label for="grid-tpeso" class="mov-label text-gray-500 font-semibold">Peso</label>
-                        <input type="number" id="grid-tpeso" class="input-field mov-control text-xs text-right px-2"
-                            step="0.001" min="0" placeholder="0.00" title="Peso">
-                        <span id="grid-res-peso" class="mov-helper text-gray-500/70">Peso: 0</span>
-                    </div>
-                    <div class="mov-field">
-                        <label for="grid-tpreuni" class="mov-label text-gray-500 font-semibold">Precio</label>
-                        <input type="number" id="grid-tpreuni" class="input-field mov-control text-xs text-right px-2"
-                            step="0.01" min="0" value="0" placeholder="0.0000" title="Precio">
-                        <span id="grid-res-precio" class="mov-helper text-gray-500/70">Precio: 0</span>
-                    </div>
-                    <div class="mov-field">
-                        <label for="grid-timport" class="mov-label text-gray-500 font-semibold">Importe</label>
-                        <input type="number" id="grid-timport"
-                            class="input-field mov-control text-xs text-right px-2 bg-gray-50 border-dashed text-gray-600"
-                            step="0.01" min="0" value="0" placeholder="0.00" title="Importe" readonly>
-                        <span id="grid-res-importe" class="mov-helper text-gray-500/70">Importe: 0</span>
-                    </div>
-
-                    <!-- ABC al final (posición 9) -->
-                    <div class="mov-field">
-                        <label for="grid-costoabc-display" class="mov-label text-gray-500 font-semibold">ABC
-                            (F1)</label>
-                        <input type="text" id="grid-costoabc-display"
-                            class="input-field mov-control text-xs px-2 text-center font-mono" maxlength="8"
-                            placeholder="00000000" title="Costo ABC (concatenado) - Presione F1 para modal">
-                        <span id="grid-abc-ruta"
-                            class="mov-helper text-gray-500/70 font-normal whitespace-nowrap overflow-hidden text-ellipsis block max-w-full"
-                            title="Sin ruta seleccionada">Sin ruta seleccionada</span>
-                    </div>
-                    <div class="mov-action">
-                        <span class="mov-label text-gray-400 font-mono text-right">Alt +</span>
-                        <button type="button" id="btn-agregar-item"
-                            class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-sm transition-all whitespace-nowrap active:transform active:scale-95">
-                            ➕
-                        </button>
-                        <span class="mov-helper mov-helper-spacer">.</span>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="border border-gray-200 rounded-b-lg overflow-hidden relative z-0">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left whitespace-nowrap">
-                    <thead class="bg-gray-100 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3">Código</th>
-                            <th class="px-4 py-3">Descripción</th>
-                            <th class="px-4 py-3">Cencos</th>
-                            <th class="px-4 py-3">ABC</th>
-                            <th class="px-4 py-3">Lote</th>
-                            <th class="px-4 py-3 text-right">Cant</th>
-                            <th class="px-4 py-3 text-right">Peso KG</th>
-                            <th id="col-precio" class="px-4 py-3 text-right">Precio</th>
-                            <th id="col-importe" class="px-4 py-3 text-right">Importe</th>
-                            <th class="px-4 py-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="grid-tbody" class="divide-y divide-gray-100 bg-white">
-                        <tr>
-                            <td colspan="10" class="text-center text-gray-400 py-8">
-                                <span class="block text-3xl mb-2">🛒</span>
-                                Aún no has agregado ningún producto.
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="bg-blue-50/50 font-bold border-t-2 border-gray-200">
-                        <tr>
-                            <td colspan="5" class="px-4 py-3 text-right text-gray-600">TOTALES:</td>
-                            <td class="px-4 py-3 text-right text-blue-700" id="total-cant">0.00</td>
-                            <td class="px-4 py-3 text-right text-blue-700" id="total-peso">0.00</td>
-                            <td id="col-precio-tot"></td>
-                            <td class="px-4 py-3 text-right text-blue-700 text-base col-importe" id="total-importe">0.00
-                            </td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </section>
-
-    <section class="bg-white rounded-none shadow-sm border-t-0 border-b border-x border-gray-200 p-4 w-full"
-        style="border-bottom-left-radius: 0.75rem !important; border-bottom-right-radius: 0.75rem !important; border-top-left-radius: 0px !important; border-top-right-radius: 0px !important;">
-        <div class="flex flex-wrap gap-3 items-center">
-
-            <div class="flex flex-col items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400 font-mono">Alt + L</span>
-                <button type="button" id="btn-nuevo"
-                    class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
-                    limpiar
-                </button>
-            </div>
-
-            <div id="box-formato-impresion"
-                class="flex flex-col items-start gap-1 bg-slate-50 border border-slate-200 rounded px-3 py-3 shrink-0">
-                <span class="label-formato-impresion text-[10px] text-gray-500 font-mono">Formato de impresión</span>
-                <div class="flex items-center gap-4">
-                    <label
-                        class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
-                        <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4" checked>
-                        A4
-                    </label>
-                    <label
-                        class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
-                        <input type="radio" name="formato-impresion" id="formato-impresion-80mm" value="80mm">
-                        Ticket 80mm
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex gap-3 ml-auto shrink-0 items-end">
-
-                <div class="flex flex-col items-center gap-1">
-                    <span class="text-[10px] text-gray-400 font-mono">Alt + C</span>
-                    <button type="button" id="btn-grabar"
-                        class="btn-primary bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded font-bold transition-colors flex items-center gap-2 shadow-md">
-                        <i class="fa-solid fa-floppy-disk"></i> Guardar
-                    </button>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                    <span class="text-[10px] text-gray-400 font-mono">Alt + R</span>
-                    <button type="button" id="btn-generar-reporte"
-                        class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-700 px-6 py-2 rounded font-medium transition-colors flex items-center gap-2 shadow-sm">
-                        <i class="fa-solid fa-circle-question"></i> Vista previa
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    </form>
-    </main>
+            </form>
+        </main>
     </div><!-- /#tab-panel-registro -->
 
     <!-- Salidas Rápidas → ver dashboard-salidas-rapidas.html -->
