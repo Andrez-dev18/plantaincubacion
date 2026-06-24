@@ -25,6 +25,7 @@ try {
     require_once __DIR__ . '/repositories/UsuarioSistemaRepository.php';
     require_once __DIR__ . '/repositories/SimulacionEscenariosRepository.php';
     require_once __DIR__ . '/repositories/MovimientoAlmacenRepository.php';
+    require_once __DIR__ . '/repositories/ReporteTransaccionesRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php';
@@ -39,6 +40,7 @@ try {
     require_once __DIR__ . '/services/UsuarioAdminService.php';
     require_once __DIR__ . '/services/SimulacionEscenariosService.php';
     require_once __DIR__ . '/services/MovimientoAlmacenService.php';
+    require_once __DIR__ . '/services/ReporteTransaccionService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php';
@@ -54,6 +56,7 @@ try {
     require_once __DIR__ . '/controllers/SimulacionEscenariosController.php';
     require_once __DIR__ . '/controllers/UsuarioAdminController.php';
     require_once __DIR__ . '/controllers/MovimientoAlmacenController.php';
+    require_once __DIR__ . '/controllers/ReporteTransaccionController.php';
 
     // 1. Crear conexión (raíz del grafo) - Patrón Singleton
     $db = Database::getInstance()->getConnection();
@@ -85,6 +88,7 @@ try {
     $permisoService = new PermisoService($permisoRepository, $dashboardModuloRepository);
     $usuarioAdminService = new UsuarioAdminService($usuarioRepository, $rolRepository);
     $movimientoAlmacenService = new MovimientoAlmacenService($db);
+    $reporteTransaccionService = new ReporteTransaccionService($db);
 
     // 4. Crear controladores (nivel externo - dependen de servicios o $db)
     // NOTA: Los nuevos controladores (UsuarioController, RolController, UsuarioRolController, NavegacionController)
@@ -101,6 +105,7 @@ try {
     $permisoController = new PermisoController($permisoService);
     $usuarioAdminController = new UsuarioAdminController($usuarioAdminService);
     $movimientoAlmacenController = new MovimientoAlmacenController($movimientoAlmacenService);
+    $reporteTransaccionController = new ReporteTransaccionController($db);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -118,6 +123,7 @@ try {
             'usuarioAdmin' => $usuarioAdminController,
             'movimientoAlmacen' => $movimientoAlmacenController,
             'usuarioSistema' => $usuarioSistemaController,
+            'reporteTransaccion' => $reporteTransaccionController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -143,6 +149,7 @@ try {
             'rol' => $rolRepository,
             'permiso' => $permisoRepository,
             'movimientoAlmacen' => $movimientoAlmacenRepository,
+            'reporteTransacciones' => new ReporteTransaccionesRepository($db)
         ]
     ];
 } catch (Exception $e) {

@@ -69,11 +69,5 @@ return function ($container) {
         exit;
     }
     
-    // Ruta no encontrada
-    http_response_code(404);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Ruta no encontrada: ' . $uri
-    ]);
-    exit;
+
 };

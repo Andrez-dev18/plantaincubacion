@@ -108,6 +108,11 @@ try {
     $simulacionEscenariosRoutes = require_once __DIR__ . '/../routes/simulacion-escenarios.routes.php';
     $simulacionEscenariosRoutes($container);
     
+    // ========================================
+    // MÓDULO: REPORTE DE TRANSACCIONES
+    // ========================================
+    $reporteTransaccionesRoutes = require_once __DIR__ . '/../routes/reporteTransacciones.php';
+    $reporteTransaccionesRoutes($container);
     
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
