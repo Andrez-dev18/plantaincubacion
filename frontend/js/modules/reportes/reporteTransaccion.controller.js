@@ -728,6 +728,9 @@ class ReporteTransaccionController {
         const codigosValores = codigosSelect ? Array.from(codigosSelect.selectedOptions).map(o => o.value).filter(v => v !== '') : [];
 
         const agruparPor = document.querySelector('input[name="agruparPor"]:checked')?.value || 'FECHA';
+        
+        const spanTransaccion = document.getElementById('comboTransaccionTexto');
+        const transaccionNombre = spanTransaccion ? spanTransaccion.textContent.trim() : this.transaccionSeleccionada;
 
         return {
             fechaInicio: fechas.inicio,
@@ -740,7 +743,8 @@ class ReporteTransaccionController {
             lineasValores: lineasValores.join(','),
             codigosValores: codigosValores.join(','),
             agruparPor: agruparPor,
-            transaccion: this.transaccionSeleccionada
+            transaccion: this.transaccionSeleccionada,
+            transaccionNombre: transaccionNombre
         };
     }
 }

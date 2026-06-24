@@ -186,7 +186,8 @@ class ReporteTransaccionController
                 'cuentaCorriente' => $_POST['cuentaCorriente'] ?? '',
                 'lineasValores'   => $_POST['lineasValores'] ?? '',
                 'codigosValores'  => $_POST['codigosValores'] ?? '',
-                'agruparPor'      => $_POST['agruparPor'] ?? 'FECHA'
+                'agruparPor'      => $_POST['agruparPor'] ?? 'FECHA',
+                'transaccionNombre' => $_POST['transaccionNombre'] ?? '',
             ];
 
             // Obtenemos la data de forma segura usando la capa de servicio interna

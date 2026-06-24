@@ -1,9 +1,11 @@
 <?php
+date_default_timezone_set('America/Lima');
 require_once __DIR__ . '/../libraries/fpdf/fpdf.php';
 
 class ReporteTransaccionesPdf extends FPDF
 {
     private $fechaRango = '';
+    private $transaccionNombre = '';
 
     public function Header()
     {
@@ -16,7 +18,7 @@ class ReporteTransaccionesPdf extends FPDF
 
         // Fila de la Franja Superior
         $this->SetXY(12, 10);
-        $this->Cell(60, 10, utf8_decode('PLANTA INUBACION'), 0, 0, 'L');
+        $this->Cell(60, 10, utf8_decode('PLANTA INCUBACION'), 0, 0, 'L');
         $this->Cell(145, 10, utf8_decode('REPORTE DE TRANSACCIONES'), 0, 0, 'C');
         $this->Cell(60, 10, date('d/m/Y H:i'), 0, 1, 'R');
 
@@ -25,6 +27,13 @@ class ReporteTransaccionesPdf extends FPDF
         $this->SetFont('Arial', '', 9);
         $this->SetX(10);
         $this->Cell(277, 8, utf8_decode('Rango: ' . $this->fechaRango), 0, 1, 'L');
+        $this->Ln(1);
+
+        //nombre transaccion
+        $this->SetTextColor(100, 100, 100);
+        $this->SetFont('Arial', '', 9);
+        $this->SetX(10);
+        $this->Cell(277, 8, utf8_decode('Transaccion: ' . $this->transaccionNombre), 0, 1, 'L');
         $this->Ln(1);
 
         // ── CABECERAS DE LA TABLA ESTILO WEB ──
@@ -59,6 +68,7 @@ class ReporteTransaccionesPdf extends FPDF
     {
         // Formatear rango de fechas de forma elegante
         $this->fechaRango = ($filtros['fechaInicio'] ?? '') . ' al ' . ($filtros['fechaFin'] ?? '');
+        $this->transaccionNombre = !empty($filtros['transaccionNombre']) ? $filtros['transaccionNombre'] : 'TODAS';
 
         $this->AddPage('L', 'A4');
         $this->SetFont('Arial', '', 7.5);
