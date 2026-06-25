@@ -149,12 +149,20 @@ class DashboardListaMovimientoAlmacenController {
             const treg = actionButton.getAttribute('data-treg');
             if (!treg) return;
 
+            const rowElement = actionButton.closest('tr');
+
+            // 🛡️ CORRECCIÓN: Leemos los datos directamente de la fila pulsada (rowElement)
+            const tcodtra = rowElement ? rowElement.querySelector('.chip')?.nextElementSibling?.textContent?.split(' - ')[0]?.trim() : null;
+            // El almacén está en la celda 5 (índice 4)
+            const talm = rowElement ? rowElement.cells[4]?.textContent?.split(' - ')[0]?.trim() : null;
+
             const action = actionButton.getAttribute('data-action');
             if (action === 'ver') {
-                this._abrirModalDetalle(treg);
+                // Pasamos tanto tcodtra como talm
+                this._abrirModalDetalle(treg, tcodtra, talm);
             }
             if (action === 'preview-pdf') {
-                this._abrirModalPreviewPdf(treg, 'a4'); // Abre por defecto en formato A4
+                this._abrirModalPreviewPdf(treg, 'a4', tcodtra, talm);
             }
             if (action === 'editar') {
                 this._abrirModalEditar(treg);
@@ -178,7 +186,7 @@ class DashboardListaMovimientoAlmacenController {
 
         document.getElementById('btnAbrirPreviewModal')?.addEventListener('click', () => {
             if (this.currentDetailTreg) {
-                this._abrirModalPreviewPdf(this.currentDetailTreg, 'a4'); // Abre el modal unificado con pestañas
+                this._abrirModalPreviewPdf(this.currentDetailTreg, 'a4', this.currentDetailTcodtra, this.currentDetailTalm);
             }
         });
 
@@ -394,9 +402,17 @@ class DashboardListaMovimientoAlmacenController {
         }
     }
 
-    async _abrirModalDetalle(treg) {
+    async _abrirModalDetalle(treg, tcodtraFilter = null, talmFilter = null) {
         try {
-            const response = await this.service.getMovimiento(treg);
+            // 1. Construir los parámetros opcionales limpios
+            const queryParams = [];
+            if (tcodtraFilter) queryParams.push(`tcodtra=${encodeURIComponent(tcodtraFilter)}`);
+            if (talmFilter) queryParams.push(`talm=${encodeURIComponent(talmFilter)}`);
+            const queryString = queryParams.length ? `?${queryParams.join('&')}` : '';
+
+            // 2. Enviar treg y queryString por separado al método corregido
+            const response = await this.service.getMovimiento(treg, queryString);
+
             if (!response?.success) {
                 throw new Error(response?.error || 'No se pudo cargar el movimiento.');
             }
@@ -405,6 +421,9 @@ class DashboardListaMovimientoAlmacenController {
             const detalle = Array.isArray(response.data?.detalle) ? response.data.detalle : [];
 
             this.currentDetailTreg = treg;
+            this.currentDetailTcodtra = tcodtraFilter;
+            this.currentDetailTalm = talmFilter;
+
             this._renderCabeceraDetalle(cabecera);
             this._renderItemsDetalle(detalle);
 
@@ -485,35 +504,49 @@ class DashboardListaMovimientoAlmacenController {
     }
 
     _abrirPdf(treg, formato, forzarDescarga = true) {
-        const url = this.service.getComprobantePdfUrl(treg, formato, forzarDescarga);
+        let url = this.service.getComprobantePdfUrl(treg, formato, forzarDescarga);
+
+        const extraParams = [];
+        if (this.previewPdf.tcodtra) extraParams.push(`tcodtra=${encodeURIComponent(this.previewPdf.tcodtra)}`);
+        if (this.previewPdf.talm) extraParams.push(`talm=${encodeURIComponent(this.previewPdf.talm)}`);
+        if (extraParams.length) url += `&${extraParams.join('&')}`;
+
         window.open(url, '_blank', 'noopener');
     }
 
-    _abrirModalPreviewPdf(treg, formato = 'a4') {
+    _abrirModalPreviewPdf(treg, formato = 'a4', tcodtraFilter = null, talmFilter = null) {
         if (!this.el.modalPreviewPdf) return;
-        
+
         this.previewPdf.treg = String(treg || '').trim();
         if (!this.previewPdf.treg) return;
+
+        // Guardamos el contexto por si el usuario le da al botón rojo de "Descargar"
+        this.previewPdf.tcodtra = tcodtraFilter;
+        this.previewPdf.talm = talmFilter;
 
         if (this.el.previewPdfTitle) {
             this.el.previewPdfTitle.textContent = `Vista previa PDF - Movimiento ${this.previewPdf.treg}`;
         }
 
-        // 1. Reiniciamos el estado visual de las pestañas a A4
-        this._cambiarTabFormato('a4', false); 
+        this._cambiarTabFormato('a4', false);
 
-        // 2. Obtenemos las URLs de ambos formatos
+        // Construir la Query String de forma limpia y directa
+        const extraParams = [];
+        if (this.previewPdf.tcodtra) extraParams.push(`tcodtra=${encodeURIComponent(this.previewPdf.tcodtra)}`);
+        if (this.previewPdf.talm) extraParams.push(`talm=${encodeURIComponent(this.previewPdf.talm)}`);
+        const contextString = extraParams.length ? `&${extraParams.join('&')}` : '';
+
+        // Obtener las URLs base desde el servicio
         const urlA4 = this.service.getComprobantePdfUrl(this.previewPdf.treg, 'a4', false);
         const url80 = this.service.getComprobantePdfUrl(this.previewPdf.treg, '80mm', false);
 
-        // 3. Cargamos AMBOS iframes en paralelo al instante (con un pequeño anti-cache)
         const frameA4 = document.getElementById('iframePreviewPdfA4');
         const frame80 = document.getElementById('iframePreviewPdf80');
-        
-        if (frameA4) frameA4.src = `${urlA4}${urlA4.includes('?') ? '&' : '?'}v=${Date.now()}`;
-        if (frame80) frame80.src = `${url80}${url80.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
-        // 4. Mostramos el modal
+        // Pegamos el contexto y forzamos la recarga del iframe
+        if (frameA4) frameA4.src = `${urlA4}${contextString}&v=${Date.now()}`;
+        if (frame80) frame80.src = `${url80}${contextString}&v=${Date.now()}`;
+
         this.el.modalPreviewPdf.style.display = 'flex';
         setTimeout(() => {
             this.el.modalPreviewPdf?.classList.add('show');
@@ -550,7 +583,7 @@ class DashboardListaMovimientoAlmacenController {
         this.el.modalPreviewPdf.classList.remove('show');
         setTimeout(() => {
             this.el.modalPreviewPdf.style.display = 'none';
-            
+
             const frameA4 = document.getElementById('iframePreviewPdfA4');
             const frame80 = document.getElementById('iframePreviewPdf80');
             if (frameA4) frameA4.src = '';
@@ -581,7 +614,7 @@ class DashboardListaMovimientoAlmacenController {
                 this.previewPdf.formato,
                 false
             );
-            
+
             // 3. LA CORRECCIÓN CLAVE: Usar "?" o "&" según corresponda para no romper la URL del backend
             const separador = url.includes('?') ? '&' : '?';
             this.el.iframePreviewPdf.src = `${url}${separador}_ts=${Date.now()}`;
@@ -595,8 +628,8 @@ class DashboardListaMovimientoAlmacenController {
 
     _imprimirPreviewPdf() {
         // Determinamos cuál de los dos iframes está activo actualmente
-        const activeIframe = this.previewPdf.formato === '80mm' 
-            ? document.getElementById('iframePreviewPdf80') 
+        const activeIframe = this.previewPdf.formato === '80mm'
+            ? document.getElementById('iframePreviewPdf80')
             : document.getElementById('iframePreviewPdfA4');
 
         const frameWindow = activeIframe?.contentWindow;
@@ -703,12 +736,12 @@ class DashboardListaMovimientoAlmacenController {
         const modal = document.getElementById('modalEditarMovimiento');
         if (!modal) return;
 
-        if (this.el.meTraeg)      this.el.meTraeg.textContent = treg;
-        if (this.el.meInfoBar)    this.el.meInfoBar.textContent = 'Cargando...';
-        if (this.el.meRuc)        this.el.meRuc.value = '';
-        if (this.el.meNombre)     this.el.meNombre.value = '';
-        if (this.el.meGlosa)      this.el.meGlosa.value = '';
-        if (this.el.meErrorMsg)   this.el.meErrorMsg.textContent = '';
+        if (this.el.meTraeg) this.el.meTraeg.textContent = treg;
+        if (this.el.meInfoBar) this.el.meInfoBar.textContent = 'Cargando...';
+        if (this.el.meRuc) this.el.meRuc.value = '';
+        if (this.el.meNombre) this.el.meNombre.value = '';
+        if (this.el.meGlosa) this.el.meGlosa.value = '';
+        if (this.el.meErrorMsg) this.el.meErrorMsg.textContent = '';
         if (this.el.meBtnGuardar) this.el.meBtnGuardar.disabled = true;
         if (this.el.meDetalleTbody) {
             this.el.meDetalleTbody.innerHTML =
@@ -721,8 +754,8 @@ class DashboardListaMovimientoAlmacenController {
             const response = await this.service.getMovimiento(treg);
             if (!response?.success) throw new Error(response?.error || 'No se pudo cargar el movimiento');
 
-            const cab   = response.data?.cabecera || {};
-            const items = response.data?.detalle  || [];
+            const cab = response.data?.cabecera || {};
+            const items = response.data?.detalle || [];
 
             this._editarData = { cab, items: items.map(d => ({ ...d })) };
 
@@ -735,15 +768,15 @@ class DashboardListaMovimientoAlmacenController {
                     ` &nbsp;|&nbsp; ${this._escapeHtml(cab.nom_transaccion || '')}`;
             }
 
-            if (this.el.meRuc)    this.el.meRuc.value    = cab.tprocli || '';
+            if (this.el.meRuc) this.el.meRuc.value = cab.tprocli || '';
             if (this.el.meNombre) this.el.meNombre.value = cab.tprocli || '';
-            if (this.el.meGlosa)  this.el.meGlosa.value  = cab.tglosa  || '';
+            if (this.el.meGlosa) this.el.meGlosa.value = cab.tglosa || '';
 
             this._renderEditarDetalle();
             if (this.el.meBtnGuardar) this.el.meBtnGuardar.disabled = false;
 
         } catch (e) {
-            if (this.el.meInfoBar)  this.el.meInfoBar.textContent = 'Error: ' + e.message;
+            if (this.el.meInfoBar) this.el.meInfoBar.textContent = 'Error: ' + e.message;
             if (this.el.meDetalleTbody) {
                 this.el.meDetalleTbody.innerHTML =
                     '<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:14px;">Error al cargar datos</td></tr>';
@@ -825,39 +858,39 @@ class DashboardListaMovimientoAlmacenController {
             return;
         }
 
-        const ruc    = (this.el.meRuc?.value    || '').trim();
+        const ruc = (this.el.meRuc?.value || '').trim();
         const nombre = (this.el.meNombre?.value || '').trim();
-        const glosa  = (this.el.meGlosa?.value  || '').trim();
+        const glosa = (this.el.meGlosa?.value || '').trim();
 
         const payload = {
-            tfectra:          cab.tfectra,
-            tcodtra:          cab.tcodtra,
-            talm:             cab.talm,
-            talr:             cab.talr             || '',
-            tprocli:          ruc                  || cab.tprocli || '00000000',
-            tdoc:             cab.tdoc             || '',
-            tserie:           cab.tserie           || '',
-            tnumfac:          cab.tnumfac          || '',
-            tfecfac:          cab.tfecfac          || cab.tfectra,
-            tmon:             cab.tmon             || 'S/.',
-            tlib:             cab.tlib             || '',
-            tordcom:          cab.tordcom          || '',
-            tglosa:           glosa                || nombre || cab.tglosa || '',
+            tfectra: cab.tfectra,
+            tcodtra: cab.tcodtra,
+            talm: cab.talm,
+            talr: cab.talr || '',
+            tprocli: ruc || cab.tprocli || '00000000',
+            tdoc: cab.tdoc || '',
+            tserie: cab.tserie || '',
+            tnumfac: cab.tnumfac || '',
+            tfecfac: cab.tfecfac || cab.tfectra,
+            tmon: cab.tmon || 'S/.',
+            tlib: cab.tlib || '',
+            tordcom: cab.tordcom || '',
+            tglosa: glosa || nombre || cab.tglosa || '',
             tmotivo_traslado: cab.tmotivo_traslado || '',
             detalle: items.map(d => ({
-                tcodigo:     d.tcodigo,
-                tlote:       d.tlote        || '00000000',
-                talr:        d.talr         || cab.talr || '',
-                tcantid:     parseFloat(d.tcantid) || 0,
-                tpeso:       parseFloat(d.tpeso)   || 0,
-                tpreuni:     parseFloat(d.tpreuni) || 0,
-                timport:     parseFloat(d.timport) || 0,
-                tkardex:     parseFloat(d.tkardex) || 0,
-                tcencos:     d.tcencos      || '',
-                tcodproc:    d.tcodproc     || '',
-                tcodsubproc: d.tcodsubproc  || '',
-                tcodacti:    d.tcodacti     || '',
-                tcodtarea:   d.tcodtarea    || '',
+                tcodigo: d.tcodigo,
+                tlote: d.tlote || '00000000',
+                talr: d.talr || cab.talr || '',
+                tcantid: parseFloat(d.tcantid) || 0,
+                tpeso: parseFloat(d.tpeso) || 0,
+                tpreuni: parseFloat(d.tpreuni) || 0,
+                timport: parseFloat(d.timport) || 0,
+                tkardex: parseFloat(d.tkardex) || 0,
+                tcencos: d.tcencos || '',
+                tcodproc: d.tcodproc || '',
+                tcodsubproc: d.tcodsubproc || '',
+                tcodacti: d.tcodacti || '',
+                tcodtarea: d.tcodtarea || '',
             })),
         };
 

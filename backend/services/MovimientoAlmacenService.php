@@ -144,12 +144,40 @@ class MovimientoAlmacenService {
     }
 
     public function getMovimiento(string $treg): array {
-        $cabecera = $this->repo->getMovimientoPorReg($treg);
-        if (!$cabecera) throw new Exception("Movimiento #{$treg} no encontrado.", 404);
+    $cabecera = $this->repo->getMovimientoPorReg($treg);
+    if (!$cabecera) throw new Exception("Movimiento #{$treg} no encontrado.", 404);
 
-        $detalle = $this->repo->getDetallePorReg($treg);
-        return ['cabecera' => $cabecera, 'detalle' => $detalle];
+    $detalle = $this->repo->getDetallePorReg($treg);
+
+    // 🔍 CORRECCIÓN CLAVE: Leer los parámetros directamente desde $_GET
+    $tcodtraFilter = $_GET['tcodtra'] ?? null;
+    $talmFilter    = $_GET['talm'] ?? null;
+
+    if (!empty($tcodtraFilter) && !empty($talmFilter)) {
+        // 1. Filtrar el detalle de forma estricta para que SOLO muestre la fila que coincide con la transacción Y el almacén pulsado
+        $detalle = array_values(array_filter($detalle, function($item) use ($tcodtraFilter, $talmFilter) {
+            return $item['tcodtra'] === $tcodtraFilter && $item['talm'] === $talmFilter;
+        }));
+
+        // 2. Adaptar la cabecera visual para que coincida exactamente con la fila seleccionada
+        if ($tcodtraFilter !== $cabecera['tcodtra']) {
+            $cabecera['tcodtra'] = $tcodtraFilter;
+            
+            if ($tcodtraFilter === 'E005') {
+                $cabecera['nom_transaccion'] = "INGRESO POR TRANSFERENCIA";
+            }
+        }
+
+        // 3. Forzar el almacén y su nombre en la cabecera del modal
+        if ($talmFilter !== $cabecera['talm']) {
+            $cabecera['talm'] = $talmFilter;
+            $almacenObj = $this->repo->getAlmacenById($talmFilter);
+            $cabecera['nom_almacen'] = $almacenObj ? $almacenObj['descri'] : 'ALMACÉN DESTINO';
+        }
     }
+
+    return ['cabecera' => $cabecera, 'detalle' => $detalle];
+}
 
     public function crearMovimiento(array $data): array {
         // Validar fecha

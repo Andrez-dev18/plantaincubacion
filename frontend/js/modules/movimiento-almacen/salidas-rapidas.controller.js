@@ -8,18 +8,18 @@ const SalidasRapidas = (() => {
 
     // Estado interno
     let _initialized = false;
-    let _productos    = [];   // lista completa cargada del servidor
-    let _seleccion    = [];   // [{...producto, tcantid, rowIdx}]
-    let _almacenes    = [];
-    let _clientes     = [];   // [{tprocli, nombre}] para autocomplete
-    let _lineas       = [];   // [{codigo, descri}] líneas de producto
-    let _tregActual       = null;
-    let _rowSelMs         = null;  // treg seleccionado en Mis Salidas
-    let _editarData       = null;  // datos completos del movimiento en edición
-    let _editingIdx       = -1;   // índice en _seleccion que está en edición
-    let _listaKbIdx       = -1;   // fila resaltada por teclado en lista izquierda
-    let _listaFiltradaKb  = [];   // snapshot de filas visibles para nav teclado
-    let _selKbIdx         = -1;   // fila activa en panel derecho (teclado)
+    let _productos = [];   // lista completa cargada del servidor
+    let _seleccion = [];   // [{...producto, tcantid, rowIdx}]
+    let _almacenes = [];
+    let _clientes = [];   // [{tprocli, nombre}] para autocomplete
+    let _lineas = [];   // [{codigo, descri}] líneas de producto
+    let _tregActual = null;
+    let _rowSelMs = null;  // treg seleccionado en Mis Salidas
+    let _editarData = null;  // datos completos del movimiento en edición
+    let _editingIdx = -1;   // índice en _seleccion que está en edición
+    let _listaKbIdx = -1;   // fila resaltada por teclado en lista izquierda
+    let _listaFiltradaKb = [];   // snapshot de filas visibles para nav teclado
+    let _selKbIdx = -1;   // fila activa en panel derecho (teclado)
 
     // ─────────────────────────────────────────────────────────────────
     // INIT
@@ -38,7 +38,7 @@ const SalidasRapidas = (() => {
         const nomInput = document.getElementById('sr-nombre');
         if (nomInput) {
             nomInput.addEventListener('input', _onNombreInput);
-            nomInput.addEventListener('blur', function() { setTimeout(_hideClienteDropdown, 200); });
+            nomInput.addEventListener('blur', function () { setTimeout(_hideClienteDropdown, 200); });
         }
     }
 
@@ -46,7 +46,7 @@ const SalidasRapidas = (() => {
         const el = document.getElementById('sr-fecha-hoy');
         if (el) {
             const d = new Date();
-            el.textContent = d.toLocaleDateString('es-PE', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+            el.textContent = d.toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
         // Poner fecha de hoy en el filtro de Mis Salidas
         const msFecha = document.getElementById('ms-fecha');
@@ -146,7 +146,7 @@ const SalidasRapidas = (() => {
         _renderLista(null); // loading state
         try {
             let url = BASE + '/salida-rapida/productos?alma=' + encodeURIComponent(alma);
-            if (q)     url += '&q='     + encodeURIComponent(q);
+            if (q) url += '&q=' + encodeURIComponent(q);
             if (linea) url += '&linea=' + encodeURIComponent(linea);
             const res = await fetch(url, { credentials: 'include' });
             const json = await res.json();
@@ -191,22 +191,22 @@ const SalidasRapidas = (() => {
         if (!noUpdateState) _listaKbIdx = -1;
         tbody.innerHTML = rows.map((r, i) => {
             const stock = parseFloat(r.stock) || 0;
-            const kg    = parseFloat(r.peso_stock) || 0;
+            const kg = parseFloat(r.peso_stock) || 0;
             const enSel = _seleccion.some(s => s.codigo === r.codigo && s.lote === r.lote);
-            const isKb  = i === _listaKbIdx;
+            const isKb = i === _listaKbIdx;
             const rowStyle = isKb
                 ? 'background:#dbeafe;outline:2px solid #2563eb;'
                 : (enSel ? 'background:#bbf7d0;' : '');
             return '<tr onclick="SalidasRapidas._agregarItem(' + i + ')" ' +
-                   (rowStyle ? 'style="' + rowStyle + '"' : '') + '>' +
-                   '<td style="color:#9ca3af;">' + (i + 1) + '</td>' +
-                   '<td style="font-weight:600;">' + (r.codigo || '') + '</td>' +
-                   '<td title="' + (r.descripcion || '') + '">' + _trunc(r.descripcion, 30) + '</td>' +
-                   '<td>' + (r.unidad || '') + '</td>' +
-                   '<td style="color:#6b7280;font-size:11px;">' + (r.lote || '') + '</td>' +
-                   '<td style="text-align:right;font-weight:600;color:' + (stock > 0 ? '#16a34a' : '#dc2626') + ';">' + _num(stock) + '</td>' +
-                   '<td style="text-align:right;color:#6b7280;">' + _num(kg) + '</td>' +
-                   '</tr>';
+                (rowStyle ? 'style="' + rowStyle + '"' : '') + '>' +
+                '<td style="color:#9ca3af;">' + (i + 1) + '</td>' +
+                '<td style="font-weight:600;">' + (r.codigo || '') + '</td>' +
+                '<td title="' + (r.descripcion || '') + '">' + _trunc(r.descripcion, 30) + '</td>' +
+                '<td>' + (r.unidad || '') + '</td>' +
+                '<td style="color:#6b7280;font-size:11px;">' + (r.lote || '') + '</td>' +
+                '<td style="text-align:right;font-weight:600;color:' + (stock > 0 ? '#16a34a' : '#dc2626') + ';">' + _num(stock) + '</td>' +
+                '<td style="text-align:right;color:#6b7280;">' + _num(kg) + '</td>' +
+                '</tr>';
         }).join('');
         // Scroll la fila resaltada a la vista
         if (_listaKbIdx >= 0) {
@@ -270,9 +270,9 @@ const SalidasRapidas = (() => {
         }
 
         tbody.innerHTML = _seleccion.map((s, i) => {
-            const isEdit  = i === _editingIdx;
+            const isEdit = i === _editingIdx;
             const isKbSel = !isEdit && i === _selKbIdx;
-            const rowCls  = isEdit ? 'editing' : (isKbSel ? 'sr-sel-kb' : '');
+            const rowCls = isEdit ? 'editing' : (isKbSel ? 'sr-sel-kb' : '');
             const cantCell = isEdit
                 ? '<td style="text-align:right;"><input type="number" id="sr-edit-cant" value="' + s.tcantid + '" min="0.01" step="0.001" style="width:60px;text-align:right;border:1px solid #f59e0b;border-radius:4px;padding:2px 4px;font-size:12px;" onblur="SalidasRapidas._confirmarEdicion(' + i + ')" onkeydown="SalidasRapidas._keyEdicion(event,' + i + ')"></td>'
                 : '<td style="text-align:right;font-weight:600;color:#1d4ed8;cursor:pointer;" onclick="SalidasRapidas._iniciarEdicion(' + i + ')">' + _num(s.tcantid) + '</td>';
@@ -448,7 +448,7 @@ const SalidasRapidas = (() => {
             '</div>' +
             '<div style="margin-top:10px;font-size:11px;color:#93c5fd;">Pulsa <kbd style="background:#0f2a4a;border:1px solid #2563eb;border-radius:3px;padding:1px 5px;color:#60a5fa;">Esc</kbd> o <kbd style="background:#0f2a4a;border:1px solid #2563eb;border-radius:3px;padding:1px 5px;color:#60a5fa;">F1</kbd> para cerrar</div>';
         document.body.appendChild(panel);
-        const closeEsc = function(e) {
+        const closeEsc = function (e) {
             if (e.key === 'Escape' || e.key === 'F1') {
                 e.preventDefault();
                 panel.remove();
@@ -462,7 +462,7 @@ const SalidasRapidas = (() => {
         // ── Flechas + Enter en el buscador de productos ──────────────
         const buscarInput = document.getElementById('sr-buscar');
         if (buscarInput) {
-            buscarInput.addEventListener('keydown', function(e) {
+            buscarInput.addEventListener('keydown', function (e) {
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     _moverListaKb(1);
@@ -481,8 +481,8 @@ const SalidasRapidas = (() => {
         }
 
         // ── Atajos globales ───────────────────────────────────────────
-        document.addEventListener('keydown', function(e) {
-            const tag     = (document.activeElement?.tagName || '').toUpperCase();
+        document.addEventListener('keydown', function (e) {
+            const tag = (document.activeElement?.tagName || '').toUpperCase();
             const enInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
             const enBuscar = document.activeElement?.id === 'sr-buscar';
 
@@ -553,7 +553,7 @@ const SalidasRapidas = (() => {
             const sel = document.getElementById('sr-linea');
             if (!sel) return;
             sel.innerHTML = '<option value="">Todas las líneas</option>';
-            _lineas.forEach(function(l) {
+            _lineas.forEach(function (l) {
                 var opt = document.createElement('option');
                 opt.value = l.codigo;
                 opt.textContent = l.codigo + ' - ' + l.descri;
@@ -565,7 +565,7 @@ const SalidasRapidas = (() => {
     function _onNombreInput(e) {
         const term = (e.target.value || '').trim().toLowerCase();
         if (term.length < 2) { _hideClienteDropdown(); return; }
-        const found = _clientes.filter(function(c) {
+        const found = _clientes.filter(function (c) {
             return (c.nombre || '').toLowerCase().indexOf(term) >= 0;
         }).slice(0, 10);
         _showClienteDropdown(found);
@@ -574,7 +574,7 @@ const SalidasRapidas = (() => {
     function _showClienteDropdown(list) {
         var dd = document.getElementById('sr-cliente-dd');
         var wrap = document.getElementById('sr-nombre-wrap');
-        
+
         if (!dd) {
             dd = document.createElement('div');
             dd.id = 'sr-cliente-dd';
@@ -588,10 +588,10 @@ const SalidasRapidas = (() => {
             }
         }
         if (!list.length) { dd.style.display = 'none'; return; }
-        
-        dd.innerHTML = list.map(function(c) {
+
+        dd.innerHTML = list.map(function (c) {
             var code = (c.tprocli || '').replace(/"/g, '&quot;');
-            var nom  = (c.nombre  || '').replace(/"/g, '&quot;');
+            var nom = (c.nombre || '').replace(/"/g, '&quot;');
             return '<div data-code="' + code + '" data-nombre="' + nom + '" ' +
                 'style="padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f1f5f9;" ' +
                 'onmousedown="SalidasRapidas._seleccionarCliente(this)" ' +
@@ -621,7 +621,7 @@ const SalidasRapidas = (() => {
     function buscarSolicitante(ruc) {
         var rucTrim = (ruc || '').trim();
         if (!rucTrim) return;
-        var found = _clientes.find(function(c) {
+        var found = _clientes.find(function (c) {
             return (c.tprocli || '').trim() === rucTrim;
         });
         if (found) {
@@ -642,7 +642,7 @@ const SalidasRapidas = (() => {
     async function nuevo() {
         _seleccion = [];
         _editingIdx = -1;
-        _selKbIdx   = -1;
+        _selKbIdx = -1;
         _listaKbIdx = -1;
         _renderSeleccion();
         _actualizarTotal();
@@ -658,6 +658,22 @@ const SalidasRapidas = (() => {
     // GENERAR (guardar movimiento)
     // ─────────────────────────────────────────────────────────────────
     async function generar() {
+
+        if (_editingIdx >= 0) {
+            const inp = document.getElementById('sr-edit-cant');
+            if (inp) {
+                // Forzamos la actualización del valor en el array antes de evaluar el payload
+                const val = parseFloat(inp.value);
+                if (!isNaN(val) && val > 0) {
+                    const stockMax = parseFloat(_seleccion[_editingIdx].stock) || 0;
+                    if (stockMax > 0 && val <= stockMax) {
+                        _seleccion[_editingIdx].tcantid = val;
+                    }
+                }
+            }
+            _editingIdx = -1; // Cerramos el modo edición de manera limpia
+        }
+
         // Validaciones iniciales
         const alma = document.getElementById('sr-alma').value;
         if (!alma) { Notification.error('Selecciona un almacén'); return; }
@@ -668,7 +684,7 @@ const SalidasRapidas = (() => {
         const almaDest = esTransfer ? document.getElementById('sr-alma-destino').value : '';
         if (esTransfer && !almaDest) { Notification.error('Selecciona un almacén destino para la transferencia'); return; }
 
-        const ruc    = document.getElementById('sr-ruc').value.trim();
+        const ruc = document.getElementById('sr-ruc').value.trim();
         const nombre = document.getElementById('sr-nombre').value.trim();
 
         if (codtra === 'S003' && !ruc) {
@@ -722,14 +738,14 @@ const SalidasRapidas = (() => {
                 const uObj = JSON.parse(uStr);
                 tuser = uObj.username || uObj.usuario || uObj.user || 'SYS';
             }
-        } catch (e) {}
+        } catch (e) { }
 
         const detalle = _seleccion.map((s, i) => ({
             tcodigo: s.codigo,
-            tlote:   s.lote || '00000000',
-            talr:    almaDest || '',
+            tlote: s.lote || '00000000',
+            talr: almaDest || '',
             tcantid: parseFloat(s.tcantid) || 1,
-            tpeso:   parseFloat(s.peso_stock) || 0,
+            tpeso: parseFloat(s.peso_stock) || 0,
             tpreuni: 0,
             timport: 0,
             tkardex: 0,
@@ -740,14 +756,14 @@ const SalidasRapidas = (() => {
         const payload = {
             tfectra,
             tcodtra: codtra,
-            talm:    alma,
-            talr:    almaDest || '',
+            talm: alma,
+            talr: almaDest || '',
             tprocli: ruc || '00000000',
-            tdoc:    '',
-            tserie:  '',
+            tdoc: '',
+            tserie: '',
             tnumfac: '',
             tfecfac: tfectra,
-            tmon:    'S/.', tlib: '',
+            tmon: 'S/.', tlib: '',
             tordcom: '', tglosa: nombre || 'SALIDA RAPIDA',
             tmotivo_traslado: '',
             tuser,
@@ -756,26 +772,26 @@ const SalidasRapidas = (() => {
 
         try {
             const res = await fetch(BASE + '/cabecera', {
-                method:  'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(payload),
             });
             const json = await res.json();
-            
+
             if (json.success) {
                 const treg = json.data?.treg || _tregActual;
                 const fmt = document.querySelector('input[name="sr-formato"]:checked')?.value || 'A4';
-                
+
                 // Abrir ventana antes de que termine para evitar bloqueador de popups
                 const printWin = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
                 if (printWin) printWin.document.write('<html><body style="font-family:Arial;padding:20px;color:#555">Generando impresión&hellip;</body></html>');
-                
+
                 await nuevo();
-                
+
                 // ── 2. PROCESO TERMINADO: CERRAMOS EL LOADING Y PARAMOS EL SPINNER ──
-                Swal.close(); 
-                
+                Swal.close();
+
                 if (printWin) {
                     _cargarImpresionEnVentana(treg, fmt, printWin);
                 } else {
@@ -798,9 +814,9 @@ const SalidasRapidas = (() => {
         if (!_seleccion.length) { Notification.error('Agrega productos primero'); return; }
         const ahora = new Date();
         const fecha = ahora.toLocaleDateString('es-PE');
-        const hora  = ahora.toLocaleTimeString('es-PE', { hour12: false });
+        const hora = ahora.toLocaleTimeString('es-PE', { hour12: false });
         const total = _seleccion.reduce((s, x) => s + (parseFloat(x.tcantid) || 0), 0);
-        const filas = _seleccion.map(function(s) {
+        const filas = _seleccion.map(function (s) {
             return '<tr>' +
                 '<td>' + (s.codigo || '') + '</td>' +
                 '<td>' + (s.descripcion || '') + '</td>' +
@@ -814,7 +830,7 @@ const SalidasRapidas = (() => {
             'body{font-family:Arial,sans-serif;font-size:11px;margin:14px 18px;}' +
             '.vp-top{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:8px;}' +
             'h2{text-align:center;font-size:13px;text-transform:uppercase;margin:0 0 10px;' +
-                'border-bottom:2px solid #1d4ed8;padding-bottom:5px;color:#1d4ed8;}' +
+            'border-bottom:2px solid #1d4ed8;padding-bottom:5px;color:#1d4ed8;}' +
             'table{width:100%;border-collapse:collapse;}' +
             'th{background:#1e3a5f;color:#fff;padding:5px 8px;font-size:10px;text-align:left;}' +
             'td{padding:4px 8px;border-bottom:1px solid #e5e7eb;}' +
@@ -859,13 +875,13 @@ const SalidasRapidas = (() => {
         modal.style.display = 'flex';
 
         try {
-            const res  = await fetch(BASE + '/cabecera/' + treg, { credentials: 'include' });
+            const res = await fetch(BASE + '/cabecera/' + treg, { credentials: 'include' });
             const json = await res.json();
             if (!json.success) throw new Error(json.error || 'No se pudo cargar el movimiento');
 
-            const cab    = json.data?.cabecera || {};
-            const items  = json.data?.detalle  || [];
-
+            const cab = json.data?.cabecera || {};
+            let items = json.data?.detalle || [];
+            items = items.filter((v, i, a) => a.findIndex(t => (t.tcodigo === v.tcodigo && t.tlote === v.tlote)) === i);
             _editarData = { cab, items: items.map(d => ({ ...d })) };
 
             // Info bar
@@ -876,8 +892,8 @@ const SalidasRapidas = (() => {
                 ' &nbsp;|&nbsp; Fecha: ' + (cab.tfectra || '');
 
             // Campos de cabecera
-            document.getElementById('me-ruc').value    = cab.tprocli || '';
-            document.getElementById('me-nombre').value = cab.tglosa  || '';
+            document.getElementById('me-ruc').value = cab.tprocli || '';
+            document.getElementById('me-nombre').value = cab.tglosa || '';
 
             // Detalle
             _renderEditarDetalle();
@@ -908,17 +924,17 @@ const SalidasRapidas = (() => {
             '<td>' + (d.tlote || '') + '</td>' +
             '<td style="text-align:center;">' + (d.tunidad || '') + '</td>' +
             '<td style="text-align:right;">' +
-                '<input type="number" class="me-cant-input" ' +
-                'value="' + (parseFloat(d.tcantid) || 0) + '" ' +
-                'min="0.001" step="0.001" ' +
-                'onchange="SalidasRapidas._meEditCant(' + i + ',this.value)" ' +
-                'onkeydown="if(event.key===\'Enter\')this.blur();">' +
+            '<input type="number" class="me-cant-input" ' +
+            'value="' + (parseFloat(d.tcantid) || 0) + '" ' +
+            'min="0.001" step="0.001" ' +
+            'onchange="SalidasRapidas._meEditCant(' + i + ',this.value)" ' +
+            'onkeydown="if(event.key===\'Enter\')this.blur();">' +
             '</td>' +
             '<td style="text-align:right;color:#6b7280;">' + _num(d.tpeso) + '</td>' +
             '<td style="text-align:center;">' +
-                '<button class="me-quitar-btn" ' +
-                'onclick="SalidasRapidas._meQuitarItem(' + i + ')" ' +
-                'title="Quitar item">&#10006;</button>' +
+            '<button class="me-quitar-btn" ' +
+            'onclick="SalidasRapidas._meQuitarItem(' + i + ')" ' +
+            'title="Quitar item">&#10006;</button>' +
             '</td>' +
             '</tr>'
         ).join('');
@@ -955,7 +971,7 @@ const SalidasRapidas = (() => {
         const errEl = document.getElementById('me-error-msg');
         errEl.textContent = '';
 
-        const cab   = _editarData.cab;
+        const cab = _editarData.cab;
         const items = _editarData.items;
 
         if (!items.length) {
@@ -964,7 +980,7 @@ const SalidasRapidas = (() => {
         }
 
         // Leer valores editados del formulario antes de enviar
-        const ruc    = (document.getElementById('me-ruc').value  || '').trim();
+        const ruc = (document.getElementById('me-ruc').value || '').trim();
         const nombre = (document.getElementById('me-nombre').value || '').trim();
 
         // Leer cantidades actualizadas directo de los inputs por si no dispararon onchange
@@ -978,34 +994,34 @@ const SalidasRapidas = (() => {
         }
 
         const payload = {
-            tfectra:          cab.tfectra,
-            tcodtra:          cab.tcodtra,
-            talm:             cab.talm,
-            talr:             cab.talr   || '',
-            tprocli:          ruc        || cab.tprocli || '00000000',
-            tdoc:             cab.tdoc   || '',
-            tserie:           cab.tserie || '',
-            tnumfac:          cab.tnumfac || '',
-            tfecfac:          cab.tfecfac || cab.tfectra,
-            tmon:             cab.tmon   || 'S/.',
-            tlib:             cab.tlib   || '',
-            tordcom:          cab.tordcom || '',
-            tglosa:           nombre     || cab.tglosa || 'SALIDA RAPIDA',
+            tfectra: cab.tfectra,
+            tcodtra: cab.tcodtra,
+            talm: cab.talm,
+            talr: cab.talr || '',
+            tprocli: ruc || cab.tprocli || '00000000',
+            tdoc: cab.tdoc || '',
+            tserie: cab.tserie || '',
+            tnumfac: cab.tnumfac || '',
+            tfecfac: cab.tfecfac || cab.tfectra,
+            tmon: cab.tmon || 'S/.',
+            tlib: cab.tlib || '',
+            tordcom: cab.tordcom || '',
+            tglosa: nombre || cab.tglosa || 'SALIDA RAPIDA',
             tmotivo_traslado: cab.tmotivo_traslado || '',
             detalle: items.map(d => ({
-                tcodigo:     d.tcodigo,
-                tlote:       d.tlote   || '00000000',
-                talr:        d.talr    || cab.talr || '',
-                tcantid:     parseFloat(d.tcantid) || 0,
-                tpeso:       parseFloat(d.tpeso)   || 0,
-                tpreuni:     parseFloat(d.tpreuni) || 0,
-                timport:     parseFloat(d.timport) || 0,
-                tkardex:     parseFloat(d.tkardex) || 0,
-                tcencos:     d.tcencos     || '',
-                tcodproc:    d.tcodproc    || '',
+                tcodigo: d.tcodigo,
+                tlote: d.tlote || '00000000',
+                talr: d.talr || cab.talr || '',
+                tcantid: parseFloat(d.tcantid) || 0,
+                tpeso: parseFloat(d.tpeso) || 0,
+                tpreuni: parseFloat(d.tpreuni) || 0,
+                timport: parseFloat(d.timport) || 0,
+                tkardex: parseFloat(d.tkardex) || 0,
+                tcencos: d.tcencos || '',
+                tcodproc: d.tcodproc || '',
                 tcodsubproc: d.tcodsubproc || '',
-                tcodacti:    d.tcodacti    || '',
-                tcodtarea:   d.tcodtarea   || '',
+                tcodacti: d.tcodacti || '',
+                tcodtarea: d.tcodtarea || '',
             })),
         };
 
@@ -1014,8 +1030,8 @@ const SalidasRapidas = (() => {
         btn.textContent = 'Guardando...';
 
         try {
-            const res  = await fetch(BASE + '/cabecera/' + cab.treg, {
-                method:  'PUT',
+            const res = await fetch(BASE + '/cabecera/' + cab.treg, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(payload),
@@ -1080,10 +1096,10 @@ const SalidasRapidas = (() => {
                 '<td>' + (r.tprocli || '') + '</td>' +
                 '<td title="' + (r.nom_solicitante || '') + '">' + _trunc(r.nom_solicitante, 22) + '</td>' +
                 '<td style="text-align:center;">' +
-                    '<button onclick="event.stopPropagation();SalidasRapidas.abrirEditar(' + r.treg + ')" ' +
-                    'style="background:#d97706;border:none;border-radius:4px;color:#fff;cursor:pointer;' +
-                    'padding:3px 8px;font-size:11px;font-weight:600;white-space:nowrap;" ' +
-                    'title="Editar este movimiento">&#9998; Editar</button>' +
+                '<button onclick="event.stopPropagation();SalidasRapidas.abrirEditar(' + r.treg + ')" ' +
+                'style="background:#d97706;border:none;border-radius:4px;color:#fff;cursor:pointer;' +
+                'padding:3px 8px;font-size:11px;font-weight:600;white-space:nowrap;" ' +
+                'title="Editar este movimiento">&#9998; Editar</button>' +
                 '</td>' +
                 '</tr>'
             ).join('');
@@ -1104,8 +1120,8 @@ const SalidasRapidas = (() => {
             const res = await fetch(BASE + '/cabecera/' + treg, { credentials: 'include' });
             const json = await res.json();
             const cab = json.data?.cabecera || {};
-            const items = json.data?.detalle || [];
-
+            let items = json.data?.detalle || [];
+            items = items.filter((v, i, a) => a.findIndex(t => (t.tcodigo === v.tcodigo && t.tlote === v.tlote)) === i);
             const filas = items.map((d, i) =>
                 '<tr>' +
                 '<td>' + (i + 1) + '</td>' +
@@ -1155,12 +1171,13 @@ const SalidasRapidas = (() => {
         try {
             const res = await fetch(BASE + '/cabecera/' + treg, { credentials: 'include' });
             const json = await res.json();
-            const cab   = json.data?.cabecera || {};
-            const items = json.data?.detalle  || [];
+            const cab = json.data?.cabecera || {};
+            let items = json.data?.detalle || [];
+            items = items.filter((v, i, a) => a.findIndex(t => (t.tcodigo === v.tcodigo && t.tlote === v.tlote)) === i);
             const fechaObj = cab.tfectra ? new Date(cab.tfectra + 'T00:00:00') : new Date();
-            const tfectra  = fechaObj.toLocaleDateString('es-PE');
-            const total    = items.reduce((s, d) => s + (parseFloat(d.tcantid) || 0), 0);
-            const filas = items.map(function(d, i) {
+            const tfectra = fechaObj.toLocaleDateString('es-PE');
+            const total = items.reduce((s, d) => s + (parseFloat(d.tcantid) || 0), 0);
+            const filas = items.map(function (d, i) {
                 return '<tr>' +
                     '<td style="text-align:center;">' + (i + 1) + '</td>' +
                     '<td>' + (d.tcodigo || '') + '</td>' +
@@ -1244,7 +1261,7 @@ const SalidasRapidas = (() => {
             'body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:0;padding:14mm 14mm 0;}' +
             '@media print{body{padding:0;}}' +
             '.hdr{display:flex;justify-content:space-between;align-items:flex-start;' +
-                'padding-bottom:8px;border-bottom:2px solid #000;margin-bottom:10px;}' +
+            'padding-bottom:8px;border-bottom:2px solid #000;margin-bottom:10px;}' +
             '.co-name{font-weight:bold;font-size:14px;}' +
             '.co-sub{font-size:9px;color:#444;margin-top:2px;}' +
             '.doc-box{border:2px solid #000;padding:5px 12px;text-align:center;min-width:150px;}' +
@@ -1336,6 +1353,7 @@ const SalidasRapidas = (() => {
         buscarProductos,
         filtrarLocal,
         _agregarItem,
+        _selRow,
         _iniciarEdicion,
         _confirmarEdicion,
         _keyEdicion,

@@ -1,32 +1,38 @@
 <?php
+
 /**
  * MovimientoAlmacenController
  */
 
 require_once __DIR__ . '/../services/MovimientoAlmacenService.php';
 
-class MovimientoAlmacenController {
+class MovimientoAlmacenController
+{
     private $service;
 
-    public function __construct(MovimientoAlmacenService $service) {
+    public function __construct(MovimientoAlmacenService $service)
+    {
         $this->service = $service;
     }
 
-    private function json($data, int $code = 200): void {
+    private function json($data, int $code = 200): void
+    {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success' => $code < 400, 'data' => $data]);
         exit;
     }
 
-    private function error(string $msg, int $code = 400): void {
+    private function error(string $msg, int $code = 400): void
+    {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success' => false, 'error' => $msg]);
         exit;
     }
 
-    private function resolveHttpCode($code, int $fallback): int {
+    private function resolveHttpCode($code, int $fallback): int
+    {
         if (is_int($code) && $code >= 100 && $code <= 599) {
             return $code;
         }
@@ -41,34 +47,41 @@ class MovimientoAlmacenController {
         return $fallback;
     }
 
-    private function body(): array {
+    private function body(): array
+    {
         return json_decode(file_get_contents('php://input'), true) ?? [];
     }
 
     // ─── MAESTROS ─────────────────────────────────────────────────────────────
 
-    public function getAlmacenes(): void {
+    public function getAlmacenes(): void
+    {
         $this->json($this->service->getAlmacenes());
     }
 
-    public function getTransacciones(): void {
+    public function getTransacciones(): void
+    {
         $this->json($this->service->getTransacciones());
     }
 
-    public function getTiposDocumento(): void {
+    public function getTiposDocumento(): void
+    {
         $this->json($this->service->getTiposDocumento());
     }
 
-    public function getCentrosCosto(): void {
+    public function getCentrosCosto(): void
+    {
         $this->json($this->service->getCentrosCosto());
     }
 
-    public function getClientesProveedores(): void {
+    public function getClientesProveedores(): void
+    {
         $q = trim((string)($_GET['q'] ?? ''));
         $this->json($this->service->getClientesProveedores($q));
     }
 
-    public function getTipoCambio(): void {
+    public function getTipoCambio(): void
+    {
         $fecha = $_GET['fecha'] ?? '';
         if ($fecha === '') {
             $this->error('Fecha requerida para el tipo de cambio.', 422);
@@ -76,7 +89,8 @@ class MovimientoAlmacenController {
         $this->json($this->service->getTipoCambioPorFecha($fecha));
     }
 
-    public function buscarProductos(): void {
+    public function buscarProductos(): void
+    {
         $termino = $_GET['q'] ?? '';
         $alma    = trim((string)($_GET['alma'] ?? ''));
         // Si no hay termino de búsqueda, devolver todos los productos (limitado a 200)
@@ -87,21 +101,24 @@ class MovimientoAlmacenController {
         }
     }
 
-    public function getLotes(): void {
+    public function getLotes(): void
+    {
         $alma = trim((string)($_GET['alma'] ?? ''));
         $codigo = trim((string)($_GET['codigo'] ?? ''));
         $fecha = trim((string)($_GET['fecha'] ?? ''));
         $this->json($this->service->getLotes($alma, $codigo, $fecha));
     }
 
-    public function getAbc(array $params): void {
+    public function getAbc(array $params): void
+    {
         $tipo = $params['tipo'] ?? '';
         $this->json($this->service->getAbc($tipo, $_GET));
     }
 
     // ─── VALIDACIONES ────────────────────────────────────────────────────────
 
-    public function verificarFecha(): void {
+    public function verificarFecha(): void
+    {
         $fecha  = $_GET['fecha'] ?? '';
         $codigo = $this->service->verificarFecha($fecha);
         $this->json([
@@ -111,19 +128,22 @@ class MovimientoAlmacenController {
         ]);
     }
 
-    public function verificarMes(): void {
+    public function verificarMes(): void
+    {
         $fecha = $_GET['fecha'] ?? '';
         $cod   = $this->service->verificarMes($fecha);
         $this->json(['cerrado' => $cod === 1, 'codigo' => $cod]);
     }
 
-    public function getNuevoReg(): void {
+    public function getNuevoReg(): void
+    {
         $this->json($this->service->getNuevoReg());
     }
 
     // ─── MOVIMIENTOS ─────────────────────────────────────────────────────────
 
-    public function listarMovimientos(): void {
+    public function listarMovimientos(): void
+    {
         $filtros = [
             'talm'    => $_GET['talm']    ?? '',
             'fecini'  => $_GET['fecini']  ?? '',
@@ -133,7 +153,8 @@ class MovimientoAlmacenController {
         $this->json($this->service->listarMovimientos($filtros));
     }
 
-    public function listarMovimientosDashboard(): void {
+    public function listarMovimientosDashboard(): void
+    {
         $filtros = [
             'talm'     => $_GET['talm'] ?? '',
             'tcodtra'  => $_GET['tcodtra'] ?? '',
@@ -147,19 +168,26 @@ class MovimientoAlmacenController {
         $this->json($this->service->listarMovimientosDashboard($filtros));
     }
 
-    public function getMovimiento(array $params): void {
+    public function getMovimiento(array $params): void
+    {
         try {
             $treg = trim((string)($params['treg'] ?? ''));
             if ($treg === '') {
                 $this->error('Registro no válido.', 422);
             }
-            $this->json($this->service->getMovimiento($treg));
+
+            // Capturar opcionales para transferencias contextuadas
+            $tcodtra = $_GET['tcodtra'] ?? null;
+            $talm    = $_GET['talm'] ?? null;
+
+            $this->json($this->service->getMovimiento($treg, $tcodtra, $talm));
         } catch (Exception $e) {
             $this->error($e->getMessage(), $this->resolveHttpCode($e->getCode(), 404));
         }
     }
 
-    public function crearMovimiento(): void {
+    public function crearMovimiento(): void
+    {
         try {
             $data = $this->body();
             if (empty($data['tfectra']) || empty($data['tcodtra']) || empty($data['talm'])) {
@@ -172,7 +200,8 @@ class MovimientoAlmacenController {
         }
     }
 
-    public function actualizarMovimiento(array $params): void {
+    public function actualizarMovimiento(array $params): void
+    {
         try {
             $treg = trim((string)($params['treg'] ?? ''));
             $data = $this->body();
@@ -191,7 +220,8 @@ class MovimientoAlmacenController {
         }
     }
 
-    public function eliminarMovimiento(array $params): void {
+    public function eliminarMovimiento(array $params): void
+    {
         try {
             $treg = (int)($params['treg'] ?? 0);
             $this->service->eliminarMovimiento($treg);
@@ -201,7 +231,8 @@ class MovimientoAlmacenController {
         }
     }
 
-    public function getKardex(array $params): void {
+    public function getKardex(array $params): void
+    {
         $codigo = $params['codigo'] ?? '';
         $lote   = $params['lote']   ?? '00000000';
         $alma   = $params['alma']   ?? '';
@@ -210,12 +241,14 @@ class MovimientoAlmacenController {
         $this->json($this->service->getKardex($codigo, $lote, $alma, $fecha, $codtra));
     }
 
-    public function getStockAlmacen(array $params): void {
+    public function getStockAlmacen(array $params): void
+    {
         $alma = $params['alma'] ?? '';
         $this->json($this->service->getStockAlmacen($alma));
     }
 
-    public function getReporteKardex(): void {
+    public function getReporteKardex(): void
+    {
         $filtros = [
             'alma' => $_GET['alma'] ?? '',
             'fecha_desde' => $_GET['fecha_desde'] ?? '',
@@ -240,18 +273,27 @@ class MovimientoAlmacenController {
         ]);
     }
 
-    public function getComprobantePdf(array $params): void {
+    public function getComprobantePdf(array $params): void
+    {
         try {
-            $treg = trim((string)($params['treg'] ?? ''));
-            if ($treg === '') {
+            $tregRaw = trim((string)($params['treg'] ?? ''));
+            if ($tregRaw === '') {
                 $this->error('Registro no valido.', 422);
             }
+
+            $parts = explode('?', $tregRaw);
+            $treg = trim($parts[0]); // Aquí nos queda estrictamente "31424185"
 
             $formato = strtolower(trim((string)($_GET['formato'] ?? 'a4')));
             $esTicket80 = in_array($formato, ['80mm', '80', 'ticket80'], true);
             $forzarDescarga = ((int)($_GET['download'] ?? 1)) === 1;
 
-            $movimiento = $this->service->getMovimiento($treg);
+            // CAPTURAR EL CONTEXTO EN EL SERVIDOR
+            $tcodtra = $_GET['tcodtra'] ?? null;
+            $talm    = $_GET['talm'] ?? null;
+
+            // Pasamos las variables limpias al servicio para que filtre el detalle y adapte la cabecera
+            $movimiento = $this->service->getMovimiento($treg, $tcodtra, $talm);
             $cabecera = $movimiento['cabecera'] ?? [];
             $detalle = is_array($movimiento['detalle'] ?? null) ? $movimiento['detalle'] : [];
 
@@ -282,9 +324,10 @@ class MovimientoAlmacenController {
                 return number_format((float)($value ?? 0), $decimals, '.', ',');
             };
 
+            // CORRECCIÓN: Leemos de la cabecera ya procesada y adaptada por el servicio
             $fecha = (string)($cabecera['tfectra'] ?? '');
             $procli = (string)($cabecera['tprocli'] ?? '');
-            $almacen = (string)($cabecera['talm'] ?? '');
+            $almacen = (string)($cabecera['nom_almacen'] ?? $cabecera['talm'] ?? ''); // Mostrar nombre descriptivo adaptado
             $codtra = (string)($cabecera['tcodtra'] ?? '');
             $glosa = (string)($cabecera['tglosa'] ?? '');
             $doc = trim(implode(' - ', array_filter([
@@ -302,12 +345,15 @@ class MovimientoAlmacenController {
                 $clienteNombre = $clienteInfo ? (string)($clienteInfo['nombre'] ?? '') : '';
             }
             if ($clienteNombre === '') {
-                // Fallback: usar el codigo del cliente (nunca la glosa/observación)
                 $clienteNombre = $procli;
             }
 
+            // CORRECCIÓN DESTINO: Si es Entrada ('E'), la columna Destino del PDF debe mostrar un guion '-'
+            $prefijoTrans = strtoupper(substr(trim($codtra), 0, 1));
+            $esEntrada = $prefijoTrans === 'E';
+
             $destino = '-';
-            if (!empty($detalle)) {
+            if (!$esEntrada && !empty($detalle)) {
                 $destinoRaw = trim((string)($detalle[0]['talr'] ?? ''));
                 if ($destinoRaw !== '') {
                     $destino = $destinoRaw;
@@ -321,8 +367,6 @@ class MovimientoAlmacenController {
                 $totalImporte += (float)($item['timport'] ?? 0);
             }
 
-            $prefijoTrans = strtoupper(substr(trim($codtra), 0, 1));
-            $esEntrada = $prefijoTrans === 'E';
             $tipoMovimiento = $esEntrada ? 'MOVIMIENTO ENTRADA' : ($prefijoTrans === 'S' ? 'MOVIMIENTO SALIDA' : 'MOVIMIENTO ALMACEN');
             $codigoMovimiento = $esEntrada ? 'MT02' : ($prefijoTrans === 'S' ? 'MT01' : 'MT00');
 
@@ -526,9 +570,9 @@ class MovimientoAlmacenController {
 
                 $qrX = $leftX + (($usableW - $qrSize) / 2);
                 $qrY = $pdf->GetY() + 1;
+                // Déjalo simplemente así:
                 if ($qrTempPath && file_exists($qrTempPath)) {
                     $pdf->Image($qrTempPath, $qrX, $qrY, $qrSize, $qrSize);
-                    @unlink($qrTempPath);
                 } else {
                     $pdf->Rect($qrX, $qrY, $qrSize, $qrSize, 'D');
                     $pdf->SetFont('Arial', 'B', 7);
@@ -680,7 +724,6 @@ class MovimientoAlmacenController {
                 $footerY = $pdf->GetY() + 4;
                 if ($qrTempPath && file_exists($qrTempPath)) {
                     $pdf->Image($qrTempPath, 12, $footerY, 24, 24);
-                    @unlink($qrTempPath);
                 } else {
                     $pdf->Rect(12, $footerY, 24, 24, 'D');
                     $pdf->SetFont('Arial', 'B', 7);
@@ -693,7 +736,7 @@ class MovimientoAlmacenController {
                 $boxX = $pdf->GetPageWidth() - 12 - $boxW;
                 $pdf->SetY($footerY + 13);
                 $pdf->SetX($boxX);
-                    $pdf->SetFont('Arial', 'B', 11);
+                $pdf->SetFont('Arial', 'B', 11);
                 $pdf->Rect($boxX, $pdf->GetY(), $boxW, $boxH, 'D');
                 $pdf->Line($boxX + 32, $pdf->GetY(), $boxX + 32, $pdf->GetY() + $boxH);
                 $pdf->Cell(32, $boxH, 'TOTAL:', 0, 0, 'R');
@@ -707,14 +750,23 @@ class MovimientoAlmacenController {
             }
 
             $filename = 'movimiento_' . preg_replace('/[^0-9A-Za-z_-]/', '_', (string)$treg) . '_' . date('Ymd_His') . '.pdf';
+            
+            if (!empty($qrTempPath) && file_exists($qrTempPath)) {
+                @unlink($qrTempPath);
+            }
+
             $pdf->Output($forzarDescarga ? 'D' : 'I', $filename);
             exit;
         } catch (Exception $e) {
+            if (!empty($qrTempPath) && file_exists($qrTempPath)) {
+                @unlink($qrTempPath);
+            }
             $this->error('No se pudo generar el PDF del movimiento: ' . $e->getMessage(), 500);
         }
     }
 
-    public function getReporteKardexPdf(): void {
+    public function getReporteKardexPdf(): void
+    {
         try {
             $filtros = [
                 'alma' => $_GET['alma'] ?? '',
@@ -827,11 +879,13 @@ class MovimientoAlmacenController {
 
     // ─── SALIDAS RÁPIDAS ─────────────────────────────────────────────────────
 
-    public function getLineas(): void {
+    public function getLineas(): void
+    {
         $this->json($this->service->getLineas());
     }
 
-    public function getProductosStockSalida(): void {
+    public function getProductosStockSalida(): void
+    {
         $alma = trim($_GET['alma'] ?? '');
         if ($alma === '') {
             $this->json(['rows' => []]);
@@ -843,7 +897,8 @@ class MovimientoAlmacenController {
         $this->json(['rows' => $rows, 'total' => count($rows)]);
     }
 
-    public function getMisSalidas(): void {
+    public function getMisSalidas(): void
+    {
         $usuario = $_GET['usuario'] ?? ($_SESSION['username'] ?? ($_SESSION['usuario'] ?? ''));
         $filtros = [
             'fecha'   => $_GET['fecha']   ?? date('Y-m-d'),

@@ -1,33 +1,39 @@
 <?php
+
 /**
  * MovimientoAlmacenRepository
  * Tablas: guia, imov, mzon, alma, coal, conempre, indi, dola, ccos, tdoc
  *         reg_costoabc_proceso/subproceso/actividad/tarea
  */
-class MovimientoAlmacenRepository {
+class MovimientoAlmacenRepository
+{
     private $db;
     private $mark    = 'J';    // Zona La Joya  — usado en guia
     private $markImov  = 'CW1'; // Marca imov para movimientos principales
     private $markImovE = 'CW2'; // Marca imov para contra-asientos auto-generados
 
     /** Marcas válidas de imov (incluye legacy 'J' para datos históricos) */
-    private function imovMarks(): array {
+    private function imovMarks(): array
+    {
         return [$this->markImov, $this->markImovE, $this->mark];
     }
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->db = $db;
     }
 
     // ─── VALIDACIONES DE FECHA ────────────────────────────────────────────────
 
-    public function getAnoSistema(): string {
+    public function getAnoSistema(): string
+    {
         $stmt = $this->db->prepare("SELECT eano FROM conempre LIMIT 1");
         $stmt->execute();
         return $stmt->fetchColumn() ?? '';
     }
 
-    public function getMesCerrado(string $fechaMes): bool {
+    public function getMesCerrado(string $fechaMes): bool
+    {
         // fechaMes formato: 'yyyy/mm'
         $stmt = $this->db->prepare("SELECT cierre FROM indi WHERE fecha = ?");
         $stmt->execute([$fechaMes]);
@@ -35,7 +41,8 @@ class MovimientoAlmacenRepository {
         return $row && $row['cierre'] === 'C';
     }
 
-    public function getDiaCerradoJoya(string $fechaDia): bool {
+    public function getDiaCerradoJoya(string $fechaDia): bool
+    {
         // fechaDia formato: 'yyyy/mm/dd'
         $stmt = $this->db->prepare("SELECT cerrajoya FROM dola WHERE fecha = ?");
         $stmt->execute([$fechaDia]);
@@ -43,7 +50,8 @@ class MovimientoAlmacenRepository {
         return $row && $row['cerrajoya'] === 'C';
     }
 
-    public function getTipoCambioPorFecha(string $fecha): ?array {
+    public function getTipoCambioPorFecha(string $fecha): ?array
+    {
         $stmt = $this->db->prepare("SELECT fecha, lib_compra, lib_venta FROM dola WHERE fecha = ?");
         $stmt->execute([$fecha]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -51,7 +59,8 @@ class MovimientoAlmacenRepository {
 
     // ─── MAESTROS / COMBOS ────────────────────────────────────────────────────
 
-    public function getAlmacenes(): array {
+    public function getAlmacenes(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT codalm, descri, COALESCE(libro, 'AL') AS libro, moneda FROM alma ORDER BY codalm"
         );
@@ -59,7 +68,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getAlmacenById(string $codalm): ?array {
+    public function getAlmacenById(string $codalm): ?array
+    {
         $stmt = $this->db->prepare(
             "SELECT codalm, descri, COALESCE(libro, 'AL') AS libro, moneda FROM alma WHERE codalm = ?"
         );
@@ -67,7 +77,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function getTransacciones(): array {
+    public function getTransacciones(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT codtra, descri, emidoc, precio, cencos, gragui, pidemotivo,
                     pmoned, observ, ordcom, gentsa, merma, palmde
@@ -77,7 +88,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getTransaccionById(string $codtra): ?array {
+    public function getTransaccionById(string $codtra): ?array
+    {
         $stmt = $this->db->prepare(
             "SELECT codtra, descri, emidoc, precio, cencos, gragui, pidemotivo,
                     pmoned, observ, ordcom, gentsa, merma, palmde
@@ -87,7 +99,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function getTiposDocumento(): array {
+    public function getTiposDocumento(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT tipdoc, descri, moneda FROM tdoc ORDER BY tipdoc"
         );
@@ -95,7 +108,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getCentrosCosto(): array {
+    public function getCentrosCosto(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT codigo, nombre FROM ccos WHERE swac IS NULL OR swac != 'I' ORDER BY codigo"
         );
@@ -103,7 +117,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getClientesProveedores(string $termino = ''): array {
+    public function getClientesProveedores(string $termino = ''): array
+    {
         $cleanFn = "TRIM(REPLACE(codigo, CHAR(9), ''))";
         if ($termino !== '') {
             $like = "%{$termino}%";
@@ -137,7 +152,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getProductos(int $limit = 200, int $offset = 0, string $alma = ''): array {
+    public function getProductos(int $limit = 200, int $offset = 0, string $alma = ''): array
+    {
         $limit = max(1, min(500, (int)$limit));
         $offset = max(0, (int)$offset);
 
@@ -177,7 +193,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function buscarProductos(string $termino, int $limit = 200, int $offset = 0, string $alma = ''): array {
+    public function buscarProductos(string $termino, int $limit = 200, int $offset = 0, string $alma = ''): array
+    {
         $limit = max(1, min(500, (int)$limit));
         $offset = max(0, (int)$offset);
         $like = "%{$termino}%";
@@ -220,7 +237,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getLotes(string $alma = '', string $codigo = '', string $fecha = ''): array {
+    public function getLotes(string $alma = '', string $codigo = '', string $fecha = ''): array
+    {
         // Modo condicional solicitado: almacén + producto + fecha de corte.
         if ($alma !== '' && $codigo !== '' && $fecha !== '') {
             $stmt = $this->db->prepare(
@@ -291,7 +309,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getProductoById(string $codigo): ?array {
+    public function getProductoById(string $codigo): ?array
+    {
         $stmt = $this->db->prepare(
             "SELECT codigo AS tcodigo, descri AS tdescri, unidad AS tunidad,
                     peso AS tpeso, cuenta AS tcuenta
@@ -301,7 +320,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function getClientePorCodigo(string $codigo): ?array {
+    public function getClientePorCodigo(string $codigo): ?array
+    {
         $codigoTrimmed = trim($codigo);
         if ($codigoTrimmed === '') return null;
         // REPLACE(CHAR(9)) + TRIM para manejar codigos con tabs/espacios en la BD
@@ -322,7 +342,8 @@ class MovimientoAlmacenRepository {
 
     // ─── ABC COSTING ─────────────────────────────────────────────────────────
 
-    public function getProcesos(): array {
+    public function getProcesos(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT tcod_proceso, tnom_proceso FROM reg_costoabc_proceso
              WHERE testado = 'A' ORDER BY torden"
@@ -331,7 +352,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getSubprocesos(string $codProceso): array {
+    public function getSubprocesos(string $codProceso): array
+    {
         $stmt = $this->db->prepare(
             "SELECT tcod_subproc, tnom_subproc FROM reg_costoabc_subproceso
              WHERE tcod_proceso = ? AND testado = 'A' ORDER BY torden"
@@ -340,7 +362,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getActividades(string $codProceso, string $codSubproc): array {
+    public function getActividades(string $codProceso, string $codSubproc): array
+    {
         $stmt = $this->db->prepare(
             "SELECT tcod_acti, tnom_acti FROM reg_costoabc_actividad
              WHERE tcod_proc = ? AND tcod_subproc = ? AND testado = 'A' ORDER BY torden"
@@ -349,7 +372,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getTareas(string $codProceso, string $codSubproc, string $codActi): array {
+    public function getTareas(string $codProceso, string $codSubproc, string $codActi): array
+    {
         $stmt = $this->db->prepare(
             "SELECT tcod_tarea, tnom_tarea FROM reg_costoabc_tarea
              WHERE tcod_proc = ? AND tcod_subproc = ? AND tcod_acti = ?
@@ -361,7 +385,8 @@ class MovimientoAlmacenRepository {
 
     // ─── NÚMERO DE REGISTRO ──────────────────────────────────────────────────
 
-    public function getNuevoReg(): int {
+    public function getNuevoReg(): int
+    {
         // MAX global sin filtro mark (igual al VBA original)
         $stmtGuia = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM guia");
         $maxGuia = (int)$stmtGuia->fetchColumn();
@@ -372,7 +397,8 @@ class MovimientoAlmacenRepository {
         return max($maxGuia, $maxImov) + 1;
     }
 
-    public function validarConsistenciaReg(int $treg): bool {
+    public function validarConsistenciaReg(int $treg): bool
+    {
         $stmtGuia = $this->db->prepare(
             "SELECT COUNT(*) FROM guia WHERE treg = ? AND mark = ?"
         );
@@ -390,16 +416,29 @@ class MovimientoAlmacenRepository {
 
     // ─── CABECERA (guia) ─────────────────────────────────────────────────────
 
-    public function listarMovimientos(array $filtros = []): array {
+    public function listarMovimientos(array $filtros = []): array
+    {
         $where = ["g.mark = ?"];
         $params = [$this->mark, $this->mark];
 
-        if (!empty($filtros['talm']))    { $where[] = "g.talm = ?";    $params[] = $filtros['talm']; }
-        if (!empty($filtros['fecini']))  { $where[] = "g.tfectra >= ?"; $params[] = $filtros['fecini']; }
-        if (!empty($filtros['fecfin']))  { $where[] = "g.tfectra <= ?"; $params[] = $filtros['fecfin']; }
-        if (!empty($filtros['tcodtra'])) { $where[] = "g.tcodtra = ?"; $params[] = $filtros['tcodtra']; }
+        if (!empty($filtros['talm'])) {
+            $where[] = "g.talm = ?";
+            $params[] = $filtros['talm'];
+        }
+        if (!empty($filtros['fecini'])) {
+            $where[] = "g.tfectra >= ?";
+            $params[] = $filtros['fecini'];
+        }
+        if (!empty($filtros['fecfin'])) {
+            $where[] = "g.tfectra <= ?";
+            $params[] = $filtros['fecfin'];
+        }
+        if (!empty($filtros['tcodtra'])) {
+            $where[] = "g.tcodtra = ?";
+            $params[] = $filtros['tcodtra'];
+        }
 
-         $sql = "SELECT g.treg, g.tfectra, g.tcodtra, g.tdoc, g.tserie, g.tnumfac,
+        $sql = "SELECT g.treg, g.tfectra, g.tcodtra, g.tdoc, g.tserie, g.tnumfac,
                   g.talm, d.talr, g.tprocli, g.tmon, g.tlib, g.tordcom,
                   g.tfecfac, d.tcencos_dest, g.tglosa, g.tcostmin, g.tpesotot,
                   g.timport, g.tcod_conductor, g.tplaca, g.tmotivo_traslado,
@@ -426,83 +465,146 @@ class MovimientoAlmacenRepository {
     }
 
     public function listarMovimientosDashboard(array $filtros = []): array {
-        $page = max(1, (int)($filtros['page'] ?? 1));
-        $perPage = max(10, min(100, (int)($filtros['per_page'] ?? 25)));
-        $offset = ($page - 1) * $perPage;
+    $page = max(1, (int)($filtros['page'] ?? 1));
+    $perPage = max(10, min(100, (int)($filtros['per_page'] ?? 25)));
+    $offset = ($page - 1) * $perPage;
 
-        $joins = "\n            LEFT JOIN (\n                SELECT i.treg,\n                       MIN(i.talr) AS talr,\n                       MIN(i.tcencos) AS tcencos_dest\n                FROM imov i\n                WHERE i.mark = ?\n                GROUP BY i.treg\n            ) d ON d.treg = g.treg\n            LEFT JOIN alma a ON g.talm = a.codalm\n            LEFT JOIN coal c ON g.tcodtra = c.codtra\n        ";
+    // ─── UNIFICACIÓN ARQUITECTURAL CLAVE: Agrupamos los datos físicos de imov antes de cruzarlos con la cabecera ───
+    $joins = "
+        INNER JOIN (
+            SELECT 
+                i.treg, 
+                i.tcodtra, 
+                i.talm, 
+                MAX(i.mark) AS mark,
+                IF(MAX(i.tcodtra) = 'E005', '-', MIN(i.talr)) AS talr, -- Limpieza de destino si es entrada
+                SUM(i.tpeso) AS tpesotot,
+                SUM(i.timport) AS timporttot
+            FROM imov i
+            WHERE i.mark IN ('J', 'CW1', 'CW2')
+            GROUP BY i.treg, i.tcodtra, i.talm
+        ) v ON v.treg = g.treg AND g.mark = 'J'
+        LEFT JOIN alma a ON v.talm = a.codalm
+        LEFT JOIN coal c ON v.tcodtra = c.codtra
+    ";
 
-        $where = ["g.mark = ?"];
-        $params = [$this->mark, $this->mark];
+    // Filtros base estrictos
+    $where = ["g.mark = ?"];
+    $params = [$this->mark]; // Vinculado al '?' de g.mark
 
-        if (!empty($filtros['talm'])) {
-            $where[] = 'g.talm = ?';
-            $params[] = trim((string)$filtros['talm']);
-        }
-
-        if (!empty($filtros['tcodtra'])) {
-            $where[] = 'g.tcodtra = ?';
-            $params[] = trim((string)$filtros['tcodtra']);
-        }
-
-        if (!empty($filtros['fecini'])) {
-            $where[] = 'g.tfectra >= ?';
-            $params[] = trim((string)$filtros['fecini']);
-        }
-
-        if (!empty($filtros['fecfin'])) {
-            $where[] = 'g.tfectra <= ?';
-            $params[] = trim((string)$filtros['fecfin']);
-        }
-
-        $search = trim((string)($filtros['q'] ?? ''));
-        if ($search !== '') {
-            $like = "%{$search}%";
-            $where[] = "(\n                CAST(g.treg AS CHAR) LIKE ?\n                OR g.tprocli LIKE ?\n                OR g.tdoc LIKE ?\n                OR g.tserie LIKE ?\n                OR CAST(g.tnumfac AS CHAR) LIKE ?\n                OR g.tglosa LIKE ?\n                OR a.descri LIKE ?\n                OR c.descri LIKE ?\n            )";
-
-            for ($i = 0; $i < 8; $i++) {
-                $params[] = $like;
-            }
-        }
-
-        $whereSql = implode(' AND ', $where);
-
-        $sqlCount = "SELECT COUNT(*) AS total\n                     FROM guia g\n                     {$joins}\n                     WHERE {$whereSql}";
-        $stmtCount = $this->db->prepare($sqlCount);
-        $stmtCount->execute($params);
-        $total = (int)($stmtCount->fetchColumn() ?: 0);
-
-        $sqlResumen = "SELECT COUNT(*) AS total_movimientos,\n                              COALESCE(SUM(g.timport), 0) AS total_importe,\n                              COALESCE(SUM(g.tpesotot), 0) AS total_peso\n                       FROM guia g\n                       {$joins}\n                       WHERE {$whereSql}";
-        $stmtResumen = $this->db->prepare($sqlResumen);
-        $stmtResumen->execute($params);
-        $resumen = $stmtResumen->fetch(PDO::FETCH_ASSOC) ?: [
-            'total_movimientos' => 0,
-            'total_importe' => 0,
-            'total_peso' => 0,
-        ];
-
-        $sqlRows = "SELECT g.treg, g.tfectra, g.tcodtra, g.talm,\n                           g.tprocli, g.tdoc, g.tserie, g.tnumfac,\n                           g.tglosa, g.tpesotot, g.timport, g.tuser,\n                           g.tdate, g.ttime, g.tmon,\n                           d.talr, d.tcencos_dest,\n                           a.descri AS nom_almacen,\n                           c.descri AS nom_transaccion,\n                           c.gentsa\n                    FROM guia g\n                    {$joins}\n                    WHERE {$whereSql}\n                    ORDER BY g.tfectra DESC, g.treg DESC\n                    LIMIT {$perPage} OFFSET {$offset}";
-        $stmtRows = $this->db->prepare($sqlRows);
-        $stmtRows->execute($params);
-        $rows = $stmtRows->fetchAll(PDO::FETCH_ASSOC);
-
-        return [
-            'rows' => $rows,
-            'meta' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => $total,
-                'total_pages' => $total > 0 ? (int)ceil($total / $perPage) : 1,
-                'resumen' => [
-                    'total_movimientos' => (int)($resumen['total_movimientos'] ?? 0),
-                    'total_importe' => (float)($resumen['total_importe'] ?? 0),
-                    'total_peso' => (float)($resumen['total_peso'] ?? 0),
-                ],
-            ],
-        ];
+    // Filtro por Almacén dinámico
+    if (!empty($filtros['talm'])) {
+        $where[] = 'v.talm = ?';
+        $params[] = trim((string)$filtros['talm']);
     }
 
-    public function getMovimientoPorReg(string $treg): ?array {
+    // Filtro por Transacción independiente
+    if (!empty($filtros['tcodtra'])) {
+        $where[] = 'v.tcodtra = ?';
+        $params[] = trim((string)$filtros['tcodtra']);
+    }
+
+    if (!empty($filtros['fecini'])) {
+        $where[] = 'g.tfectra >= ?';
+        $params[] = trim((string)$filtros['fecini']);
+    }
+
+    if (!empty($filtros['fecfin'])) {
+        $where[] = 'g.tfectra <= ?';
+        $params[] = trim((string)$filtros['fecfin']);
+    }
+
+    $search = trim((string)($filtros['q'] ?? ''));
+    if ($search !== '') {
+        $like = "%{$search}%";
+        $where[] = "(
+            CAST(g.treg AS CHAR) LIKE ?
+            OR g.tprocli LIKE ?
+            OR g.tdoc LIKE ?
+            OR g.tserie LIKE ?
+            OR CAST(g.tnumfac AS CHAR) LIKE ?
+            OR g.tglosa LIKE ?
+            OR a.descri LIKE ?
+            OR c.descri LIKE ?
+        )";
+        for ($i = 0; $i < 8; $i++) {
+            $params[] = $like;
+        }
+    }
+
+    $whereSql = implode(' AND ', $where);
+
+    // 1. Conteo exacto de documentos listados
+    $sqlCount = "SELECT COUNT(*) AS total FROM guia g {$joins} WHERE {$whereSql}";
+    $stmtCount = $this->db->prepare($sqlCount);
+    $stmtCount->execute($params);
+    $total = (int)($stmtCount->fetchColumn() ?: 0);
+
+    // 2. Resumen inferior unificado
+    $sqlResumen = "SELECT 
+                        COUNT(*) AS total_movimientos,
+                        COALESCE(SUM(v.timporttot), 0) AS total_importe,
+                        COALESCE(SUM(v.tpesotot), 0) AS total_peso
+                   FROM guia g 
+                   {$joins} 
+                   WHERE {$whereSql}";
+    $stmtResumen = $this->db->prepare($sqlResumen);
+    $stmtResumen->execute($params);
+    $resumen = $stmtResumen->fetch(PDO::FETCH_ASSOC) ?: [
+        'total_movimientos' => 0,
+        'total_importe' => 0,
+        'total_peso' => 0,
+    ];
+
+    // 3. Obtención de filas agrupadas
+    $sqlRows = "SELECT 
+                    g.treg, 
+                    g.tfectra, 
+                    v.tcodtra, 
+                    v.talm,
+                    g.tprocli, 
+                    g.tdoc, 
+                    g.tserie, 
+                    g.tnumfac,
+                    g.tglosa, 
+                    v.tpesotot, 
+                    v.timporttot AS timport, 
+                    g.tuser,
+                    g.tdate, 
+                    g.ttime, 
+                    g.tmon,
+                    v.talr,
+                    a.descri AS nom_almacen,
+                    COALESCE(c.descri, IF(v.tcodtra='E005', 'INGRESO TRANSFERENCIA GRANJAS L', 'MOVIMIENTO')) AS nom_transaccion,
+                    c.gentsa
+                FROM guia g
+                {$joins}
+                WHERE {$whereSql}
+                ORDER BY g.tfectra DESC, g.treg DESC, v.tcodtra DESC
+                LIMIT {$perPage} OFFSET {$offset}";
+                
+    $stmtRows = $this->db->prepare($sqlRows);
+    $stmtRows->execute($params);
+    $rows = $stmtRows->fetchAll(PDO::FETCH_ASSOC);
+
+    return [
+        'rows' => $rows,
+        'meta' => [
+            'page' => $page,
+            'per_page' => $perPage,
+            'total' => $total,
+            'total_pages' => $total > 0 ? (int)ceil($total / $perPage) : 1,
+            'resumen' => [
+                'total_movimientos' => (int)($resumen['total_movimientos'] ?? 0),
+                'total_importe' => (float)($resumen['total_importe'] ?? 0),
+                'total_peso' => (float)($resumen['total_peso'] ?? 0),
+            ],
+        ],
+    ];
+}
+
+    public function getMovimientoPorReg(string $treg): ?array
+    {
         $stmt = $this->db->prepare(
             "SELECT g.*, a.descri AS nom_almacen, c.descri AS nom_transaccion,
                     c.emidoc, c.precio, c.cencos, c.gragui, c.pidemotivo,
@@ -534,7 +636,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function crearCabecera(array $data): bool {
+    public function crearCabecera(array $data): bool
+    {
         $stmt = $this->db->prepare(
             "INSERT INTO guia (
                 treg, tfectra, tcodtra, talm, tprocli, tdoc, tserie, tnumfac,
@@ -551,7 +654,8 @@ class MovimientoAlmacenRepository {
         return $stmt->execute(array_merge($data, ['mark' => $this->mark]));
     }
 
-    public function actualizarCabecera(int $treg, array $data): bool {
+    public function actualizarCabecera(int $treg, array $data): bool
+    {
         $data['treg']  = $treg;
         $data['mark']  = $this->mark;
         $stmt = $this->db->prepare(
@@ -568,7 +672,8 @@ class MovimientoAlmacenRepository {
         return $stmt->execute($data);
     }
 
-    public function eliminarCabecera(int $treg): bool {
+    public function eliminarCabecera(int $treg): bool
+    {
         $stmt = $this->db->prepare(
             "DELETE FROM guia WHERE treg = ? AND mark = ?"
         );
@@ -577,7 +682,8 @@ class MovimientoAlmacenRepository {
 
     // ─── DETALLE (imov) ──────────────────────────────────────────────────────
 
-    public function getDetallePorReg(string $treg): array {
+    public function getDetallePorReg(string $treg): array
+    {
         // Buscar incluyendo todas las marcas imov válidas
         $stmt = $this->db->prepare(
             "SELECT i.*, m.descri AS nom_producto, m.unidad AS tunidad
@@ -590,7 +696,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getMaxCount(int $treg): int {
+    public function getMaxCount(int $treg): int
+    {
         $stmt = $this->db->prepare(
             "SELECT COALESCE(MAX(count), 0) FROM imov WHERE treg = ? AND mark IN (?,?,?)"
         );
@@ -603,7 +710,8 @@ class MovimientoAlmacenRepository {
      * @param array  $data         Campos del item
      * @param string|null $markOverride  Marca a usar ('CW1' por defecto, 'CW2' para contra-asientos)
      */
-    public function agregarDetalle(array $data, string $markOverride = null): bool {
+    public function agregarDetalle(array $data, string $markOverride = null): bool
+    {
         $markValue = $markOverride ?? $this->markImov;
         $stmt = $this->db->prepare(
             "INSERT INTO imov (
@@ -625,14 +733,16 @@ class MovimientoAlmacenRepository {
         return $stmt->execute(array_merge($data, ['mark' => $markValue]));
     }
 
-    public function eliminarDetalle(int $treg, int $count): bool {
+    public function eliminarDetalle(int $treg, int $count): bool
+    {
         $stmt = $this->db->prepare(
             "DELETE FROM imov WHERE treg = ? AND count = ? AND mark IN (?,?,?)"
         );
         return $stmt->execute(array_merge([$treg, $count], $this->imovMarks()));
     }
 
-    public function eliminarDetalleCompleto(int $treg): bool {
+    public function eliminarDetalleCompleto(int $treg): bool
+    {
         $stmt = $this->db->prepare(
             "DELETE FROM imov WHERE treg = ? AND mark IN (?,?,?)"
         );
@@ -641,7 +751,8 @@ class MovimientoAlmacenRepository {
 
     // ─── SALIDAS RÁPIDAS ────────────────────────────────────────────────────
 
-    public function getLineas(): array {
+    public function getLineas(): array
+    {
         $stmt = $this->db->prepare(
             "SELECT l.linea AS codigo, l.descri
              FROM linea l
@@ -654,7 +765,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getProductosStockSalida(string $alma, string $linea = ''): array {
+    public function getProductosStockSalida(string $alma, string $linea = ''): array
+    {
         $lineaSql = $linea !== '' ? ' AND mt.lin = ?' : '';
         $params   = $linea !== '' ? [$alma, $linea] : [$alma];
         $stmt = $this->db->prepare(
@@ -675,7 +787,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function buscarProductosStockSalida(string $alma, string $termino, string $linea = ''): array {
+    public function buscarProductosStockSalida(string $alma, string $termino, string $linea = ''): array
+    {
         $like     = "%{$termino}%";
         $lineaSql = $linea !== '' ? ' AND mt.lin = ?' : '';
         $params   = $linea !== '' ? [$alma, $like, $like, $linea] : [$alma, $like, $like];
@@ -698,7 +811,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getMisSalidasUsuario(string $fecha, string $usuario): array {
+    public function getMisSalidasUsuario(string $fecha, string $usuario): array
+    {
         $stmt = $this->db->prepare(
             "SELECT g.treg, g.tfectra, g.tcodtra, g.talm, g.tprocli,
                     g.tdoc, g.tserie, g.tnumfac, g.tglosa,
@@ -726,7 +840,8 @@ class MovimientoAlmacenRepository {
 
     // ─── STOCK / KARDEX (mzon) ───────────────────────────────────────────────
 
-    public function getKardex(string $codigo, string $lote, string $alma): ?array {
+    public function getKardex(string $codigo, string $lote, string $alma): ?array
+    {
         $stmt = $this->db->prepare(
             "SELECT qiniano, piniano, viniano, qingre, qsalid, qstock,
                     cosuni, vstock, pingre, psalid, pstock
@@ -736,7 +851,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function getResumenHastaFecha(string $codigo, string $lote, string $alma, string $fecha): ?array {
+    public function getResumenHastaFecha(string $codigo, string $lote, string $alma, string $fecha): ?array
+    {
         $sql = "SELECT frm1.codigo,
                        frm1.lote,
                        SUM(frm1.cantidad) AS cantidad,
@@ -781,7 +897,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public function getStockPorAlmacen(string $alma): array {
+    public function getStockPorAlmacen(string $alma): array
+    {
         $stmt = $this->db->prepare(
             "SELECT m.codigo, m.lote, m.qstock, m.pstock, m.vstock,
                     m.cosuni, mt.tdescri AS descripcion, mt.tunidad
@@ -794,7 +911,8 @@ class MovimientoAlmacenRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getKardexMovimientosReporte(array $filtros): array {
+    public function getKardexMovimientosReporte(array $filtros): array
+    {
         $alma = (string)($filtros['alma'] ?? '');
         if ($alma === '') {
             return [];
@@ -855,8 +973,12 @@ class MovimientoAlmacenRepository {
 
     // Actualizar mzon al grabar un movimiento (entrada/salida)
     public function actualizarStock(
-        string $codigo, string $lote, string $alma,
-        float $cantidad, float $peso, float $valor,
+        string $codigo,
+        string $lote,
+        string $alma,
+        float $cantidad,
+        float $peso,
+        float $valor,
         string $tipo // 'E'=entrada, 'S'=salida
     ): bool {
         $existe = $this->getKardex($codigo, $lote, $alma);
@@ -896,4 +1018,3 @@ class MovimientoAlmacenRepository {
         ]);
     }
 }
-

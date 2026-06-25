@@ -15,8 +15,8 @@ class DashboardListaMovimientoAlmacenService {
         return Http.get(`${this.base}/dashboard-lista`, filtros);
     }
 
-    getMovimiento(treg) {
-        return Http.get(`${this.base}/cabecera/${encodeURIComponent(treg)}`);
+    getMovimiento(treg, queryString = '') {
+        return Http.get(`${this.base}/cabecera/${encodeURIComponent(treg)}${queryString}`);
     }
 
     actualizarMovimiento(treg, payload) {

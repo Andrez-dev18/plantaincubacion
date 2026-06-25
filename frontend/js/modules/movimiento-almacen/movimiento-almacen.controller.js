@@ -2,11 +2,11 @@
 class MovimientoAlmacenController extends Component {
     constructor() {
         super('#form-movimiento');
-        this.service      = new MovimientoAlmacenService();
+        this.service = new MovimientoAlmacenService();
         this.transaccFlag = {};   // flags de coal activos
-        this.detalle      = [];   // filas del grid en memoria
-        this.tregActual   = null;
-        this.modoEdicion  = false;
+        this.detalle = [];   // filas del grid en memoria
+        this.tregActual = null;
+        this.modoEdicion = false;
         this._productosReporte = [];
         this._productosComboActual = [];
         this._productosPageSize = 200;
@@ -343,7 +343,7 @@ class MovimientoAlmacenController extends Component {
                     inst._navBound = true;
 
                     // Mostrar solo el código cuando se selecciona
-                    gridCencos.addEventListener('change', function() {
+                    gridCencos.addEventListener('change', function () {
                         if (this.value && this.searchableSelectInstance?.displayField) {
                             this.searchableSelectInstance.displayField.textContent = this.value;
                         }
@@ -740,7 +740,7 @@ class MovimientoAlmacenController extends Component {
             const alm = this._almacenes?.find(a => a.codalm === codalm);
             if (alm) {
                 this._setFieldValue('tlib', alm.libro || 'AL');
-                document.getElementById('tmon').value    = alm.moneda || 'S/';
+                document.getElementById('tmon').value = alm.moneda || 'S/';
             }
 
             this._toggleTipoCambioUI();
@@ -768,11 +768,11 @@ class MovimientoAlmacenController extends Component {
 
             const option = e.target.selectedOptions[0];
             const data = {
-                codigo:  codigo,
-                descri:  option.dataset.descri || '',
-                unidad:  option.dataset.unidad || '',
-                peso:    option.dataset.peso   || '0',
-                cuenta:  option.dataset.cuenta || ''
+                codigo: codigo,
+                descri: option.dataset.descri || '',
+                unidad: option.dataset.unidad || '',
+                peso: option.dataset.peso || '0',
+                cuenta: option.dataset.cuenta || ''
             };
 
             await this._seleccionarProducto(data);
@@ -1261,16 +1261,16 @@ class MovimientoAlmacenController extends Component {
         const t = this._transacciones[codtra] ?? {};
         this.transaccFlag = t;
 
-        this._toggleCampo('grupo-emidoc',      t.emidoc  == 1, ['tdoc']); // tdoc, tserie, tnumfac — tdoc siempre habilitado
-        this._toggleCampo('grupo-precio',      t.precio  == 1); // col Precio en grid
-        this._toggleCampo('grupo-cencos-destino', t.gentsa  == 1); // tcencos_dest - mostrar solo si gentsa == 1
-        this._toggleCampo('grupo-almacen-destino', t.gentsa  == 1); // talr - mostrar solo si gentsa == 1
-        this._toggleCampo('grupo-guia',        t.gragui  == 1); // chofer, brevete, placa
-        this._toggleCampo('grupo-motivo',      t.pidemotivo == 1);
-        this._toggleCampo('grupo-moneda',      t.pmoned  == 1);
-        this._toggleCampo('grupo-tipo-cambio', t.pmoned  == 1);
+        this._toggleCampo('grupo-emidoc', t.emidoc == 1, ['tdoc']); // tdoc, tserie, tnumfac — tdoc siempre habilitado
+        this._toggleCampo('grupo-precio', t.precio == 1); // col Precio en grid
+        this._toggleCampo('grupo-cencos-destino', t.gentsa == 1); // tcencos_dest - mostrar solo si gentsa == 1
+        this._toggleCampo('grupo-almacen-destino', t.gentsa == 1); // talr - mostrar solo si gentsa == 1
+        this._toggleCampo('grupo-guia', t.gragui == 1); // chofer, brevete, placa
+        this._toggleCampo('grupo-motivo', t.pidemotivo == 1);
+        this._toggleCampo('grupo-moneda', t.pmoned == 1);
+        this._toggleCampo('grupo-tipo-cambio', t.pmoned == 1);
         this._toggleCampo('grupo-observacion', true); // siempre habilitado
-        this._toggleCampo('grupo-ordcom',      t.ordcom  == 1);
+        this._toggleCampo('grupo-ordcom', t.ordcom == 1);
 
         // Actualizar encabezados del grid
         const mostrarPrecio = t.precio == 1;
@@ -1342,7 +1342,7 @@ class MovimientoAlmacenController extends Component {
             const { valida, mensaje } = res.data;
             const msgEl = document.getElementById('msg-fecha');
             if (!valida) {
-                msgEl.textContent   = mensaje;
+                msgEl.textContent = mensaje;
                 msgEl.style.display = 'block';
                 document.getElementById('tfectra').value = '';
                 document.getElementById('btn-grabar').disabled = true;
@@ -1423,7 +1423,7 @@ class MovimientoAlmacenController extends Component {
     // ── Validación de almacenes ───────────────────────────────────────────────
 
     _validarAlmacenes() {
-        const almOrigen  = document.getElementById('talm').value;
+        const almOrigen = document.getElementById('talm').value;
         const almDestino = document.getElementById('talr').value;
 
         // Si la transacción requiere almacén destino (gentsa == 1), es obligatorio
@@ -2107,8 +2107,8 @@ class MovimientoAlmacenController extends Component {
                             wrap.appendChild(kbdEl);
                             wrap.appendChild(btn);
                         };
-                        wrapBtn('.swal2-cancel',  'Alt + C');
-                        wrapBtn('.swal2-deny',    'Alt + G');
+                        wrapBtn('.swal2-cancel', 'Alt + C');
+                        wrapBtn('.swal2-deny', 'Alt + G');
                         wrapBtn('.swal2-confirm', 'Alt + I');
                     }
 
@@ -2439,24 +2439,24 @@ class MovimientoAlmacenController extends Component {
         const inputNumLote = document.getElementById('grid-tnumlot');
 
         const item = {
-            tcodigo:     codigo,
-            tdescri:     descripcion,
-            tcantid:     parseFloat(inputCantidad?.value || '0') || 0,
-            tpreuni:     parseFloat(inputPrecio?.value || '0') || 0,
-            tpeso:       parseFloat(inputPeso?.value || '0') || 0,
-            tsacos:      0,
-            tnumlot:     (inputNumLote?.value || inputLote?.value || '00000000'),
-            tlote:       inputLote?.value || '00000000',
-            tcencos:     document.getElementById('grid-tcencos').value,
-            tctabal:     document.getElementById('grid-tctabal').value,
-            tcodproc:    document.getElementById('tcodproc').value    || '00',
+            tcodigo: codigo,
+            tdescri: descripcion,
+            tcantid: parseFloat(inputCantidad?.value || '0') || 0,
+            tpreuni: parseFloat(inputPrecio?.value || '0') || 0,
+            tpeso: parseFloat(inputPeso?.value || '0') || 0,
+            tsacos: 0,
+            tnumlot: (inputNumLote?.value || inputLote?.value || '00000000'),
+            tlote: inputLote?.value || '00000000',
+            tcencos: document.getElementById('grid-tcencos').value,
+            tctabal: document.getElementById('grid-tctabal').value,
+            tcodproc: document.getElementById('tcodproc').value || '00',
             tcodsubproc: document.getElementById('tcodsubproc').value || '00',
-            tcodacti:    document.getElementById('tcodacti').value    || '00',
-            tcodtarea:   document.getElementById('tcodtarea').value   || '00',
-            talr:        document.getElementById('talr').value || '',
-            tprod:       'P',
-            ttoneladas:  0,
-            tkardex:     parseFloat(document.getElementById('grid-timport')?.value || '0') || 0,
+            tcodacti: document.getElementById('tcodacti').value || '00',
+            tcodtarea: document.getElementById('tcodtarea').value || '00',
+            talr: document.getElementById('talr').value || '',
+            tprod: 'P',
+            ttoneladas: 0,
+            tkardex: parseFloat(document.getElementById('grid-timport')?.value || '0') || 0,
         };
 
         if (!item.tcodigo) { this._popupWarning('Seleccione un producto.'); return; }
@@ -2640,11 +2640,11 @@ class MovimientoAlmacenController extends Component {
     }
 
     _actualizarTotales() {
-        const totCantid  = this.detalle.reduce((s, i) => s + parseFloat(i.tcantid || 0), 0);
-        const totPeso    = this.detalle.reduce((s, i) => s + i.tpeso,    0);
-        const totImporte = this.detalle.reduce((s, i) => s + i.timport,  0);
-        document.getElementById('total-cant').textContent    = this._redondear(totCantid).toFixed(2);
-        document.getElementById('total-peso').textContent    = this._redondear(totPeso).toFixed(2);
+        const totCantid = this.detalle.reduce((s, i) => s + parseFloat(i.tcantid || 0), 0);
+        const totPeso = this.detalle.reduce((s, i) => s + i.tpeso, 0);
+        const totImporte = this.detalle.reduce((s, i) => s + i.timport, 0);
+        document.getElementById('total-cant').textContent = this._redondear(totCantid).toFixed(2);
+        document.getElementById('total-peso').textContent = this._redondear(totPeso).toFixed(2);
         document.getElementById('total-importe').textContent = this._redondear(totImporte).toFixed(2);
     }
 
@@ -2676,33 +2676,34 @@ class MovimientoAlmacenController extends Component {
         }));
 
         const payload = {
-            tfectra:          this._getFieldValue('tfectra', ''),
-            tcodtra:          this._getFieldValue('tcodtra', ''),
-            talm:             this._getFieldValue('talm', ''),
-            talr:             talrFormulario,
-            tprocli:          this._getFieldValue('tprocli', ''),
-            tdoc:             this._getFieldValue('tdoc', ''),
-            tserie:           this._getFieldValue('tserie', ''),
-            tnumfac:          this._getFieldValue('tnumfac', ''),
-            tmon:             this._getFieldValue('tmon', 'S/') || 'S/',
-            tlib:             this._getLibroActual(),
-            tordcom:          this._getFieldValue('tordcom', ''),
-            tglosa:           this._getFieldValue('tglosa', ''),
-            tcostmin:         this._getFieldValue('tcostmin', 0) || 0,
-            tcod_conductor:   document.getElementById('tcod_conductor')?.value || '',
-            tplaca:           document.getElementById('tplaca')?.value || '',
+            tfectra: this._getFieldValue('tfectra', ''),
+            tcodtra: this._getFieldValue('tcodtra', ''),
+            talm: this._getFieldValue('talm', ''),
+            talr: talrFormulario,
+            tprocli: this._getFieldValue('tprocli', ''),
+            tdoc: this._getFieldValue('tdoc', ''),
+            tserie: this._getFieldValue('tserie', ''),
+            tnumfac: this._getFieldValue('tnumfac', ''),
+            tmon: this._getFieldValue('tmon', 'S/') || 'S/',
+            tlib: this._getLibroActual(),
+            tordcom: this._getFieldValue('tordcom', ''),
+            tglosa: this._getFieldValue('tglosa', ''),
+            tcostmin: this._getFieldValue('tcostmin', 0) || 0,
+            tcod_conductor: document.getElementById('tcod_conductor')?.value || '',
+            tplaca: document.getElementById('tplaca')?.value || '',
             tmotivo_traslado: this._getFieldValue('tmotivo_traslado', ''),
-            tcencos_dest:     cencosDestinoFormulario,
-            tfecfac:          this._getFieldValue('tfecfac', ''),
-            tuser:            (() => {
+            tcencos_dest: cencosDestinoFormulario,
+            tfecfac: this._getFieldValue('tfecfac', ''),
+            tuser: (() => {
                 try {
                     const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
-                    return usuario.codigo ?? usuario.id ?? 'ADMIN';
+                    // Usamos las llaves reales que acabas de ver en la consola
+                    return usuario.username || usuario.id_usuario || 'ADMIN';
                 } catch {
                     return 'ADMIN';
                 }
             })(),
-            detalle:          detallePayload,
+            detalle: detallePayload,
         };
 
         let guardadoExitoso = false;
@@ -3130,9 +3131,9 @@ class MovimientoAlmacenController extends Component {
     // ── Utilidades ────────────────────────────────────────────────────────────
 
     async _resetFormulario() {
-        this.tregActual  = null;
+        this.tregActual = null;
         this.modoEdicion = false;
-        this.detalle     = [];
+        this.detalle = [];
         this._productoActual = null;
         this._lotes = [];
         this._kardexBase = { qstock: 0, pstock: 0, cosuni: 0, vstock: 0 };
@@ -3164,10 +3165,10 @@ class MovimientoAlmacenController extends Component {
         this._actualizarCombosBuscablesFormulario({ recargarOpciones: true });
 
         // Deshabilitar todos los grupos condicionales al inicio
-        ['grupo-emidoc','grupo-guia','grupo-motivo','grupo-cencos',
-         'grupo-ordcom','grupo-observacion','grupo-moneda','grupo-tipo-cambio'].forEach(id => {
-            this._toggleCampo(id, false);
-        });
+        ['grupo-emidoc', 'grupo-guia', 'grupo-motivo', 'grupo-cencos',
+            'grupo-ordcom', 'grupo-observacion', 'grupo-moneda', 'grupo-tipo-cambio'].forEach(id => {
+                this._toggleCampo(id, false);
+            });
 
         // Enfocar el primer campo después de reset
         setTimeout(() => {
@@ -3209,12 +3210,12 @@ class MovimientoAlmacenController extends Component {
     }
 
     _limpiarCamposGrid() {
-        ['grid-tcodigo','grid-tcantid','grid-tpreuni',
-         'grid-tpeso','grid-tnumlot','grid-tlote',
-         'grid-tcencos','grid-tctabal'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
+        ['grid-tcodigo', 'grid-tcantid', 'grid-tpreuni',
+            'grid-tpeso', 'grid-tnumlot', 'grid-tlote',
+            'grid-tcencos', 'grid-tctabal'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
         this._productoActual = null;
         this._lotes = [];
 
@@ -3306,7 +3307,7 @@ class MovimientoAlmacenController extends Component {
         }
 
         // Agregar evento para mostrar solo el código cuando se selecciona
-        sel.addEventListener('change', function() {
+        sel.addEventListener('change', function () {
             if (this.value && this.searchableSelectInstance) {
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption && this.searchableSelectInstance.displayField) {
@@ -3528,8 +3529,8 @@ class MovimientoAlmacenController extends Component {
     // Equivalente al Redondear() del VBA
     _redondear(numero) {
         const parteEntera = Math.floor(numero);
-        const decimales   = (numero - parteEntera).toFixed(3).substring(2); // 3 dígitos
-        let dos    = parseInt(decimales.substring(0, 2));
+        const decimales = (numero - parteEntera).toFixed(3).substring(2); // 3 dígitos
+        let dos = parseInt(decimales.substring(0, 2));
         const tres = parseInt(decimales[2]);
         if (tres >= 5) {
             dos += 1;
