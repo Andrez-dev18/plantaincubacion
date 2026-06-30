@@ -113,6 +113,18 @@ try {
     // ========================================
     $reporteTransaccionesRoutes = require_once __DIR__ . '/../routes/reporteTransacciones.php';
     $reporteTransaccionesRoutes($container);
+
+    // ========================================
+    // MÓDULO: REPORTE DE STOCK
+    // ========================================
+    $reporteStockRoutes = require_once __DIR__ . '/../routes/reporteStock.php';
+    $reporteStockRoutes($container);
+
+    // ========================================
+    // MÓDULO: REPORTE DE KARDEX
+    // ========================================
+    $reporteKardexRoutes = require_once __DIR__ . '/../routes/reporteKardex.php';
+    $reporteKardexRoutes($container);
     
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';

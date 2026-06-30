@@ -26,6 +26,8 @@ try {
     require_once __DIR__ . '/repositories/SimulacionEscenariosRepository.php';
     require_once __DIR__ . '/repositories/MovimientoAlmacenRepository.php';
     require_once __DIR__ . '/repositories/ReporteTransaccionesRepository.php';
+    require_once __DIR__ . '/repositories/ReporteStockRepository.php';
+    require_once __DIR__ . '/repositories/ReporteKardexRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php';
@@ -41,6 +43,8 @@ try {
     require_once __DIR__ . '/services/SimulacionEscenariosService.php';
     require_once __DIR__ . '/services/MovimientoAlmacenService.php';
     require_once __DIR__ . '/services/ReporteTransaccionService.php';
+    require_once __DIR__ . '/services/ReporteStockService.php';
+    require_once __DIR__ . '/services/ReporteKardexService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php';
@@ -57,6 +61,8 @@ try {
     require_once __DIR__ . '/controllers/UsuarioAdminController.php';
     require_once __DIR__ . '/controllers/MovimientoAlmacenController.php';
     require_once __DIR__ . '/controllers/ReporteTransaccionController.php';
+    require_once __DIR__ . '/controllers/ReporteStockController.php';
+    require_once __DIR__ . '/controllers/ReporteKardexController.php';
 
     // 1. Crear conexión (raíz del grafo) - Patrón Singleton
     $db = Database::getInstance()->getConnection();
@@ -89,6 +95,8 @@ try {
     $usuarioAdminService = new UsuarioAdminService($usuarioRepository, $rolRepository);
     $movimientoAlmacenService = new MovimientoAlmacenService($db);
     $reporteTransaccionService = new ReporteTransaccionService($db);
+    $reporteStockService = new ReporteStockService($db);
+    $reporteKardexService = new ReporteKardexService($db);
 
     // 4. Crear controladores (nivel externo - dependen de servicios o $db)
     // NOTA: Los nuevos controladores (UsuarioController, RolController, UsuarioRolController, NavegacionController)
@@ -106,6 +114,8 @@ try {
     $usuarioAdminController = new UsuarioAdminController($usuarioAdminService);
     $movimientoAlmacenController = new MovimientoAlmacenController($movimientoAlmacenService);
     $reporteTransaccionController = new ReporteTransaccionController($db);
+    $reporteStockController = new ReporteStockController($db);
+    $reporteKardexController = new ReporteKardexController($db);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -124,6 +134,8 @@ try {
             'movimientoAlmacen' => $movimientoAlmacenController,
             'usuarioSistema' => $usuarioSistemaController,
             'reporteTransaccion' => $reporteTransaccionController,
+            'reporteStock' => $reporteStockController,
+            'reporteKardex' => $reporteKardexController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -149,7 +161,9 @@ try {
             'rol' => $rolRepository,
             'permiso' => $permisoRepository,
             'movimientoAlmacen' => $movimientoAlmacenRepository,
-            'reporteTransacciones' => new ReporteTransaccionesRepository($db)
+            'reporteTransacciones' => new ReporteTransaccionesRepository($db),
+            'reporteStock' => new ReporteStockRepository($db),
+            'reporteKardex' => new ReporteKardexRepository($db)
         ]
     ];
 } catch (Exception $e) {
