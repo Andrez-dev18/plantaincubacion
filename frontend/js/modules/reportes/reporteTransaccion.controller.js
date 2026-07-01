@@ -358,7 +358,7 @@ class ReporteTransaccionController {
         const tdTotalCosto = document.getElementById('totalCosto');
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="13" class="px-3 py-8 text-center text-gray-500">No se encontraron transacciones para los filtros aplicados.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="14" class="px-3 py-8 text-center text-gray-500">No se encontraron transacciones para los filtros aplicados.</td></tr>`;
             if (tdTotalCantidad) tdTotalCantidad.textContent = '0.00';
             if (tdTotalCosto) tdTotalCosto.textContent = '0.00';
             return;
@@ -399,7 +399,7 @@ class ReporteTransaccionController {
             const trSub = document.createElement('tr');
             trSub.className = "bg-gray-50 border-y border-gray-300 font-bold text-gray-900 shadow-sm";
             trSub.innerHTML = `
-            <td colspan="8" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">
+            <td colspan="9" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">
                 TOTALES POR ${agruparPor.replace('_', ' ')} : <span class="ml-2 font-black">${labelTexto}</span>
             </td>
             <td class="px-3 py-2.5 text-right text-blue-700 font-black">${formatNum(cant, 2)}</td>
@@ -424,7 +424,7 @@ class ReporteTransaccionController {
 
             if (agruparPor === 'PRODUCTO') {
                 valorControlFila = item.codigo;
-                labelParaMostrar = item.descripcion;
+                labelParaMostrar = item.descripcion || 'SIN DESCRIPCIÓN';
             } else if (agruparPor === 'ZONA_DESTINO') {
                 valorControlFila = item.cc_dest;
                 labelParaMostrar = item.cc_dest || 'SIN ZONA';
@@ -472,6 +472,7 @@ class ReporteTransaccionController {
             const codigo = item.codigo || '';
             const descripcion = item.descripcion || '';
             const ccDest = item.cc_dest || '';
+            const lote = item.lote || '';
 
             // Aplicamos formatNum a cada celda numérica con sus respectivos decimales
             tr.innerHTML = `
@@ -482,6 +483,7 @@ class ReporteTransaccionController {
             <td class="px-3 py-2 max-w-xs truncate" title="${provCli}">${provCli}</td>
             <td class="px-3 py-2 text-center">${cencos}</td>
             <td class="px-3 py-2 font-mono">${codigo}</td>
+            <td class="px-3 py-2 font-mono">${lote}</td>
             <td class="px-3 py-2 max-w-sm truncate" title="${descripcion}">${descripcion}</td>
             <td class="px-3 py-2 text-right font-bold text-blue-700">${formatNum(cantidad, 2)}</td>
             <td class="px-3 py-2 text-right">${formatNum(cUnitFila, 3)}</td> 

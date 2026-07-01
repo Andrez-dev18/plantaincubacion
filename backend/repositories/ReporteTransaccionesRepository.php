@@ -111,6 +111,7 @@ class ReporteTransaccionesRepository
                     a.tcencos AS cencos,
                     a.tcodigo AS codigo,
                     b.descri AS descripcion,
+                    a.tlote AS lote,
                     a.tcantid AS cantidad,
                     ROUND((CAST(a.tkardex AS DECIMAL(18,6)) / NULLIF(CAST(a.tcantid AS DECIMAL(18,6)), 0)), 3) AS c_unit,
                     a.tkardex AS c_kardex,

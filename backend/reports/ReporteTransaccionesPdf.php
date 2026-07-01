@@ -10,7 +10,7 @@ class ReporteTransaccionesPdf extends FPDF
     public function Header()
     {
         // ── BARRA AZUL PRINCIPAL REFINADA (Ancho total 277mm) ──
-        $this->SetFillColor(37, 99, 235); // Azul Real de tu segunda foto
+        $this->SetFillColor(37, 99, 235);
         $this->Rect(10, 10, 277, 10, 'F');
 
         $this->SetTextColor(255, 255, 255);
@@ -39,18 +39,21 @@ class ReporteTransaccionesPdf extends FPDF
         // ── CABECERAS DE LA TABLA ESTILO WEB ──
         $this->SetFillColor(37, 99, 235);
         $this->SetTextColor(255, 255, 255);
-        $this->SetDrawColor(255, 255, 255); // Bordes blancos temporales para separar las cabeceras
+        $this->SetDrawColor(255, 255, 255);
         $this->SetFont('Arial', 'B', 7.5);
 
+        // Ajuste matemático de columnas: Se restó un total de 15mm a las 
+        // columnas de texto para dárselos a la columna LOTE (14+20+10+23+40+13+15+15+32 = 182mm)
         $cols = [
-            ['FECHA', 15],
-            ['NRO. DOC', 22],
+            ['FECHA', 14],
+            ['NRO. DOC', 20],
             ['REF', 10],
-            ['COD. PRO', 25],
-            ['PROVEEDOR / CLIENTE', 45],
-            ['CENCOS', 15],
+            ['COD. PRO', 23],
+            ['PROVEEDOR / CLIENTE', 40],
+            ['CENCOS', 13],
             ['CÓDIGO', 15],
-            ['DESCRIPCIÓN', 35],
+            ['LOTE', 15],
+            ['DESCRIPCIÓN', 32],
             ['CANTIDAD', 20],
             ['C. UNIT', 20],
             ['C. KARDEX', 20],
@@ -66,16 +69,14 @@ class ReporteTransaccionesPdf extends FPDF
 
     public function exportarPDF($filtros, $data)
     {
-        // Formatear rango de fechas de forma elegante
         $this->fechaRango = ($filtros['fechaInicio'] ?? '') . ' al ' . ($filtros['fechaFin'] ?? '');
         $this->transaccionNombre = !empty($filtros['transaccionNombre']) ? $filtros['transaccionNombre'] : 'TODAS';
 
         $this->AddPage('L', 'A4');
         $this->SetFont('Arial', '', 7.5);
 
-        // Cambiar el color de dibujo a un gris muy sutil para la cuadrícula interna
         $this->SetDrawColor(229, 231, 235);
-        $this->SetTextColor(55, 65, 81); // Gris oscuro elegante para el texto plano
+        $this->SetTextColor(55, 65, 81); 
 
         $sumaCantidad = 0;
         $sumaCUnit = 0;
@@ -118,23 +119,25 @@ class ReporteTransaccionesPdf extends FPDF
                 $subtotalCKardex += $cKardex;
                 $subtotalCosto += $cTotal;
 
-                // Restablecer color de cuadrícula sutil antes de cada fila
                 $this->SetDrawColor(229, 231, 235);
                 $this->SetTextColor(55, 65, 81);
 
-                // Filas normales de datos con bordes grises
-                $this->Cell(15, 5.5, $item['fecha_formato'] ?? '', 1, 0, 'C');
-                $this->Cell(22, 5.5, $item['nro_doc'] ?? '', 1, 0, 'C');
+                $this->Cell(14, 5.5, $item['fecha_formato'] ?? '', 1, 0, 'C');
+                $this->Cell(20, 5.5, $item['nro_doc'] ?? '', 1, 0, 'C');
                 $this->Cell(10, 5.5, '0', 1, 0, 'C');
-                $this->Cell(25, 5.5, $item['cod_pro'] ?? '', 1, 0, 'C');
-                $this->Cell(45, 5.5, ' ' . substr(utf8_decode($item['proveedor_cliente'] ?? ''), 0, 28), 1, 0, 'L');
-                $this->Cell(15, 5.5, $item['cencos'] ?? '', 1, 0, 'C');
+                $this->Cell(23, 5.5, $item['cod_pro'] ?? '', 1, 0, 'C');
+                $this->Cell(40, 5.5, ' ' . substr(utf8_decode($item['proveedor_cliente'] ?? ''), 0, 25), 1, 0, 'L');
+                $this->Cell(13, 5.5, $item['cencos'] ?? '', 1, 0, 'C');
                 $this->Cell(15, 5.5, $item['codigo'] ?? '', 1, 0, 'C');
-                $this->Cell(35, 5.5, ' ' . substr(utf8_decode($item['descripcion'] ?? ''), 0, 24), 1, 0, 'L');
+                
+                // ── LA COLUMNA DE LOTE ──
+                $lote = !empty($item['lote']) ? $item['lote'] : '00000000';
+                $this->Cell(15, 5.5, $lote, 1, 0, 'C');
+                
+                $this->Cell(32, 5.5, ' ' . substr(utf8_decode($item['descripcion'] ?? 'SIN DESCRIPCIÓN'), 0, 20), 1, 0, 'L');
 
-                // Formato numérico idéntico a la grilla web
                 $this->Cell(20, 5.5, number_format($cantidad, 2), 1, 0, 'R');
-                $this->Cell(20, 6, number_format($cUnit, 3), 1, 0, 'R');
+                $this->Cell(20, 5.5, number_format($cUnit, 3), 1, 0, 'R');
                 $this->Cell(20, 5.5, number_format($cKardex, 3), 1, 0, 'R');
                 $this->Cell(20, 5.5, number_format($cTotal, 3), 1, 0, 'R');
                 $this->Cell(15, 5.5, $item['cc_dest'] ?? '', 1, 1, 'C');
@@ -145,11 +148,12 @@ class ReporteTransaccionesPdf extends FPDF
             }
 
             // ── ✅ EL TOTAL GENERAL DE CIERRE ──
-            $this->SetFillColor(30, 64, 175); // Azul oscuro principal para el gran cierre
+            $this->SetFillColor(30, 64, 175); 
             $this->SetDrawColor(30, 64, 175);
-            $this->SetTextColor(255, 255, 255); // Texto blanco
+            $this->SetTextColor(255, 255, 255); 
             $this->SetFont('Arial', 'B', 8);
 
+            // El bloque de 182mm abarca exactamente desde Fecha hasta Descripción
             $this->Cell(182, 6.5, utf8_decode("TOTAL GENERAL :"), 1, 0, 'R', true);
             $this->Cell(20, 6.5, number_format($sumaCantidad, 2), 1, 0, 'R', true);
             $this->Cell(20, 6.5, number_format($sumaCUnit, 3), 1, 0, 'R', true);
@@ -164,35 +168,30 @@ class ReporteTransaccionesPdf extends FPDF
 
     private function imprimirSubtotal($fecha, $cant, $unit, $kardex, $costo)
     {
-        $this->SetFillColor(248, 250, 252); // Fondo gris azulado ultra sutil
-        $this->SetDrawColor(229, 231, 235); // Mantener la cuadrícula sutil
-        $this->SetTextColor(15, 23, 42);    // Texto pizarra
+        $this->SetFillColor(248, 250, 252); 
+        $this->SetDrawColor(229, 231, 235); 
+        $this->SetTextColor(15, 23, 42);    
         $this->SetFont('Arial', 'B', 7.5);
 
         $fechaParaMostrar = $fecha;
         if (strpos($fecha, '/') !== false) {
             $partes = explode('/', $fecha);
-            // Tomamos el año actual del sistema o el año del filtro
             $anio = date('Y');
             $fechaParaMostrar = $partes[1] . '/' . $partes[0] . '/' . $anio;
         }
 
         $this->Cell(182, 6, utf8_decode("TOTALES POR FECHA :  ") . $fechaParaMostrar, 1, 0, 'R', true);
 
-        // Cantidad (Azul)
         $this->SetTextColor(29, 78, 216);
         $this->Cell(20, 6, number_format($cant, 2), 1, 0, 'R', true);
 
-        // Costos (Negro Pizarra)
         $this->SetTextColor(15, 23, 42);
         $this->Cell(20, 6, number_format($unit, 3), 1, 0, 'R', true);
         $this->Cell(20, 6, number_format($kardex, 3), 1, 0, 'R', true);
         $this->Cell(20, 6, number_format($costo, 3), 1, 0, 'R', true);
 
-        // CC DEST (Vacío)
         $this->Cell(15, 6, '', 1, 1, 'R', true);
 
-        // Reestablecer font normal para las filas de datos siguientes
         $this->SetFont('Arial', '', 7.5);
     }
 }
