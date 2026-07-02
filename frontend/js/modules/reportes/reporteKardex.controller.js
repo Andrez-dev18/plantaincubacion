@@ -144,10 +144,10 @@ class ReporteKardexController {
             if (response && response.success) {
                 // Capturamos el texto del almacén seleccionado
                 const selectZona = document.getElementById('filterZonaAlmacen');
-                const almacenNombre = selectZona && selectZona.selectedIndex >= 0 
-                    ? selectZona.options[selectZona.selectedIndex].text 
+                const almacenNombre = selectZona && selectZona.selectedIndex >= 0
+                    ? selectZona.options[selectZona.selectedIndex].text
                     : '';
-                
+
                 this.renderizarTabla(response.data, filtros.formato, almacenNombre);
             } else {
                 this.mostrarNotificacion(response?.message || 'Error al obtener los datos de KARDEX', 'error');
@@ -165,176 +165,166 @@ class ReporteKardexController {
         const tbody = document.querySelector('#tablaKardex tbody');
 
         if (!data || data.length === 0) {
-            // El colspan cambia a 11 columnas (Valor/Peso) o 7 (Cantidad)
-            const colspanEmpty = (formato === 'VALOR' || formato === 'PESO') ? 11 : 7;
-            tbody.innerHTML = `<tr><td colspan="${colspanEmpty}" class="px-3 py-8 text-center text-gray-500">No se encontraron movimientos en el Kardex para los filtros aplicados.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="14" class="px-3 py-8 text-center text-gray-500">No se encontraron movimientos en el Kardex para los filtros aplicados.</td></tr>`;
             return;
         }
 
         const formatNum = (num, decimals = 2) => {
             if (num === '' || num === null || num === undefined) return '';
-            return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num);
+            const n = parseFloat(num) || 0;
+            const fixed = Math.abs(n) < 0.000001 ? 0 : n;
+            return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(fixed);
         };
 
-        // ── 1. RECONSTRUCCIÓN DINÁMICA DE CABECERAS PARA KARDEX ──
-        if (formato === 'VALOR' || formato === 'PESO') {
-            const tituloSeccion = formato === 'VALOR' ? 'VALORADO' : 'PESO';
-            thead.innerHTML = `
-                <tr>
-                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">FECHA</th>
-                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">CODTRA</th>
-                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">NRO. DOC</th>
-                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-left align-middle">DESCRIPCION</th>
-                    <th colspan="3" class="px-3 py-1 bg-blue-800 border-b border-l border-gray-300 text-center tracking-widest"><--- UNIDADES ---></th>
-                    <th colspan="4" class="px-3 py-1 bg-blue-900 border-b border-l border-gray-300 text-center tracking-widest"><--- ${tituloSeccion} ---></th>
-                </tr>
-                <tr>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-l border-gray-300 text-right">ENTRADA</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-gray-300 text-right">SALIDA</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-gray-300 text-right">STOCK</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-l border-gray-300 text-right">ENTRADA</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-gray-300 text-right">SALIDA</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-gray-300 text-right">STOCK</th>
-                    <th class="px-3 py-1.5 bg-blue-700 border-b border-gray-300 text-right">VA_UNT</th>
-                </tr>
-            `;
-        } else {
-            // Cabecera simplificada para "CANTIDAD"
-            thead.innerHTML = `
-                <tr>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">FECHA</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">CODTRA</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">NRO. DOC</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">DESCRIPCION</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-l border-gray-300 text-right">ENTRADA</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">SALIDA</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">STOCK</th>
-                </tr>
-            `;
-        }
+        // ── CABECERA FIJA: UNIDADES + PESO + IMPORTE ──
+        thead.innerHTML = `
+        <tr>
+            <th rowspan="2" class="px-2 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle text-xs">FECHA</th>
+            <th rowspan="2" class="px-2 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle text-xs">NRO.DOC</th>
+            <th rowspan="2" class="px-2 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle text-xs">CODTRA</th>
+            <th rowspan="2" class="px-2 py-2 bg-blue-700 border-b border-gray-300 text-left align-middle text-xs">DESCRIPCION</th>
+            <th colspan="3" class="px-2 py-1 bg-blue-800 border-b border-l border-gray-300 text-center text-xs tracking-widest">UNIDADES</th>
+            <th colspan="3" class="px-2 py-1 bg-blue-900 border-b border-l border-gray-300 text-center text-xs tracking-widest">PESO</th>
+            <th colspan="3" class="px-2 py-1 bg-blue-800 border-b border-l border-gray-300 text-center text-xs tracking-widest">IMPORTE</th>
+            <th rowspan="2" class="px-2 py-1 bg-blue-900 border-b border-l border-gray-300 text-center align-middle text-xs">COS.UNIT</th>
+        </tr>
+        <tr>
+            <th class="px-2 py-1 bg-blue-700 border-b border-l border-gray-300 text-right text-xs">ENTRADA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">SALIDA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">STOCK</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-l border-gray-300 text-right text-xs">ENTRADA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">SALIDA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">STOCK</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-l border-gray-300 text-right text-xs">ENTRADA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">SALIDA</th>
+            <th class="px-2 py-1 bg-blue-700 border-b border-gray-300 text-right text-xs">STOCK</th>
+        </tr>
+    `;
 
         const fragment = document.createDocumentFragment();
+        let codigoActual = '';
 
-        // ── 2. ITERACIÓN SOBRE EL ARREGLO DE PRODUCTOS ──
         data.forEach(producto => {
+            const colspan = 14;
 
-            // A. Fila de Título del Producto (Gris)
-            const trHeader = document.createElement('tr');
-            trHeader.className = "bg-gray-200/60 font-bold text-gray-900 border-y border-gray-300";
-            const colspanProd = (formato === 'VALOR' || formato === 'PESO') ? 11 : 7;
-            
-            trHeader.innerHTML = `
-                <td colspan="${colspanProd}" class="px-3 py-2 uppercase tracking-wider text-sm">
+            // ── CABECERA DE PRODUCTO (solo cuando cambia el código) ──
+            if (codigoActual !== producto.codigo) {
+                const trHeader = document.createElement('tr');
+                trHeader.className = "bg-gray-200/60 font-bold text-gray-900 border-y border-gray-300";
+                trHeader.innerHTML = `
+                <td colspan="${colspan}" class="px-3 py-2 uppercase tracking-wider text-sm">
                     <div class="text-xs text-gray-500 mb-0.5">ALMACÉN: ${almacenNombre}</div>
-                    <div class="text-xs text-blue-800 font-black tracking-tight">${producto.codigo} - ${producto.descripcion}</div>
-                    <div class="text-xs text-gray-500 mt-0.5">LOTE: ${producto.lote}</div>
+                    <div class="text-base text-blue-800 font-black tracking-tight">${producto.codigo} - ${producto.descripcion}</div>
                 </td>
             `;
-            fragment.appendChild(trHeader);
+                fragment.appendChild(trHeader);
+                codigoActual = producto.codigo;
+            }
 
-            // B. Fila de Saldo Inicial
+            // ── SUB-CABECERA DE LOTE ──
+            const textoLote = (producto.lote && producto.lote !== '00000000') ? producto.lote : '';
+            if (textoLote) {
+                const trLote = document.createElement('tr');
+                trLote.className = "bg-white font-bold text-gray-900 border-b border-gray-100";
+                trLote.innerHTML = `<td colspan="${colspan}" class="px-3 pt-4 pb-1 text-sm font-black text-gray-800">${textoLote}</td>`;
+                fragment.appendChild(trLote);
+            }
+
+            // ── FILA SALDO INICIAL ──
             const trSaldo = document.createElement('tr');
             trSaldo.className = "bg-gray-50 border-b border-gray-200 text-gray-800 font-semibold";
-            let saldoExt = formato === 'PESO' ? producto.saldo_inicial.peso : producto.saldo_inicial.val;
-
-            if (formato === 'VALOR' || formato === 'PESO') {
-                trSaldo.innerHTML = `
-                    <td colspan="4" class="px-3 py-2 text-right uppercase tracking-widest text-xs pr-8">SALDO:</td>
-                    <td class="px-3 py-2 border-l border-gray-200"></td>
-                    <td class="px-3 py-2"></td>
-                    <td class="px-3 py-2 text-right font-black">${formatNum(producto.saldo_inicial.cant)}</td>
-                    <td class="px-3 py-2 border-l border-gray-200"></td>
-                    <td class="px-3 py-2"></td>
-                    <td class="px-3 py-2 text-right font-black">${formatNum(saldoExt)}</td>
-                    <td class="px-3 py-2 text-right text-gray-500">${formatNum(producto.saldo_inicial.pu)}</td>
-                `;
-            } else {
-                trSaldo.innerHTML = `
-                    <td colspan="4" class="px-3 py-2 text-right uppercase tracking-widest text-xs pr-8">SALDO:</td>
-                    <td class="px-3 py-2 border-l border-gray-200"></td>
-                    <td class="px-3 py-2"></td>
-                    <td class="px-3 py-2 text-right font-black">${formatNum(producto.saldo_inicial.cant)}</td>
-                `;
-            }
+            trSaldo.innerHTML = `
+            <td colspan="4" class="px-3 py-2 text-right uppercase tracking-widest text-xs pr-8">SALDO:</td>
+            <td class="px-2 py-2 border-l border-gray-200"></td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2 py-2 text-right font-black">${formatNum(producto.saldo_inicial.cant)}</td>
+            <td class="px-2 py-2 border-l border-gray-200"></td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2 py-2 text-right font-black">${formatNum(producto.saldo_inicial.peso)}</td>
+            <td class="px-2 py-2 border-l border-gray-200"></td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2 py-2 text-right font-black">${formatNum(producto.saldo_inicial.val)}</td>
+            <td class="px-2 py-2 text-right text-gray-500">${formatNum(producto.saldo_inicial.pu)}</td>
+        `;
             fragment.appendChild(trSaldo);
 
-            // ── ACUMULADORES PARA LA FILA FINAL DE TOTALES ──
+            // ── ACUMULADORES ──
             let sumEntCant = 0, sumSalCant = 0;
-            let sumEntExt = 0, sumSalExt = 0;
+            let sumEntPeso = 0, sumSalPeso = 0;
+            let sumEntVal = 0, sumSalVal = 0;
 
-            // C. Iteración sobre los Movimientos (Detalle)
+            // ── DETALLE DE MOVIMIENTOS ──
             producto.detalle.forEach(mov => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50/40 transition-colors text-gray-700";
-
                 let fechaFormateada = mov.fecha;
                 if (fechaFormateada && fechaFormateada.includes('-')) {
                     const partes = fechaFormateada.split('-');
                     fechaFormateada = `${partes[2]}/${partes[1]}`;
                 }
 
-                let entExt = formato === 'PESO' ? mov.ent_peso : mov.ent_val;
-                let salExt = formato === 'PESO' ? mov.sal_peso : mov.sal_val;
-                let stoExt = formato === 'PESO' ? mov.sto_peso : mov.sto_val;
+                const descriMov = (mov.nomref && mov.nomref.trim() !== '') ? mov.nomref.substring(0, 30) : mov.descri;
 
-                // Sumamos a los acumuladores globales del producto
                 sumEntCant += mov.ent_cant;
                 sumSalCant += mov.sal_cant;
-                sumEntExt += entExt;
-                sumSalExt += salExt;
+                sumEntPeso += mov.ent_peso;
+                sumSalPeso += mov.sal_peso;
+                sumEntVal += mov.ent_val;
+                sumSalVal += mov.sal_val;
 
-                // ── SOLUCIÓN 3: MEJORANDO LA DESCRIPCIÓN ──
-                const descriMov = (mov.nomref && mov.nomref.trim() !== '') ? mov.nomref.substring(0, 25) : mov.descri;
+                // 1. Verificar si hay algún número negativo en toda la fila
+                const hasNegative = [
+                    mov.ent_cant, mov.sal_cant, mov.sto_cant,
+                    mov.ent_peso, mov.sal_peso, mov.sto_peso,
+                    mov.ent_val, mov.sal_val, mov.sto_val, mov.pu
+                ].some(val => val < 0);
 
-                if (formato === 'VALOR' || formato === 'PESO') {
-                    tr.innerHTML = `
-                        <td class="px-3 py-2 text-center whitespace-nowrap">${fechaFormateada}</td>
-                        <td class="px-3 py-2 text-center font-mono">${mov.codtra}</td>
-                        <td class="px-3 py-2 text-center">${mov.tnumfac || ''}</td> 
-                        <td class="px-3 py-2 max-w-[220px] truncate" title="${descriMov}">${descriMov}</td>
-                        <td class="px-3 py-2 text-right border-l border-gray-100 text-blue-700">${mov.ent_cant > 0 ? formatNum(mov.ent_cant) : ''}</td>
-                        <td class="px-3 py-2 text-right text-red-600">${mov.sal_cant > 0 ? formatNum(mov.sal_cant) : ''}</td>
-                        <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(mov.sto_cant)}</td>
-                        <td class="px-3 py-2 text-right border-l border-gray-100 text-blue-700">${entExt > 0 ? formatNum(entExt) : ''}</td>
-                        <td class="px-3 py-2 text-right text-red-600">${salExt > 0 ? formatNum(salExt) : ''}</td>
-                        <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(stoExt)}</td>
-                        <td class="px-3 py-2 text-right text-gray-500">${formatNum(mov.pu)}</td>
-                    `;
-                } else {
-                    tr.innerHTML = `
-                        <td class="px-3 py-2 text-center whitespace-nowrap">${fechaFormateada}</td>
-                        <td class="px-3 py-2 text-center font-mono">${mov.codtra}</td>
-                        <td class="px-3 py-2 text-center">${mov.tnumfac || ''}</td>
-                        <td class="px-3 py-2 max-w-[220px] truncate" title="${descriMov}">${descriMov}</td>
-                        <td class="px-3 py-2 text-right border-l border-gray-100 text-blue-700">${mov.ent_cant > 0 ? formatNum(mov.ent_cant) : ''}</td>
-                        <td class="px-3 py-2 text-right text-red-600">${mov.sal_cant > 0 ? formatNum(mov.sal_cant) : ''}</td>
-                        <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(mov.sto_cant)}</td>
-                    `;
-                }
+                // 2. Asignar fondo amarillo si hay negativos
+                const tr = document.createElement('tr');
+                tr.className = hasNegative
+                    ? "bg-yellow-100 hover:bg-yellow-200 transition-colors text-gray-800"
+                    : "hover:bg-blue-50/40 transition-colors text-gray-700";
+
+                // 3. Helpers para colores de texto y mostrar vacíos cuando es 0
+                const colorVal = (val, defaultClass) => val < 0 ? 'text-red-600 font-black' : defaultClass;
+                const showVal = (val) => val !== 0 ? formatNum(val) : '';
+
+                tr.innerHTML = `
+                <td class="px-2 py-1.5 text-center whitespace-nowrap text-xs">${fechaFormateada}</td>
+                <td class="px-2 py-1.5 text-center text-xs">${mov.tnumfac || ''}</td>
+                <td class="px-2 py-1.5 text-center font-mono text-xs">${mov.codtra}</td>
+                <td class="px-2 py-1.5 max-w-[180px] truncate text-xs" title="${descriMov}">${descriMov}</td>
+
+                <td class="px-2 py-1.5 text-right border-l border-gray-100 text-xs ${colorVal(mov.ent_cant, 'text-blue-700')}">${showVal(mov.ent_cant)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sal_cant, 'text-red-600')}">${showVal(mov.sal_cant)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sto_cant, 'font-bold text-gray-900')}">${formatNum(mov.sto_cant)}</td>
+
+                <td class="px-2 py-1.5 text-right border-l border-gray-100 text-xs ${colorVal(mov.ent_peso, 'text-blue-700')}">${showVal(mov.ent_peso)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sal_peso, 'text-red-600')}">${showVal(mov.sal_peso)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sto_peso, 'font-bold text-gray-900')}">${formatNum(mov.sto_peso)}</td>
+
+                <td class="px-2 py-1.5 text-right border-l border-gray-100 text-xs ${colorVal(mov.ent_val, 'text-blue-700')}">${showVal(mov.ent_val)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sal_val, 'text-red-600')}">${showVal(mov.sal_val)}</td>
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.sto_val, 'font-bold text-gray-900')}">${formatNum(mov.sto_val)}</td>
+
+                <td class="px-2 py-1.5 text-right text-xs ${colorVal(mov.pu, 'text-gray-500')}">${formatNum(mov.pu)}</td>
+            `;
                 fragment.appendChild(tr);
             });
 
-            // ── SOLUCIÓN 4: FILA FINAL DE TOTALES ──
+            // ── FILA TOTALES ──
             const trTotal = document.createElement('tr');
             trTotal.className = "bg-white text-gray-900 font-bold";
-            if (formato === 'VALOR' || formato === 'PESO') {
-                trTotal.innerHTML = `
-                    <td colspan="4" class="px-3 py-2 text-right"></td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-blue-700">${sumEntCant > 0 ? formatNum(sumEntCant) : ''}</td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-red-600">${sumSalCant > 0 ? formatNum(sumSalCant) : ''}</td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900"></td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-blue-700">${sumEntExt > 0 ? formatNum(sumEntExt) : ''}</td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-red-600">${sumSalExt > 0 ? formatNum(sumSalExt) : ''}</td>
-                    <td colspan="2" class="px-3 py-2 border-t border-gray-900"></td>
-                `;
-            } else {
-                trTotal.innerHTML = `
-                    <td colspan="4" class="px-3 py-2 text-right"></td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-blue-700">${sumEntCant > 0 ? formatNum(sumEntCant) : ''}</td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900 text-red-600">${sumSalCant > 0 ? formatNum(sumSalCant) : ''}</td>
-                    <td class="px-3 py-2 text-right border-t border-gray-900"></td>
-                `;
-            }
+            trTotal.innerHTML = `
+            <td colspan="4" class="px-3 py-2"></td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-blue-700 text-xs">${sumEntCant > 0 ? formatNum(sumEntCant) : ''}</td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-red-600 text-xs">${sumSalCant > 0 ? formatNum(sumSalCant) : ''}</td>
+            <td class="px-2 py-2 border-t border-gray-900"></td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-blue-700 text-xs">${sumEntPeso > 0 ? formatNum(sumEntPeso) : ''}</td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-red-600 text-xs">${sumSalPeso > 0 ? formatNum(sumSalPeso) : ''}</td>
+            <td class="px-2 py-2 border-t border-gray-900"></td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-blue-700 text-xs">${sumEntVal > 0 ? formatNum(sumEntVal) : ''}</td>
+            <td class="px-2 py-2 text-right border-t border-gray-900 text-red-600 text-xs">${sumSalVal > 0 ? formatNum(sumSalVal) : ''}</td>
+            <td colspan="2" class="px-2 py-2 border-t border-gray-900"></td>
+        `;
             fragment.appendChild(trTotal);
         });
 
@@ -508,9 +498,6 @@ class ReporteKardexController {
             this.combosDinamicos['codigos'].reset();
         }
 
-        const selectFormato = document.getElementById('filterFormato');
-        if (selectFormato) selectFormato.value = 'UNIDADES';
-
         const selectQuiebre = document.getElementById('filterQuiebre');
         if (selectQuiebre) selectQuiebre.value = 'ALMACEN';
 
@@ -535,12 +522,12 @@ class ReporteKardexController {
 
     obtenerFiltros() {
         const fechas = this.getFechasFiltro();
-        
+
         const selectZona = document.getElementById('filterZonaAlmacen');
         const zona = selectZona?.value || '010';
         // Capturamos el nombre completo (Ej: "010 - ALM LA JOYA")
-        const almacenNombre = selectZona && selectZona.selectedIndex >= 0 
-            ? selectZona.options[selectZona.selectedIndex].text 
+        const almacenNombre = selectZona && selectZona.selectedIndex >= 0
+            ? selectZona.options[selectZona.selectedIndex].text
             : '010';
 
         const lineasSelect = document.getElementById('filterLineas');
@@ -549,23 +536,14 @@ class ReporteKardexController {
         const codigosSelect = document.getElementById('filterCodigos');
         const codigosValores = codigosSelect ? Array.from(codigosSelect.selectedOptions).map(o => o.value).filter(v => v !== '') : [];
 
-        let formato = 'VALOR'; // Por defecto
-        
-        const selectFormato = document.getElementById('filterFormato');
-        
-        if (selectFormato && selectFormato.value) {
-            // Extrae el valor seleccionado (VALOR, PESO, o CANTIDAD) y lo pasa a mayúsculas
-            formato = selectFormato.value.toUpperCase();
-        }
 
         return {
             fechaInicio: fechas.inicio,
             fechaFin: fechas.fin,
             zona: zona,
-            almacenNombre: almacenNombre, // <-- Nuevo dato enviado
+            almacenNombre: almacenNombre,
             lineasValores: lineasValores.join(','),
             codigosValores: codigosValores.join(','),
-            formato: formato
         };
     }
 }

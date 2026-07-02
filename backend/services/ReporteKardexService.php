@@ -36,55 +36,58 @@ class ReporteKardexService
 
         $kardexAgrupado = [];
 
-        // 0. PRE-CARGAR PRODUCTOS DESDE LOS SALDOS INICIALES
-        foreach ($saldosIniciales as $codigo => $saldo) {
-            $kardexAgrupado[$codigo] = [
-                'codigo'      => $codigo,
+        // 0. PRE-CARGAR LOTES DESDE LOS SALDOS INICIALES
+        foreach ($saldosIniciales as $llave => $saldo) {
+            $kardexAgrupado[$llave] = [
+                'codigo'      => $saldo['codigo'],
                 'descripcion' => $saldo['item_descri'] ?? 'SIN DESCRIPCION',
-                'lote'        => '00000000',
+                'lote'        => !empty($saldo['lote']) ? $saldo['lote'] : '00000000',
                 'movimientos' => []
             ];
         }
 
-        // 1. Agrupar movimientos por producto
+        // 1. Agrupar movimientos en sus respectivos lotes
         foreach ($movimientosCrudos as $row) {
             $codigo = $row['tcodigo'];
-            if (!isset($kardexAgrupado[$codigo])) {
-                $kardexAgrupado[$codigo] = [
+            $lote = !empty($row['tlote']) ? $row['tlote'] : '00000000';
+            $llave = $codigo . '|' . $lote;
+
+            if (!isset($kardexAgrupado[$llave])) {
+                $kardexAgrupado[$llave] = [
                     'codigo'      => $codigo,
-                    'descripcion' => $row['item_descri'],
-                    'lote'        => $row['tlote'] ?? '00000000',
+                    'descripcion' => $row['item_descri'] ?? 'SIN DESCRIPCION',
+                    'lote'        => $lote,
                     'movimientos' => []
                 ];
-            } else {
-                // Si ya existía, actualizamos el lote por si acaso viene en los movimientos
-                $kardexAgrupado[$codigo]['lote'] = $row['tlote'] ?? $kardexAgrupado[$codigo]['lote'];
             }
-            $kardexAgrupado[$codigo]['movimientos'][] = $row;
+            $kardexAgrupado[$llave]['movimientos'][] = $row;
         }
 
         $resultadoFinal = [];
 
-        // 2. Procesar las sumas matemáticas (Running Totales)
-        foreach ($kardexAgrupado as $codigo => $dataProducto) {
-            $saldoData = $saldosIniciales[$codigo] ?? null;
+        // 2. Procesar las sumas matemáticas
+        foreach ($kardexAgrupado as $llave => $dataProducto) {
+            $stockFisico = 0; // = tpeso  (lo que FoxPro muestra como "unidades")
+            $stockValor  = 0; // = tkardex
+            $stockPeso   = 0; // = tcantid (peso real en kg/sacos según tu sistema)
 
-            $stockFisico = 0;
-            $stockValor = 0;
-            $stockPeso = 0;
+            $saldoData = $saldosIniciales[$llave] ?? null;
 
             if ($saldoData) {
+                // cant_dia_cero = piniano = tpeso acumulado (unidades FoxPro)
+                // peso_dia_cero = qiniano = tcantid acumulado
+                // Los mov_cant_hist/mov_peso_hist también están intercambiados en el repo
                 $stockFisico = round((float)$saldoData['cant_dia_cero'] + (float)$saldoData['mov_cant_hist'], 4);
-                $stockValor  = round((float)$saldoData['val_dia_cero'] + (float)$saldoData['mov_val_hist'], 4);
+                $stockValor  = round((float)$saldoData['val_dia_cero']  + (float)$saldoData['mov_val_hist'],  4);
                 $stockPeso   = round((float)$saldoData['peso_dia_cero'] + (float)$saldoData['mov_peso_hist'], 4);
             }
 
             $puInicial = ($stockFisico != 0) ? round($stockValor / $stockFisico, 4) : 0;
 
             $productoFinal = [
-                'codigo' => $codigo,
+                'codigo'      => $dataProducto['codigo'],
                 'descripcion' => $dataProducto['descripcion'],
-                'lote' => $dataProducto['lote'],
+                'lote'        => $dataProducto['lote'],
                 'saldo_inicial' => [
                     'cant' => $stockFisico,
                     'val'  => $stockValor,
@@ -94,13 +97,15 @@ class ReporteKardexService
                 'detalle' => []
             ];
 
-            // Iterar movimientos
+            // 3. Iterar movimientos del lote
             foreach ($dataProducto['movimientos'] as $mov) {
                 $esEntrada = (strtoupper(substr($mov['tcodtra'], 0, 1)) === 'E');
 
-                $cant = (float)$mov['tcantid'];
-                $val = (float)$mov['tkardex'];
-                $peso = (float)$mov['tpeso'];
+                // mov_cant = tpeso  (unidades FoxPro)
+                // mov_peso = tcantid (peso real)
+                $cant  = (float)$mov['mov_cant'];
+                $val   = (float)$mov['tkardex'];
+                $peso  = (float)$mov['mov_peso'];
 
                 if ($esEntrada) {
                     $stockFisico += $cant;
@@ -117,26 +122,19 @@ class ReporteKardexService
                 $productoFinal['detalle'][] = [
                     'fecha'    => $mov['tfectra'],
                     'codtra'   => $mov['tcodtra'],
-                    
-                    'tnumfac'  => $mov['tnumfac'], 
-                    // LEEMOS LOS ALIAS EXACTOS QUE CREAMOS EN EL SQL
+                    'tnumfac'  => $mov['tnumfac'],
                     'docref'   => $mov['codcen'] ?? '',
                     'nomref'   => $mov['NOM'] ?? '',
                     'descri'   => $mov['tra_descri'],
-                    
                     'ent_cant' => $esEntrada ? $cant : 0,
                     'sal_cant' => !$esEntrada ? $cant : 0,
                     'sto_cant' => round($stockFisico, 4),
-
                     'ent_val'  => $esEntrada ? $val : 0,
                     'sal_val'  => !$esEntrada ? $val : 0,
                     'sto_val'  => round($stockValor, 4),
-                    
-
                     'ent_peso' => $esEntrada ? $peso : 0,
                     'sal_peso' => !$esEntrada ? $peso : 0,
                     'sto_peso' => round($stockPeso, 4),
-
                     'pu'       => $puActual
                 ];
             }
