@@ -15,7 +15,7 @@ class ReporteStockRepository
             FROM alma AS c
             INNER JOIN mzon AS z ON c.codalm = z.alma
             WHERE c.codalm IS NOT NULL AND c.codalm != '' AND c.descri IS NOT NULL AND c.descri != ''
-            ORDER BY c.descri ASC";
+            ORDER BY c.codalm ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -60,14 +60,10 @@ class ReporteStockRepository
         $params[':fechaInicio'] = $fechaInicio;
         $params[':fechaFin'] = $fechaFin;
 
-        // ── LA CONSULTA MAESTRA ──
-        $agruparLote = !empty($filtros['agruparPorLote']) && $filtros['agruparPorLote'] == 'SI';
-        $columnaLote = $agruparLote ? "a.tlote AS lote," : "'00000000' AS lote,";
-
         $sql = "SELECT 
                     b.codigo,
                     b.descri AS descripcion,
-                    $columnaLote
+                    IFNULL(a.tlote, '00000000') AS lote,
                     b.lin AS linea_codigo,
                     f.descri AS linea_descri,
                     b.ctacar AS cuenta_codigo,
@@ -158,24 +154,18 @@ class ReporteStockRepository
             $sql .= " AND b.codigo IN ($placeholders) ";
         }
 
-        if ($agruparLote) {
-            $sql .= " GROUP BY b.codigo, b.descri, b.lin, f.descri, b.ctacar, e.descri, COALESCE(a.talm, z.alma), c.descri, z.qiniano, z.viniano, z.piniano, a.tlote ";
-        } else {
-            $sql .= " GROUP BY b.codigo, b.descri, b.lin, f.descri, b.ctacar, e.descri, COALESCE(a.talm, z.alma), c.descri, z.qiniano, z.viniano, z.piniano ";
-        }
+        // ── AGRUPACIÓN FIJA POR LOTE ──
+        $sql .= " GROUP BY b.codigo, b.descri, b.lin, f.descri, b.ctacar, e.descri, COALESCE(a.talm, z.alma), c.descri, z.qiniano, z.viniano, z.piniano, IFNULL(a.tlote, '00000000') ";
 
-        // El orden dependerá del QUIEBRE seleccionado
+        // ── ORDENAMIENTO FIJO POR LOTE ──
         $quiebre = $filtros['quiebre'] ?? 'ALMACEN';
+        
         if ($quiebre === 'LINEA') {
-            $sql .= " ORDER BY b.lin ASC, b.codigo ASC ";
+            $sql .= " ORDER BY b.lin ASC, b.codigo ASC, lote ASC, stock_dia_cero ASC, entrada_unidades ASC ";
         } elseif ($quiebre === 'CUENTA') {
-            $sql .= " ORDER BY b.ctacar ASC, b.codigo ASC ";
+            $sql .= " ORDER BY b.ctacar ASC, b.codigo ASC, lote ASC, stock_dia_cero ASC, entrada_unidades ASC ";
         } else {
-            if ($agruparLote) {
-                $sql .= " ORDER BY alma_codigo ASC, b.codigo ASC, a.tlote ASC ";
-            } else {
-                $sql .= " ORDER BY alma_codigo ASC, b.codigo ASC "; // Por defecto ALMACEN
-            }
+            $sql .= " ORDER BY alma_codigo ASC, b.codigo ASC, lote ASC, stock_dia_cero ASC, entrada_unidades ASC "; 
         }
 
         $stmt = $this->db->prepare($sql);

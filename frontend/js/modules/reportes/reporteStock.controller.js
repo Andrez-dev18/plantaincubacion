@@ -145,7 +145,8 @@ class ReporteStockController {
             const response = await this.stockService.getReporteStock(filtros);
 
             if (response && response.success) {
-                this.renderizarTabla(response.data, filtros.quiebre, filtros.formato, filtros.agruparPorLote);
+                // Ya no pasamos agruparPorLote, el backend debe traerlo siempre
+                this.renderizarTabla(response.data, filtros.quiebre, filtros.formato);
             } else {
                 this.mostrarNotificacion(response?.message || 'Error al obtener los datos de stock', 'error');
             }
@@ -157,22 +158,23 @@ class ReporteStockController {
         }
     }
 
-    renderizarTabla(data, quiebre, formato, agruparPorLote = 'NO') {
+    renderizarTabla(data, quiebre, formato) {
         const thead = document.querySelector('#tablaStock thead');
         const tbody = document.querySelector('#tablaStock tbody');
 
-        // Determinamos cuántas columnas ocupa la tabla según el formato
-        let colspanTabla = 9; // Por defecto UNIDADES
-        if (formato === 'VALOR' || formato === 'PESO') colspanTabla = 11;
-        if (formato === 'RESUMEN') colspanTabla = 5;
+        // Sumamos 1 columna extra (Lote) a todos los formatos
+        let colspanTabla = 10;
+        if (formato === 'VALOR' || formato === 'PESO') colspanTabla = 12;
+        if (formato === 'RESUMEN') colspanTabla = 6;
 
-        // ── 1. RECONSTRUCCIÓN DINÁMICA DE CABECERAS ──
+        // ── 1. RECONSTRUCCIÓN DINÁMICA DE CABECERAS (AGREGANDO COLUMNA LOTE) ──
         if (formato === 'VALOR' || formato === 'PESO') {
             const tituloSeccion = formato === 'VALOR' ? 'VALOR' : 'PESO';
             thead.innerHTML = `
                 <tr>
                     <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">Codigo</th>
                     <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-left align-middle">Descripcion</th>
+                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">Lote</th>
                     <th colspan="4" class="px-3 py-1 bg-blue-800 border-b border-l border-gray-300 text-center tracking-widest"><--- CANTIDAD ---></th>
                     <th colspan="5" class="px-3 py-1 bg-blue-900 border-b border-l border-gray-300 text-center tracking-widest"><--- ${tituloSeccion} ---></th>
                 </tr>
@@ -193,6 +195,7 @@ class ReporteStockController {
                 <tr>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Codigo</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
+                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Lote</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Stock Unidade</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Stock Valorado</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Prec</th>
@@ -203,6 +206,7 @@ class ReporteStockController {
                 <tr>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Codigo</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
+                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Lote</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Inicio</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Entrada</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Consumo</th>
@@ -246,13 +250,14 @@ class ReporteStockController {
             let sIniExt = esGeneral ? totIniExt : subIniExt; let sEntExt = esGeneral ? totEntExt : subEntExt;
             let sSalExt = esGeneral ? totSalExt : subSalExt; let sStoExt = esGeneral ? totStoExt : subStoExt;
 
+            // El colspan del título ahora es 3 (Código, Descripción y Lote)
             if (formato === 'VALOR' || formato === 'PESO') {
                 if (formato === 'PESO') {
                     if (sIniExt === 0) sIniExt = ''; if (sEntExt === 0) sEntExt = '';
                     if (sSalExt === 0) sSalExt = ''; if (sStoExt === 0) sStoExt = '';
                 }
                 tr.innerHTML = `
-                    <td colspan="2" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
+                    <td colspan="3" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
                     <td class="px-3 py-2.5 text-right border-l border-gray-200">${formatNum(sIniU, 2)}</td>
                     <td class="px-3 py-2.5 text-right text-blue-700">${formatNum(sEntU, 2)}</td>
                     <td class="px-3 py-2.5 text-right text-red-600">${formatNum(sSalU, 2)}</td>
@@ -265,14 +270,14 @@ class ReporteStockController {
                 `;
             } else if (formato === 'RESUMEN') {
                 tr.innerHTML = `
-                    <td colspan="2" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
+                    <td colspan="3" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
                     <td class="px-3 py-2.5 text-right font-black">${formatNum(sStoU, 2)}</td>
                     <td class="px-3 py-2.5 text-right font-black">${formatNum(sStoExt, 2)}</td>
                     <td class="px-3 py-2.5 text-right"></td>
                 `;
             } else {
                 tr.innerHTML = `
-                    <td colspan="2" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
+                    <td colspan="3" class="px-3 py-2.5 text-right uppercase tracking-wider text-xs">${titulo}</td>
                     <td class="px-3 py-2.5 text-right">${formatNum(sIniU, 2)}</td>
                     <td class="px-3 py-2.5 text-right text-blue-700">${formatNum(sEntU, 2)}</td>
                     <td class="px-3 py-2.5 text-right text-red-600">${formatNum(sSalU, 2)}</td>
@@ -316,51 +321,53 @@ class ReporteStockController {
             subIniExt += parseFloat(iniExt) || 0; subEntExt += parseFloat(entExt) || 0; subSalExt += parseFloat(salExt) || 0; subStoExt += parseFloat(stoExt) || 0;
             totIniExt += parseFloat(iniExt) || 0; totEntExt += parseFloat(entExt) || 0; totSalExt += parseFloat(salExt) || 0; totStoExt += parseFloat(stoExt) || 0;
 
+            // ── LÓGICA DE NEGATIVOS Y COLORES ──
+            const valsToCheck = [item.inicio_u, item.entrada_u, item.salida_u, item.stock_u, iniExt, entExt, salExt, stoExt, item.precio_promedio];
+            const hasNegative = valsToCheck.some(val => (parseFloat(val) || 0) < -0.000001);
+
+            const colorVal = (val, defaultClass) => (parseFloat(val) || 0) < -0.000001 ? 'text-red-600 font-black' : defaultClass;
+            const loteTexto = item.lote && item.lote !== '00000000' ? item.lote : '00000000';
+
             const tr = document.createElement('tr');
-            tr.className = "hover:bg-blue-50/40 transition-colors";
+            tr.className = hasNegative
+                ? "bg-yellow-100 hover:bg-yellow-200 transition-colors text-gray-800"
+                : "hover:bg-blue-50/40 transition-colors text-gray-700";
 
             if (formato === 'VALOR' || formato === 'PESO') {
                 tr.innerHTML = `
-                    <td class="px-3 py-2 font-mono text-center font-semibold text-gray-700">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">
-    <div>${item.descripcion}</div>
-    ${agruparPorLote === 'SI' ? `<div class="text-[10px] text-purple-600 font-semibold tracking-wide mt-0.5">LOTE: ${item.lote || '00000000'}</div>` : ''}
-</td>
-                    <td class="px-3 py-2 text-right border-l border-gray-100">${formatNum(item.inicio_u, 2)}</td>
-                    <td class="px-3 py-2 text-right text-blue-700 font-medium">${formatNum(item.entrada_u, 2)}</td>
-                    <td class="px-3 py-2 text-right text-red-600 font-medium">${formatNum(item.salida_u, 2)}</td>
-                    <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(item.stock_u, 2)}</td>
-                    <td class="px-3 py-2 text-right border-l border-gray-100">${formatNum(iniExt, 2)}</td>
-                    <td class="px-3 py-2 text-right text-blue-700 font-medium">${formatNum(entExt, 2)}</td>
-                    <td class="px-3 py-2 text-right text-red-600 font-medium">${formatNum(salExt, 2)}</td>
-                    <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(stoExt, 2)}</td>
-                    <td class="px-3 py-2 text-right text-gray-500">${formatNum(item.precio_promedio, 2)}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 text-right border-l border-gray-100 ${colorVal(item.inicio_u, '')}">${formatNum(item.inicio_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.entrada_u, 'text-blue-700 font-medium')}">${formatNum(item.entrada_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.salida_u, 'text-red-600 font-medium')}">${formatNum(item.salida_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.stock_u, 'font-bold text-gray-900')}">${formatNum(item.stock_u, 2)}</td>
+                    <td class="px-3 py-2 text-right border-l border-gray-100 ${colorVal(iniExt, '')}">${formatNum(iniExt, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(entExt, 'text-blue-700 font-medium')}">${formatNum(entExt, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(salExt, 'text-red-600 font-medium')}">${formatNum(salExt, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(stoExt, 'font-bold text-gray-900')}">${formatNum(stoExt, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.precio_promedio, 'text-gray-500')}">${formatNum(item.precio_promedio, 2)}</td>
                 `;
             } else if (formato === 'RESUMEN') {
-                // FoxPro no pinta el promedio si el stock es cero en esta vista
                 const promFormat = (parseFloat(item.stock_u) === 0 && parseFloat(item.precio_promedio) === 0) ? '' : formatNum(item.precio_promedio, 2);
                 tr.innerHTML = `
-                    <td class="px-3 py-2 font-mono text-center font-semibold text-gray-700">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">
-    <div>${item.descripcion}</div>
-    ${agruparPorLote === 'SI' ? `<div class="text-[10px] text-purple-600 font-semibold tracking-wide mt-0.5">LOTE: ${item.lote || '00000000'}</div>` : ''}
-</td>
-                    <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(item.stock_u, 2)}</td>
-                    <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(item.stock_v, 2)}</td>
-                    <td class="px-3 py-2 text-right text-gray-500">${promFormat}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.stock_u, 'font-bold text-gray-900')}">${formatNum(item.stock_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.stock_v, 'font-bold text-gray-900')}">${formatNum(item.stock_v, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.precio_promedio, 'text-gray-500')}">${promFormat}</td>
                 `;
             } else {
                 tr.innerHTML = `
-                    <td class="px-3 py-2 font-mono text-center font-semibold text-gray-700">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">
-    <div>${item.descripcion}</div>
-    ${agruparPorLote === 'SI' ? `<div class="text-[10px] text-purple-600 font-semibold tracking-wide mt-0.5">LOTE: ${item.lote || '00000000'}</div>` : ''}
-</td>
-                    <td class="px-3 py-2 text-right">${formatNum(item.inicio_u, 2)}</td>
-                    <td class="px-3 py-2 text-right text-blue-700 font-medium">${formatNum(item.entrada_u, 2)}</td>
-                    <td class="px-3 py-2 text-right text-red-600 font-medium">${formatNum(item.salida_u, 2)}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
+                    <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.inicio_u, '')}">${formatNum(item.inicio_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.entrada_u, 'text-blue-700 font-medium')}">${formatNum(item.entrada_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.salida_u, 'text-red-600 font-medium')}">${formatNum(item.salida_u, 2)}</td>
                     <td class="px-3 py-2 text-right text-gray-400">0.00</td>
-                    <td class="px-3 py-2 text-right font-bold text-gray-900">${formatNum(item.stock_u, 2)}</td>
+                    <td class="px-3 py-2 text-right ${colorVal(item.stock_u, 'font-bold text-gray-900')}">${formatNum(item.stock_u, 2)}</td>
                     <td class="px-3 py-2 text-right text-gray-400">0.00</td>
                     <td class="px-3 py-2 text-right text-gray-400">0.00</td>
                 `;
@@ -549,8 +556,6 @@ class ReporteStockController {
         const selectQuiebre = document.getElementById('filterQuiebre');
         if (selectQuiebre) selectQuiebre.value = 'ALMACEN';
 
-        const selectAgruparLote = document.getElementById('filterAgruparLote');
-        if (selectAgruparLote) selectAgruparLote.value = 'NO';
 
         if (this.dataTable) this.dataTable.search('');
     }
@@ -583,7 +588,6 @@ class ReporteStockController {
 
         const formato = document.getElementById('filterFormato')?.value || 'RESUMEN';
         const quiebre = document.getElementById('filterQuiebre')?.value || 'ALMACEN';
-        const agruparPorLote = document.getElementById('filterAgruparLote')?.value || 'NO';
 
         return {
             fechaInicio: fechas.inicio,
@@ -592,8 +596,7 @@ class ReporteStockController {
             lineasValores: lineasValores.join(','),
             codigosValores: codigosValores.join(','),
             formato: formato,
-            quiebre: quiebre,
-            agruparPorLote: agruparPorLote
+            quiebre: quiebre
         };
     }
 }
