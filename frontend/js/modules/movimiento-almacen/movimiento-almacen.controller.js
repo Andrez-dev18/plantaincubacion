@@ -37,6 +37,10 @@ class MovimientoAlmacenController extends Component {
             urlBase: '',
             formato: 'a4'
         };
+
+        this._draftKey = 'draft_movimiento_almacen_v1';
+        this._autoSaveDraft = this._debounce(() => this._guardarBorradorLocal(), 1500);
+
     }
 
     _setFieldValue(id, value) {
@@ -136,15 +140,10 @@ class MovimientoAlmacenController extends Component {
     }
 
     async init() {
-        // Inicializar SearchableSelects PRIMERO (antes de cargar datos)
         this._initSearchableSelects();
         this._initFormNavigation();
-
-        // Asegurar fecha actual visible incluso si la carga inicial falla.
         this._aplicarFechaActualPorDefecto();
 
-        // Luego cargar los datos
-        // Promise.allSettled: si algún endpoint falla, los demás siguen cargando
         const resultados = await Promise.allSettled([
             this._cargarAlmacenes(),
             this._cargarTransacciones(),
@@ -162,8 +161,12 @@ class MovimientoAlmacenController extends Component {
         });
 
         this._bindEventos();
-        this._bindFocusProductoListener(); // Agregar listener después de cargar todo
-        this._resetFormulario();
+        this._bindFocusProductoListener();
+
+        // AQUÍ ESTÁ EL CAMBIO: Le pasamos 'true' (isInit)
+        await this._resetFormulario(true);
+
+        setTimeout(() => this._verificarBorrador(), 500);
     }
 
     // ── Inicializar selectores con búsqueda ──────────────────────────────────
@@ -668,6 +671,13 @@ class MovimientoAlmacenController extends Component {
     // ── Binding de eventos ───────────────────────────────────────────────────
 
     _bindEventos() {
+
+        const form = document.getElementById('form-movimiento');
+        if (form) {
+            form.addEventListener('input', () => this._autoSaveDraft());
+            form.addEventListener('change', () => this._autoSaveDraft());
+        }
+
         const bind = (id, eventName, handler) => {
             const el = document.getElementById(id);
             if (el) el.addEventListener(eventName, handler);
@@ -2507,6 +2517,7 @@ class MovimientoAlmacenController extends Component {
         this._renderGrid();
         this._limpiarCamposGrid();
         this._actualizarTotales();
+        this._autoSaveDraft();
     }
 
     _eliminarItemGrid(idx) {
@@ -2514,6 +2525,7 @@ class MovimientoAlmacenController extends Component {
         this._renderGrid();
         this._actualizarTotales();
         this._recalcularResumenStockSegunContexto();
+        this._autoSaveDraft();
     }
 
     async _cambiarItemGrid(idx) {
@@ -2538,6 +2550,7 @@ class MovimientoAlmacenController extends Component {
                 selectProducto.searchableSelectInstance.loadOptions();
                 selectProducto.searchableSelectInstance.updateDisplayText();
             }
+            this._autoSaveDraft();
         }
 
         const alma = document.getElementById('talm')?.value || '';
@@ -2728,6 +2741,8 @@ class MovimientoAlmacenController extends Component {
             this._popupSuccess(`${res.data.mensaje} - Registro #${res.data.treg}`);
             guardadoExitoso = true;
 
+            sessionStorage.removeItem(this._draftKey);
+
             if (imprimirDespues) {
                 await this._imprimirMovimientoGuardado({
                     treg: res.data.treg,
@@ -2772,6 +2787,7 @@ class MovimientoAlmacenController extends Component {
         this.detalle = [];
         this._renderGrid();
         this._actualizarTotales();
+        this._autoSaveDraft();
     }
 
     // ── Ver movimientos ───────────────────────────────────────────────────────
@@ -3130,7 +3146,7 @@ class MovimientoAlmacenController extends Component {
 
     // ── Utilidades ────────────────────────────────────────────────────────────
 
-    async _resetFormulario() {
+    async _resetFormulario(isInit = false) {
         this.tregActual = null;
         this.modoEdicion = false;
         this.detalle = [];
@@ -3142,9 +3158,7 @@ class MovimientoAlmacenController extends Component {
         document.getElementById('form-movimiento').reset();
         this._ocultarSeccionItems({ immediate: true });
 
-        // Establecer la fecha actual por defecto en zona horaria local
         this._aplicarFechaActualPorDefecto(true);
-        // Cargar el nuevo número de registro
         try {
             const resReg = await this.service.getNuevoReg();
             this._setFieldValue('treg', resReg.data.treg);
@@ -3164,22 +3178,23 @@ class MovimientoAlmacenController extends Component {
 
         this._actualizarCombosBuscablesFormulario({ recargarOpciones: true });
 
-        // Deshabilitar todos los grupos condicionales al inicio
         ['grupo-emidoc', 'grupo-guia', 'grupo-motivo', 'grupo-cencos',
             'grupo-ordcom', 'grupo-observacion', 'grupo-moneda', 'grupo-tipo-cambio'].forEach(id => {
                 this._toggleCampo(id, false);
             });
 
-        // Enfocar el primer campo después de reset
         setTimeout(() => {
             const primerCampo = document.getElementById('tfectra');
             if (primerCampo) {
                 primerCampo.focus();
                 primerCampo.select();
-                // Hacer scroll al inicio del formulario
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }, 100);
+
+        if (!isInit) {
+            sessionStorage.removeItem(this._draftKey);
+        }
     }
 
     _refrescarComboBuscable(selectEl, { recargarOpciones = false } = {}) {
@@ -3562,6 +3577,105 @@ class MovimientoAlmacenController extends Component {
             fechaDocumento.value = hoy;
         }
     }
+
+    // ── GESTIÓN DE BORRADORES (SESSION STORAGE) ──────────────────────────────
+
+    _guardarBorradorLocal() {
+        // No autoguardamos si estamos editando un movimiento ya existente
+        if (this.modoEdicion || this.tregActual) return;
+
+        const draft = {
+            tfectra: this._getFieldValue('tfectra', ''),
+            talm: this._getFieldValue('talm', ''),
+            tcodtra: this._getFieldValue('tcodtra', ''),
+            talr: this._getFieldValue('talr', ''),
+            tcencos_dest: this._getFieldValue('tcencos_dest', ''),
+            tprocli: this._getFieldValue('tprocli', ''),
+            tdoc: this._getFieldValue('tdoc', ''),
+            tserie: this._getFieldValue('tserie', ''),
+            tnumfac: this._getFieldValue('tnumfac', ''),
+            tfecfac: this._getFieldValue('tfecfac', ''),
+            tmon: this._getFieldValue('tmon', 'S/'),
+            tglosa: this._getFieldValue('tglosa', ''),
+            detalle: this.detalle || []
+        };
+        sessionStorage.setItem(this._draftKey, JSON.stringify(draft));
+    }
+
+    async _verificarBorrador() {
+        const draftStr = sessionStorage.getItem(this._draftKey);
+        if (!draftStr) return;
+
+        try {
+            const draft = JSON.parse(draftStr);
+            // Si el borrador está prácticamente vacío, lo ignoramos
+            if (!draft.tcodtra && (!draft.detalle || draft.detalle.length === 0)) {
+                sessionStorage.removeItem(this._draftKey);
+                return;
+            }
+
+            const isDark = document.body?.classList.contains('dark-mode');
+            const result = await window.Swal.fire({
+                title: '¿Recuperar movimiento?',
+                text: 'Se encontró un registro no guardado en tu sesión anterior.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, recuperar',
+                cancelButtonText: 'No, descartar',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#10b981', // Verde esmeralda tipo tu imagen
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                await this._restaurarBorrador(draft);
+                if (window.SwalHelpers?.showSuccess) {
+                    window.SwalHelpers.showSuccess('El movimiento ha sido restaurado.');
+                } else {
+                    window.Swal.fire({ title: 'Recuperado', text: 'La información ha sido restaurada.', icon: 'success', timer: 1500, showConfirmButton: false });
+                }
+            } else {
+                sessionStorage.removeItem(this._draftKey);
+            }
+        } catch (e) {
+            console.error('Error procesando el borrador local:', e);
+            sessionStorage.removeItem(this._draftKey);
+        }
+    }
+
+    async _restaurarBorrador(draft) {
+        this._setFieldValue('tfectra', draft.tfectra);
+        this._setFieldValue('talm', draft.talm);
+        this._setFieldValue('tcodtra', draft.tcodtra);
+        this._setFieldValue('talr', draft.talr);
+        this._setFieldValue('tcencos_dest', draft.tcencos_dest);
+        this._setFieldValue('tprocli', draft.tprocli);
+        this._setFieldValue('tdoc', draft.tdoc);
+        this._setFieldValue('tserie', draft.tserie);
+        this._setFieldValue('tnumfac', draft.tnumfac);
+        this._setFieldValue('tfecfac', draft.tfecfac);
+        this._setFieldValue('tmon', draft.tmon || 'S/');
+        this._setFieldValue('tglosa', draft.tglosa);
+
+        // Disparar lógica de UI
+        if (draft.tcodtra) this._aplicarFlagsTransaccion(draft.tcodtra);
+        this._toggleTipoCambioUI();
+
+        // Actualizar visualmente los combos de búsqueda
+        this._actualizarCombosBuscablesFormulario({ recargarOpciones: false });
+
+        // Recuperar ítems del grid
+        this.detalle = draft.detalle || [];
+        this._renderGrid();
+        this._actualizarTotales();
+
+        if (this.detalle.length > 0) {
+            this._mostrarSeccionItems({ enfocarProducto: false, abrirSelector: false });
+        }
+    }
+
 }
 
 // Instancia global accesible desde el HTML

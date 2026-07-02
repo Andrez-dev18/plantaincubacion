@@ -781,84 +781,86 @@
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
 
-            <iframe id="dashboardFrame" class="flex-1 min-h-0 w-full" src="pages/bienvenida.html"
-                onload="hideLoading()">
+            <iframe id="dashboardFrame" class="flex-1 min-h-0 w-full" src="">
             </iframe>
         </main>
     </div>
 
     <script>
-        // Toggle Sidebar
+        // =========================================================
+        // VARIABLES GLOBALES PARA RESTAURACIÓN DE ESTADO
+        // =========================================================
+        window.restauracionActiva = false;
+        window.enrutamientoActivo = new URLSearchParams(window.location.search).has('vista');
 
+        function volverAlInicio() {
+            sessionStorage.removeItem('last_dashboard_url');
+            sessionStorage.removeItem('last_dashboard_tipo');
+            sessionStorage.removeItem('last_dashboard_title');
+        }
 
-        // Load Dashboard
+        // =========================================================
+        // CARGA DE DASHBOARDS Y GUARDADO EN SESIÓN
+        // =========================================================
         function loadDashboard(url, element) {
-            // Prevenir comportamiento por defecto del enlace
             event.preventDefault();
-
-            // Mostrar loading
             showLoading();
 
-            // Actualizar menu activo
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('active');
             });
             element.classList.add('active');
 
-            // Cargar dashboard
             const frame = document.getElementById('dashboardFrame');
             frame.src = url;
 
-            // Actualizar título
             const titles = {
                 'dashboard-capturas.html': 'Capturas de Pantalla',
                 'dashboard-comercializacion.html': 'Información del Mercado'
             };
             document.getElementById('dashboardTitle').textContent = titles[url] || 'Dashboard';
 
-            // Cerrar sidebar en móvil
             if (window.innerWidth < 1024) {
                 toggleSidebarCollapse();
             }
         }
 
-        //FUNCION CLAVE PARA CARGAR LAS VENTANAS 
-        //SE LE PASA EL NOMBRE DEL ARCHIVO QUE SE DESEA CARGAR Y SI TIENE SUB TIPOS LE VAMOS EL TIPO
-        //COMO POR EJEMPLO ('DASHBOARD-COMERCIO', 'TIPOCOMERCIO')
         function loadDashboardAndData(dashboardUrl, tipo, title) {
+            // ESCUDO: Evita cargar Bienvenida si estamos restaurando un F5
+            if ((window.enrutamientoActivo || window.restauracionActiva) && (dashboardUrl === 'pages/bienvenida.html' || dashboardUrl === '')) {
+                return;
+            }
+
+            // GUARDAR ESTADO ACTIVO EN SESSION STORAGE
+            if (dashboardUrl && dashboardUrl !== 'pages/bienvenida.html') {
+                sessionStorage.setItem('last_dashboard_url', dashboardUrl);
+                sessionStorage.setItem('last_dashboard_tipo', tipo || '');
+                sessionStorage.setItem('last_dashboard_title', title || '');
+            } else if (dashboardUrl === 'pages/bienvenida.html' || dashboardUrl === '') {
+                sessionStorage.removeItem('last_dashboard_url');
+                sessionStorage.removeItem('last_dashboard_tipo');
+                sessionStorage.removeItem('last_dashboard_title');
+            }
+
             const frame = document.getElementById('dashboardFrame');
             const titulo = document.getElementById('dashboardTitle');
-            //se adiciona el dashboard al array de titulos para cargar el titulo
+            
             const titles = {
                 'dashboard-capturas.html': 'Gestion ' + title,
-                //'dashboard-comercializacion.html': title,
-                //'dashboard-vivo-arequipa.html': 'Gestion Provincia',
-                //'dashboard-vivo-provincia.html': 'Gestion Arequipa',
-
-                //'dashboard_tamanoMercado.html': 'Gestion Tamaño de Mercado',
                 'dashboard-control-objetivos.html': title,
                 'dashboard-timeline-objetivos.html': title,
                 'dashboard-confirmacion-objetivos.html': title,
                 'dashboard-tareas.html': title,
                 'pages/trabajando.html': title
-
             };
 
             titulo.textContent = titles[dashboardUrl] || title || 'Dashboard';
             showLoading();
 
-            /*Aqui tener en cuenta que el dashboard cargado debe tener la funcion
-                "cargarDatos()" esta se encarga de cargar la tabla y demas data que se
-                desea mostrar, tener en cuenta la esctructua de JS
-                dashboarh.html -> controller -> service-> config
-            */
-
             const run = () => {
                 try {
                     if (frame.contentWindow && typeof frame.contentWindow.cargarDatos === 'function') {
                         frame.contentWindow.cargarDatos(tipo);
-                    } else {
-                        /*console.error("La función cargarDatos no existe en el iframe.");*/
                     }
                 } finally {
                     hideLoading();
@@ -866,10 +868,8 @@
             };
 
             if (frame.src.includes(dashboardUrl)) {
-                // ya está cargado ese dashboard
                 run();
             } else {
-                // esperar a que el nuevo dashboard se cargue
                 frame.onload = run;
                 frame.src = dashboardUrl;
             }
@@ -877,7 +877,6 @@
             if (window.innerWidth < 1024) toggleSidebarCollapse();
         }
 
-        // Loading functions
         function showLoading() {
             document.getElementById('loadingIndicator').classList.remove('hidden');
         }
@@ -886,30 +885,16 @@
             document.getElementById('loadingIndicator').classList.add('hidden');
         }
 
-        // Responsive: cerrar sidebar al hacer clic fuera
-
-
-        // Inicializar sidebar abierto en desktop
-        if (window.innerWidth >= 1024) {
-            document.getElementById('sidebar').classList.add('open');
-        }
-
-        // limpia y marca el elemento activo y su posible padre toggle
         function markActiveElement(element) {
-            // quitar active de todos
             document.querySelectorAll('.menu-link.active, .menu-item.active, .submenu-toggle.active')
                 .forEach(el => el.classList.remove('active'));
 
             if (!element) return;
-
-            // marca el elemento clickeado (si es link o botón)
             element.classList.add('active');
 
-            // si el elemento es un link dentro de un submenu, marcar también el botón padre que abre ese submenu
             const parentToggle = findParentToggleButton(element);
             if (parentToggle) parentToggle.classList.add('active');
 
-            // además marcar el menu-group superior (si existe un .menu-item dentro del grupo)
             const menuGroup = element.closest('.menu-group');
             if (menuGroup) {
                 const topMenuItem = menuGroup.querySelector('.menu-item');
@@ -917,80 +902,34 @@
             }
         }
 
-        // buscar el botón toggle que controla el submenu donde está el elemento
         function findParentToggleButton(el) {
             let node = el;
             while (node && node !== document) {
-                // si el padre más cercano es un submenu, intentamos buscar un botón anterior en ese mismo contenedor
                 if (node.classList && node.classList.contains('submenu')) {
-                    // buscar botón previo (por ejemplo: <button ...> </button> seguido por <div class="submenu">)
                     let prev = node.previousElementSibling;
                     if (prev && prev.tagName === 'BUTTON') return prev;
                 }
                 node = node.parentElement;
             }
-
-            // alternativa: buscar un botón con clase .submenu-toggle dentro el ancestro directo
             node = el.closest('.menu-group');
             if (node) {
                 const innerToggle = node.querySelector('.submenu-toggle');
                 if (innerToggle) return innerToggle;
             }
-
             return null;
         }
 
-        // función que usan tus links (ya la tenías, la adaptamos a markActiveElement)
         function selectMenuItem(element) {
             markActiveElement(element);
         }
 
-        // función que usaremos en botones que cargan dashboard directamente
         function activateAndLoad(buttonOrLink, dashboardUrl, tipo, title) {
-            // marcar UI
             markActiveElement(buttonOrLink);
-
-            // llamar a tu función existente que carga el iframe
             loadDashboardAndData(dashboardUrl, tipo, title);
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            const contentWrapper = document.querySelector('.content-wrapper');
-
-
-            // ✅ INICIALIZAR SISTEMA DE PERMISOS PRIMERO
-            PermisosManager.init();
-            loadSidebarMenu();
-
-            // MODIFICAR DASHBOARD POR DEFECTO
-
-            // loadDashboardAndData('dashboard-comercializacion.html', 'vivo-aqp');
-            // loadDashboardAndData('dashboard-comercializacion.html', 'vivo-provincia');
-            // loadDashboardAndData('dashboard-huevo.html', 'huevo');
-
-            // Criaderos Emprendedores:
-            //loadDashboardAndData('dashboard-criadores-emprendedores.html', 'criador');
-
-            // Tamaño de Mercado:
-            // loadDashboardAndData('dashboard_tamanoMercado.html', 'tamanoMercado');
-
-            // Potencial de Venta:
-            // loadDashboardAndData('dashboard-capturas.html', 'vivo-arequipa');
-
-            const frame = document.getElementById('dashboardFrame');
-            frame.src = 'pages/bienvenida.html';
-            document.getElementById('dashboardTitle').textContent = 'Bienvenido';
-
-            // Ocultar loading cuando cargue
-            frame.onload = () => {
-                hideLoading();
-            };
-        });
-
         // =========================================================
-        // LÓGICA DE SIDEBAR, EFECTO HOVER Y RESPONSIVE (Estilo Planta Beneficio)
+        // LÓGICA DE SIDEBAR, EFECTO HOVER Y RESPONSIVE
         // =========================================================
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
@@ -998,19 +937,16 @@
 
         function initSidebar() {
             if (window.innerWidth >= 1024) {
-                // PC: Inicia siempre en modo "Hover" (no fijado y colapsado)
                 sidebar.classList.remove('pinned');
                 sidebar.classList.add('collapsed');
                 sidebar.classList.add('open');
                 if (overlay) overlay.classList.remove('active');
             } else if (window.innerWidth >= 768) {
-                // Tablet
                 sidebar.classList.add('open');
                 sidebar.classList.remove('collapsed');
                 sidebar.classList.remove('pinned');
                 if (overlay) overlay.classList.remove('active');
             } else {
-                // Móvil
                 sidebar.classList.remove('open');
                 sidebar.classList.remove('collapsed');
                 sidebar.classList.remove('pinned');
@@ -1022,7 +958,6 @@
         function syncContentMargin() {
             if (!contentWrapper) return;
             if (window.innerWidth >= 1024) {
-                // Si está fijado (pinned), empujamos el panel 350px. Si no, 140px.
                 contentWrapper.style.marginLeft = sidebar.classList.contains('pinned') ? '350px' : '140px';
             } else if (window.innerWidth >= 768) {
                 contentWrapper.style.marginLeft = sidebar.classList.contains('open') ? '140px' : '0px';
@@ -1031,32 +966,29 @@
             }
         }
 
-        // Efecto Hover (Solo para PC)
-        sidebar.addEventListener('mouseenter', () => {
-            if (window.innerWidth >= 1024) {
-                sidebar.classList.remove('collapsed'); // Crece a 350px
-            }
-        });
+        if (sidebar) {
+            sidebar.addEventListener('mouseenter', () => {
+                if (window.innerWidth >= 1024) {
+                    sidebar.classList.remove('collapsed'); 
+                }
+            });
 
-        sidebar.addEventListener('mouseleave', () => {
-            // Solo se vuelve a encoger si NO está fijado con el candado
-            if (window.innerWidth >= 1024 && !sidebar.classList.contains('pinned')) {
-                sidebar.classList.add('collapsed'); // Se achica a 140px
-            }
-        });
+            sidebar.addEventListener('mouseleave', () => {
+                if (window.innerWidth >= 1024 && !sidebar.classList.contains('pinned')) {
+                    sidebar.classList.add('collapsed'); 
+                }
+            });
+        }
 
         function toggleSidebarCollapse() {
             if (window.innerWidth >= 1024) {
-                // PC: El botón actúa como candado (Pin / Unpin)
                 sidebar.classList.toggle('pinned');
-
                 if (sidebar.classList.contains('pinned')) {
-                    sidebar.classList.remove('collapsed'); // Forzamos a quedarse abierto
+                    sidebar.classList.remove('collapsed'); 
                 } else {
-                    sidebar.classList.add('collapsed'); // Regresamos al comportamiento Hover
+                    sidebar.classList.add('collapsed'); 
                 }
             } else {
-                // Tablet / Móvil: Comportamiento normal
                 sidebar.classList.toggle('open');
                 if (window.innerWidth < 768 && overlay) {
                     overlay.classList.toggle('active', sidebar.classList.contains('open'));
@@ -1065,11 +997,81 @@
             syncContentMargin();
         }
 
-        // Escuchar cambios de pantalla e inicializar
         window.addEventListener('resize', initSidebar);
-        // Iniciar cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', initSidebar);
 
+        // =========================================================
+        // INICIALIZACIÓN (AQUÍ REVISAMOS EL F5 / RECARGA)
+        // =========================================================
+        window.addEventListener('DOMContentLoaded', async () => {
+            
+            // 1. Iniciar lógica del Sidebar (lo que me había cargado 😅)
+            initSidebar();
+
+            // 2. Iniciar permisos
+            if (typeof PermisosManager !== 'undefined') {
+                PermisosManager.init();
+            }
+            
+            // 3. Esperar a que la API cargue el menú dinámico
+            if (typeof loadSidebarMenu === 'function') {
+                await loadSidebarMenu(); 
+            }
+
+            // 4. LÓGICA DE RESTAURACIÓN CON SESSION STORAGE (Al dar F5)
+            const lastUrl = sessionStorage.getItem('last_dashboard_url');
+            const lastTipo = sessionStorage.getItem('last_dashboard_tipo');
+            const lastTitle = sessionStorage.getItem('last_dashboard_title');
+
+            if (lastUrl) {
+                window.restauracionActiva = true;
+                
+                // Cargar el iframe
+                loadDashboardAndData(lastUrl, lastTipo, lastTitle);
+
+                // Buscar el enlace activo usando el atributo data-url (asegúrate de haber hecho el PASO 1 de mi respuesta anterior)
+                const activeLink = document.querySelector(`.menu-link[data-url="${lastUrl}"]`);
+                
+                if (activeLink) {
+                    selectMenuItem(activeLink);
+
+                    // Replicar la "magia" de expandir todas las carpetas padre
+                    let currentNode = activeLink;
+                    while (currentNode && currentNode.id !== 'sidebarMenu') {
+                        if (currentNode.classList && currentNode.classList.contains('submenu')) {
+                            currentNode.classList.remove('hidden'); // Abrir submenú
+                            
+                            const btnPadre = currentNode.previousElementSibling;
+                            if (btnPadre && btnPadre.tagName === 'BUTTON') {
+                                const flechaAbajo = btnPadre.querySelector('.fa-chevron-down');
+                                const flechaDerecha = btnPadre.querySelector('.fa-chevron-right');
+                                if (flechaAbajo) flechaAbajo.classList.add('rotate-180');
+                                if (flechaDerecha) flechaDerecha.classList.add('rotate-90');
+                            }
+                        }
+                        currentNode = currentNode.parentElement;
+                    }
+
+                    // Scrollear hacia el menú seleccionado
+                    setTimeout(() => {
+                        activeLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                }
+
+                setTimeout(() => {
+                    window.restauracionActiva = false;
+                }, 500);
+
+            } else {
+                // Si no hay registro previo en SessionStorage, cargamos Bienvenida
+                const frame = document.getElementById('dashboardFrame');
+                if (frame) {
+                    frame.src = 'pages/bienvenida.html';
+                    const titulo = document.getElementById('dashboardTitle');
+                    if (titulo) titulo.textContent = 'Bienvenido';
+                    frame.onload = () => hideLoading();
+                }
+            }
+        });
     </script>
 
     <!-- Scripts Core -->
