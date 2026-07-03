@@ -29,7 +29,7 @@ class ReporteTransaccionesRepository
                 LEFT JOIN alma AS c ON a.talm = c.codalm
                 WHERE a.talm IS NOT NULL AND a.talm != '' AND c.descri IS NOT NULL AND c.descri != ''
                 GROUP BY a.talm, c.descri
-                ORDER BY c.descri ASC";
+                ORDER BY c.codalm ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

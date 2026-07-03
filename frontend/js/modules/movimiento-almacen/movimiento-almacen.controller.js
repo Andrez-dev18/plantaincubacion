@@ -2787,7 +2787,8 @@ class MovimientoAlmacenController extends Component {
         this.detalle = [];
         this._renderGrid();
         this._actualizarTotales();
-        this._autoSaveDraft();
+        
+        sessionStorage.removeItem(this._draftKey);
     }
 
     // ── Ver movimientos ───────────────────────────────────────────────────────
@@ -3608,8 +3609,8 @@ class MovimientoAlmacenController extends Component {
 
         try {
             const draft = JSON.parse(draftStr);
-            // Si el borrador está prácticamente vacío, lo ignoramos
-            if (!draft.tcodtra && (!draft.detalle || draft.detalle.length === 0)) {
+            
+            if (!draft.detalle || draft.detalle.length === 0) {
                 sessionStorage.removeItem(this._draftKey);
                 return;
             }
@@ -3624,7 +3625,7 @@ class MovimientoAlmacenController extends Component {
                 cancelButtonText: 'No, descartar',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827',
-                confirmButtonColor: '#10b981', // Verde esmeralda tipo tu imagen
+                confirmButtonColor: '#10b981', 
                 cancelButtonColor: '#6b7280',
                 reverseButtons: true
             });

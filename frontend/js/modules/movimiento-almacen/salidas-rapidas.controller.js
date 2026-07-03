@@ -21,6 +21,9 @@ const SalidasRapidas = (() => {
     let _listaFiltradaKb = [];   // snapshot de filas visibles para nav teclado
     let _selKbIdx = -1;   // fila activa en panel derecho (teclado)
 
+    const DRAFT_KEY = 'draft_salidas_rapidas_v1';
+    let _draftTimer = null;
+
     // ─────────────────────────────────────────────────────────────────
     // INIT
     // ─────────────────────────────────────────────────────────────────
@@ -40,6 +43,19 @@ const SalidasRapidas = (() => {
             nomInput.addEventListener('input', _onNombreInput);
             nomInput.addEventListener('blur', function () { setTimeout(_hideClienteDropdown, 200); });
         }
+        ['sr-alma', 'sr-alma-destino', 'sr-ruc', 'sr-nombre'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', _autoSaveDraft);
+                if (el.tagName === 'INPUT') el.addEventListener('input', _autoSaveDraft);
+            }
+        });
+        document.querySelectorAll('input[name="sr-tipo"]').forEach(el => {
+            el.addEventListener('change', _autoSaveDraft);
+        });
+
+        // [NUEVO] Verificar borrador al finalizar la carga
+        setTimeout(_verificarBorrador, 600);
     }
 
     function _fechaHoy() {
@@ -108,6 +124,92 @@ const SalidasRapidas = (() => {
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // GESTIÓN DE BORRADORES (SESSION STORAGE)
+    // ─────────────────────────────────────────────────────────────────
+    function _autoSaveDraft() {
+        clearTimeout(_draftTimer);
+        _draftTimer = setTimeout(_guardarBorrador, 1000);
+    }
+
+    function _guardarBorrador() {
+        const data = {
+            alma: document.getElementById('sr-alma')?.value || '',
+            tipo: document.querySelector('input[name="sr-tipo"]:checked')?.value || 'S003',
+            almaDest: document.getElementById('sr-alma-destino')?.value || '',
+            ruc: document.getElementById('sr-ruc')?.value || '',
+            nombre: document.getElementById('sr-nombre')?.value || '',
+            seleccion: _seleccion
+        };
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+    }
+
+    async function _verificarBorrador() {
+        const draftStr = sessionStorage.getItem(DRAFT_KEY);
+        if (!draftStr) return;
+
+        try {
+            const draft = JSON.parse(draftStr);
+            if (!draft.seleccion || draft.seleccion.length === 0) {
+                sessionStorage.removeItem(DRAFT_KEY);
+                return;
+            }
+
+            const isDark = document.body?.classList.contains('dark-mode');
+            const result = await window.Swal.fire({
+                title: '¿Recuperar salida rápida?',
+                text: 'Se encontró un borrador no guardado en tu sesión anterior.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, recuperar',
+                cancelButtonText: 'No, descartar',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                _restaurarBorrador(draft);
+                if (window.SwalHelpers?.showSuccess) window.SwalHelpers.showSuccess('La salida ha sido restaurada.');
+            } else {
+                sessionStorage.removeItem(DRAFT_KEY);
+            }
+        } catch (e) {
+            sessionStorage.removeItem(DRAFT_KEY);
+        }
+    }
+
+    function _restaurarBorrador(draft) {
+        if (draft.alma) {
+            document.getElementById('sr-alma').value = draft.alma;
+            const dispEl = document.getElementById('sr-alma-display');
+            if (dispEl) {
+                const almObj = _almacenes.find(a => a.codalm === draft.alma);
+                dispEl.value = draft.alma + ' - ' + (almObj ? almObj.descri : '');
+            }
+            _refrescarDestinoOptions();
+        }
+
+        if (draft.tipo) {
+            const rbTransfer = document.getElementById('sr-tipo-transfer');
+            const rbConsumo = document.getElementById('sr-tipo-consumo');
+            if (draft.tipo === 'S005' && rbTransfer) rbTransfer.checked = true;
+            else if (rbConsumo) rbConsumo.checked = true;
+            cambiarTipo(draft.tipo);
+        }
+
+        if (draft.almaDest) document.getElementById('sr-alma-destino').value = draft.almaDest;
+        if (draft.ruc) document.getElementById('sr-ruc').value = draft.ruc;
+        if (draft.nombre) document.getElementById('sr-nombre').value = draft.nombre;
+
+        _seleccion = draft.seleccion || [];
+        _renderSeleccion();
+        _actualizarTotal();
+        if (draft.alma) buscarProductos();
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // CAMBIAR ALMACÉN
     // ─────────────────────────────────────────────────────────────────
     function cambiarAlmacen(alma) {
@@ -132,6 +234,8 @@ const SalidasRapidas = (() => {
         _refrescarDestinoOptions();
         if (alma) buscarProductos();
         else _renderLista([]);
+
+        _autoSaveDraft()
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -251,6 +355,8 @@ const SalidasRapidas = (() => {
         _renderSeleccion();
         _actualizarTotal();
         _refreshListaMarcas();
+
+        _autoSaveDraft()
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -345,6 +451,8 @@ const SalidasRapidas = (() => {
         _editingIdx = -1;
         _renderSeleccion();
         _actualizarTotal();
+
+        _autoSaveDraft()
     }
 
     function _keyEdicion(e, idx) {
@@ -360,6 +468,8 @@ const SalidasRapidas = (() => {
         _renderSeleccion();
         _actualizarTotal();
         _refreshListaMarcas();
+
+        _autoSaveDraft()
     }
 
     function quitarSeleccionado() {
@@ -371,12 +481,20 @@ const SalidasRapidas = (() => {
     function quitarTodo() {
         if (!_seleccion.length) return;
         if (!confirm('¿Quitar todos los productos seleccionados?')) return;
+
         _seleccion = [];
         _editingIdx = -1;
         _selKbIdx = -1;
+
         _renderSeleccion();
         _actualizarTotal();
         _refreshListaMarcas();
+
+        // 1. Limpiamos cualquier autoguardado pendiente en el timer
+        clearTimeout(_draftTimer);
+
+        // 2. Eliminamos el borrador por completo del navegador
+        sessionStorage.removeItem(DRAFT_KEY);
     }
 
     function _actualizarTotal() {
@@ -613,6 +731,8 @@ const SalidasRapidas = (() => {
         if (rucEl) rucEl.value = el.dataset.code;
         if (nomEl) nomEl.value = el.dataset.nombre;
         _hideClienteDropdown();
+
+        _autoSaveDraft()
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -634,6 +754,8 @@ const SalidasRapidas = (() => {
         document.getElementById('sr-ruc').value = '';
         document.getElementById('sr-nombre').value = '';
         document.getElementById('sr-ruc').focus();
+
+        _autoSaveDraft()
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -652,6 +774,8 @@ const SalidasRapidas = (() => {
         const r1 = document.getElementById('sr-tipo-consumo');
         if (r1) { r1.checked = true; cambiarTipo('S003'); }
         await _obtenerNuevoReg();
+
+        sessionStorage.removeItem(DRAFT_KEY);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -788,6 +912,8 @@ const SalidasRapidas = (() => {
                 if (printWin) printWin.document.write('<html><body style="font-family:Arial;padding:20px;color:#555">Generando impresión&hellip;</body></html>');
 
                 await nuevo();
+
+                sessionStorage.removeItem(DRAFT_KEY);
 
                 // ── 2. PROCESO TERMINADO: CERRAMOS EL LOADING Y PARAMOS EL SPINNER ──
                 Swal.close();
