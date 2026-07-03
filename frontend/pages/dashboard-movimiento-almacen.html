@@ -207,19 +207,28 @@
                     </div>
 
                     <!-- Divisor horizontal natural -->
-                    <hr class="border-gray-200">
+                    <hr class="border-gray-200 mb-4">
 
                     <!-- SECCIÓN 2: Ítems y Tabla -->
                     <div class="p-3">
 
-                        <div id="formulario-agregar-item" class="mb-4"
+                        <div id="formulario-agregar-item" class="mb-4 transition-all"
                             style="display: none; opacity: 0; transform: translateY(-10px);">
-                            <div class="mov-row p-3 bg-white border border-gray-300 rounded-lg shadow-sm">
+                            <div
+                                class="mov-row relative px-3 pb-3 pt-7 bg-white border border-gray-300 rounded-lg shadow-sm">
+
+                                <div
+                                    class="absolute top-2 right-3 text-[10px] font-bold text-gray-400 font-mono tracking-wide z-10">
+                                    <span class="text-blue-600">[ENTER]</span> o <span class="text-blue-600">[+]</span>
+                                    AÑADIR &nbsp;|&nbsp;
+                                    <span class="text-amber-500">[C]</span> AMBIAR &nbsp;|&nbsp;
+                                    <span class="text-red-500">[A]</span> NULAR
+                                </div>
+
                                 <div class="mov-field">
                                     <label for="grid-tcencos"
                                         class="mov-label text-gray-500 font-semibold">Cencos</label>
-                                    <select id="grid-tcencos" class="input-field mov-control text-xs px-1 rounded-md"
-                                        title="Centro de Costos">
+                                    <select id="grid-tcencos" class="input-field mov-control text-xs px-1 rounded-md">
                                         <option value="">Buscar cencos...</option>
                                     </select>
                                     <span class="mov-helper mov-helper-spacer">.</span>
@@ -242,8 +251,7 @@
 
                                 <div class="mov-field">
                                     <label for="grid-tlote" class="mov-label text-gray-500 font-semibold">Lote</label>
-                                    <select id="grid-tlote" class="input-field mov-control text-xs px-1 rounded-md"
-                                        title="Lote">
+                                    <select id="grid-tlote" class="input-field mov-control text-xs px-1 rounded-md">
                                         <option value="">Buscar lote...</option>
                                     </select>
                                     <span class="mov-helper mov-helper-spacer">.</span>
@@ -254,7 +262,7 @@
                                         class="mov-label text-gray-500 font-semibold">Unidad</label>
                                     <input type="text" id="grid-tunidad"
                                         class="input-field mov-control text-[10px] bg-gray-50 border-dashed text-gray-600 text-center px-1 rounded-md"
-                                        readonly placeholder="-" title="Unidad">
+                                        readonly placeholder="-">
                                     <span class="mov-helper mov-helper-spacer">.</span>
                                 </div>
                                 <div class="mov-field">
@@ -262,14 +270,14 @@
                                         class="mov-label text-gray-500 font-semibold">Cantidad</label>
                                     <input type="number" id="grid-tcantid"
                                         class="input-field mov-control text-xs text-right font-bold text-blue-700 px-2 border-blue-400 focus:ring-blue-500 rounded-md"
-                                        step="0.001" min="0" placeholder="0.00" title="Cantidad">
+                                        step="0.001" min="0" placeholder="0.00">
                                     <span id="grid-res-cantidad" class="mov-helper text-gray-500/70">Cantidad: 0</span>
                                 </div>
                                 <div class="mov-field">
                                     <label for="grid-tpeso" class="mov-label text-gray-500 font-semibold">Peso</label>
                                     <input type="number" id="grid-tpeso"
                                         class="input-field mov-control text-xs text-right px-2 rounded-md" step="0.001"
-                                        min="0" placeholder="0.00" title="Peso">
+                                        min="0" placeholder="0.00">
                                     <span id="grid-res-peso" class="mov-helper text-gray-500/70">Peso: 0</span>
                                 </div>
                                 <div class="mov-field">
@@ -277,7 +285,7 @@
                                         class="mov-label text-gray-500 font-semibold">Precio</label>
                                     <input type="number" id="grid-tpreuni"
                                         class="input-field mov-control text-xs text-right px-2 rounded-md" step="0.01"
-                                        min="0" value="0" placeholder="0.0000" title="Precio">
+                                        min="0" value="0" placeholder="0.0000">
                                     <span id="grid-res-precio" class="mov-helper text-gray-500/70">Precio: 0</span>
                                 </div>
                                 <div class="mov-field">
@@ -285,7 +293,7 @@
                                         class="mov-label text-gray-500 font-semibold">Importe</label>
                                     <input type="number" id="grid-timport"
                                         class="input-field mov-control text-xs text-right px-2 bg-gray-50 border-dashed text-gray-600 rounded-md"
-                                        step="0.01" min="0" value="0" placeholder="0.00" title="Importe" readonly>
+                                        step="0.01" min="0" value="0" placeholder="0.00" readonly>
                                     <span id="grid-res-importe" class="mov-helper text-gray-500/70">Importe: 0</span>
                                 </div>
 
@@ -294,18 +302,27 @@
                                         (F1)</label>
                                     <input type="text" id="grid-costoabc-display"
                                         class="input-field mov-control text-xs px-2 text-center font-mono rounded-md"
-                                        maxlength="8" placeholder="00000000" title="Costo ABC">
+                                        maxlength="8" placeholder="00000000">
                                     <span id="grid-abc-ruta"
                                         class="mov-helper text-gray-500/70 font-normal whitespace-nowrap overflow-hidden text-ellipsis block max-w-full"
                                         title="Sin ruta seleccionada">Sin ruta seleccionada</span>
                                 </div>
-                                <div class="mov-action">
-                                    <span class="mov-label text-gray-400 font-mono text-right">Alt +</span>
+
+                                <div class="mov-field w-[34px] shrink-0">
+                                    <label class="mov-label text-transparent select-none">Act</label>
+                                    <input type="text" id="sr-action-input"
+                                        class="input-field mov-control text-center font-bold text-blue-600 px-0 rounded-md border-gray-300 focus:border-blue-500 focus:bg-blue-50 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder-gray-400 w-full"
+                                        maxlength="1" placeholder="↵" autocomplete="off">
+                                    <span class="mov-helper text-transparent select-none">.</span>
+                                </div>
+
+                                <div class="mov-field w-[34px] shrink-0">
+                                    <label class="mov-label text-transparent select-none">Add</label>
                                     <button type="button" id="btn-agregar-item"
-                                        class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-sm transition-all whitespace-nowrap active:transform active:scale-95">
+                                        class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md shadow-sm transition-all active:scale-95 h-[34px] w-full flex items-center justify-center">
                                         <i class="fa-solid fa-plus"></i>
                                     </button>
-                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                    <span class="mov-helper text-transparent select-none">.</span>
                                 </div>
                             </div>
                         </div>

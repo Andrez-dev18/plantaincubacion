@@ -913,13 +913,11 @@ class MovimientoAlmacenController extends Component {
                 // Flujo secuencial: Enter en ABC -> Cencos
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const cencos = document.getElementById('grid-tcencos');
-                    if (cencos?.searchableSelectInstance) {
-                        cencos.searchableSelectInstance.displayField.focus();
-                        setTimeout(() => cencos.searchableSelectInstance.open(), 50);
-                        return;
+                    const actionInput = document.getElementById('sr-action-input');
+                    if (actionInput) {
+                        actionInput.focus();
+                        actionInput.select();
                     }
-                    cencos?.focus();
                 }
             });
 
@@ -1054,6 +1052,44 @@ class MovimientoAlmacenController extends Component {
         document.addEventListener('showItemsForm', () => {
             this._mostrarSeccionItems({ enfocarProducto: false, abrirSelector: false });
         });
+
+        // [NUEVO] Atajos de teclado para la fila de ingreso (Añadir, Cambiar, Anular)
+        const actionInput = document.getElementById('sr-action-input');
+        if (actionInput) {
+            actionInput.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+
+                if (key === '+' || key === 'enter') {
+                    e.preventDefault();
+                    this._agregarItemGrid();
+                    actionInput.value = ''; // Limpiar cajita
+                } 
+                else if (key === 'c') {
+                    e.preventDefault();
+                    actionInput.value = ''; // Limpiar cajita
+                    const producto = document.getElementById('grid-buscar-producto');
+                    if (producto?.searchableSelectInstance?.displayField) {
+                        producto.searchableSelectInstance.displayField.focus();
+                        setTimeout(() => producto.searchableSelectInstance.open(), 50);
+                    } else if (producto) {
+                        producto.focus();
+                    }
+                } 
+                else if (key === 'a') {
+                    e.preventDefault();
+                    actionInput.value = ''; // Limpiar cajita
+                    this._limpiarCamposGrid();
+                }
+            });
+
+            // Evitar que letras basura queden en la cajita
+            actionInput.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                if (!['+', 'c', 'a'].includes(val)) {
+                    e.target.value = '';
+                }
+            });
+        }
 
         this._toggleRangoCodigoReporte();
     }
@@ -3228,7 +3264,7 @@ class MovimientoAlmacenController extends Component {
     _limpiarCamposGrid() {
         ['grid-tcodigo', 'grid-tcantid', 'grid-tpreuni',
             'grid-tpeso', 'grid-tnumlot', 'grid-tlote',
-            'grid-tcencos', 'grid-tctabal'].forEach(id => {
+            'grid-tcencos', 'grid-tctabal', 'grid-timport', 'grid-costoabc-display'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -3283,11 +3319,11 @@ class MovimientoAlmacenController extends Component {
 
         // Enfocar el selector de productos para agregar un nuevo ítem
         setTimeout(() => {
-            if (selectProducto) {
-                if (selectProducto.searchableSelectInstance) {
-                    selectProducto.searchableSelectInstance.displayField.focus();
+            if (selectCencos) {
+                if (selectCencos.searchableSelectInstance) {
+                    selectCencos.searchableSelectInstance.displayField.focus();
                 } else {
-                    selectProducto.focus();
+                    selectCencos.focus();
                 }
             }
         }, 100);
