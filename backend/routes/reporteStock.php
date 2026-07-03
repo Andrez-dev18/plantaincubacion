@@ -49,4 +49,9 @@ return function ($container) {
         $stockController->exportarPdf();
         exit;
     }
+
+    if ($method === 'POST' && $uri === '/api/reporte/stock/exportar-excel') {
+        $stockController->exportarExcel();
+        exit;
+    }
 };

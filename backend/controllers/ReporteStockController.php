@@ -122,4 +122,17 @@ class ReporteStockController
         $pdf->exportarPDF($filtros, $resultados);
         exit;
     }
+
+    public function exportarExcel()
+    {
+        $filtros = $_POST;
+
+        $resultados = $this->service->procesarReporteGrid($filtros);
+
+        require_once __DIR__ . '/../reports/ReporteStockExcel.php';
+        $excel = new ReporteStockExcel();
+
+        $excel->exportarExcel($filtros, $resultados);
+        exit;
+    }
 }

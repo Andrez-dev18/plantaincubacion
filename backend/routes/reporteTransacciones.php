@@ -60,4 +60,9 @@ return function ($container) {
         exit;
     }
 
+    if ($method === 'POST' && $uri === '/api/reporte/exportar-excel') {
+        $transaccionController->exportarExcel();
+        exit;
+    }
+
 };

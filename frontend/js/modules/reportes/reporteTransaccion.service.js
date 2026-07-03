@@ -60,6 +60,29 @@ class ReporteTransaccionService extends Service {
         document.body.removeChild(form);
     }
 
+    exportarReporteExcel(filtros = {}) {
+        // Creamos un formulario dinámico para enviar por POST (evita límites de URL larga)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        
+        // Magia de rutas: Reemplaza '/transacciones' por '/exportar-excel' manteniendo la base
+        // Resultado: /plantaincubacion/backend/api/reporte/exportar-excel
+        form.action = `${this.base.replace('/transacciones', '')}/exportar-excel`; 
+        form.target = '_blank'; // Abre el PDF en nueva pestaña (para descarga)
+
+        Object.keys(filtros).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; 
+            input.name = key; 
+            input.value = filtros[key];
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
 }
 
 window.ReporteTransaccionService = ReporteTransaccionService;

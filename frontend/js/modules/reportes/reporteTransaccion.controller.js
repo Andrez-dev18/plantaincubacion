@@ -319,6 +319,7 @@ class ReporteTransaccionController {
         });
         document.getElementById('btnLimpiarFiltros')?.addEventListener('click', () => this.limpiarFiltros());
         document.getElementById('btnExportarPDF')?.addEventListener('click', () => this.exportarPDF());
+        document.getElementById('btnExportarExcel')?.addEventListener('click', () => this.exportarExcel());
     }
 
     async aplicarFiltros() {
@@ -708,6 +709,22 @@ class ReporteTransaccionController {
         } catch (error) {
             console.error('Error al exportar el PDF:', error);
             this.mostrarNotificacion('Ocurrió un error al intentar abrir el PDF.', 'error');
+        }
+    }
+
+    exportarExcel() {
+        try {
+            this.mostrarNotificacion('Generando Excel, por favor espere...', 'info');
+
+            // 1. Obtenemos filtros
+            const filtros = this.obtenerFiltros();
+
+            // 2. Ejecutamos el endpoint desde el service
+            this.transaccionService.exportarReporteExcel(filtros);
+
+        } catch (error) {
+            console.error('Error al exportar el Excel:', error);
+            this.mostrarNotificacion('Ocurrió un error al intentar generar el Excel.', 'error');
         }
     }
 

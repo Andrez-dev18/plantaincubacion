@@ -208,4 +208,38 @@ class ReporteTransaccionController
         }
         exit;
     }
+
+    public function exportarExcel()
+    {
+        try {
+            require_once __DIR__ . '/../reports/ReporteTransaccionesExcel.php';
+
+            $filtros = [
+                'fechaInicio'     => $_POST['fechaInicio'] ?? '',
+                'fechaFin'        => $_POST['fechaFin'] ?? '',
+                'transaccion'     => $_POST['transaccion'] ?? '',
+                'zona'            => $_POST['zona'] ?? '',
+                'cencos'          => $_POST['cencos'] ?? '',
+                'cuentaCorriente' => $_POST['cuentaCorriente'] ?? '',
+                'lineasValores'   => $_POST['lineasValores'] ?? '',
+                'codigosValores'  => $_POST['codigosValores'] ?? '',
+                'agruparPor'      => $_POST['agruparPor'] ?? 'FECHA',
+                'transaccionNombre' => $_POST['transaccionNombre'] ?? '',
+            ];
+
+            $resultados = $this->service->generarReporteGrid($filtros);
+
+            $excel = new ReporteTransaccionesExcel();
+            $excel->exportarExcel($filtros, $resultados);
+
+        } catch (Exception $e) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al generar el Excel del reporte: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
 }

@@ -124,4 +124,17 @@ class ReporteKardexController
         $pdf->exportarPDF($filtros, $resultados);
         exit;
     }
+
+    public function exportarExcel()
+    {
+        $filtros = $_POST;
+
+        $resultados = $this->service->generarKardex($filtros);
+
+        require_once __DIR__ . '/../reports/ReporteKardexExcel.php';
+        $excel = new ReporteKardexExcel();
+
+        $excel->exportarExcel($filtros, $resultados);
+        exit;
+    }
 }

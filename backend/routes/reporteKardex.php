@@ -49,4 +49,9 @@ return function ($container) {
         $kardexController->exportarPdf();
         exit;
     }
+
+    if ($method === 'POST' && $uri === '/api/reporte/kardex/exportar-excel') {
+        $kardexController->exportarExcel();
+        exit;
+    }
 };

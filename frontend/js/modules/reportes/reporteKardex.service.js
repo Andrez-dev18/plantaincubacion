@@ -45,6 +45,27 @@ class ReporteKardexService extends Service {
         form.submit();
         document.body.removeChild(form);
     }
+
+    exportarReporteExcel(filtros = {}) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        
+        // Apunta directo a /plantaincubacion/backend/api/reporte/kardex/exportar-excel
+        form.action = `${this.base}/exportar-excel`; 
+        form.target = '_blank'; 
+
+        Object.keys(filtros).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; 
+            input.name = key; 
+            input.value = filtros[key];
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
 }
 
 window.ReporteKardexService = ReporteKardexService;
