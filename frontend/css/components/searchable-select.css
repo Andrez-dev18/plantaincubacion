@@ -178,29 +178,27 @@
     background-color: #f3f4f6;
 }
 
-/* Mejor contraste en modo oscuro (opcional) */
-@media (prefers-color-scheme: dark) {
-    .searchable-select-dropdown {
-        background: #1f2937;
-        border-color: #374151;
-    }
+/* Mejor contraste en modo oscuro */
+body.dark-mode .searchable-select-dropdown {
+    background: #1f2937;
+    border-color: #374151;
+}
 
-    .searchable-select-search {
-        background: #111827;
-        color: #f9fafb;
-        border-bottom-color: #4b5563;
-    }
+body.dark-mode .searchable-select-search {
+    background: #111827;
+    color: #f9fafb;
+    border-bottom-color: #4b5563;
+}
 
-    .searchable-select-option-item {
-        color: #e5e7eb;
-    }
+body.dark-mode .searchable-select-option-item {
+    color: #e5e7eb;
+}
 
-    .searchable-select-option-item:hover {
-        background-color: #374151;
-    }
+body.dark-mode .searchable-select-option-item:hover {
+    background-color: #374151;
+}
 
-    .searchable-select-option-item.highlighted {
-        background-color: #1e40af;
-        color: #dbeafe;
-    }
+body.dark-mode .searchable-select-option-item.highlighted {
+    background-color: #1e40af;
+    color: #dbeafe;
 }

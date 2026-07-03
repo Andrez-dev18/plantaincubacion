@@ -27,100 +27,111 @@
 
         body {
             overflow-x: hidden;
+            background-color: #f8fafc;
         }
 
-        /* ── TAB NAV ─────────────────────────────────────────── */
-        .tab-nav {
-            flex-shrink: 0;
-            display: flex;
-            gap: 0;
-            background: #1659E9;
-            border-bottom: 2px solid #2563eb;
-            border-top-right-radius: 8px;
-            border-top-left-radius: 8px;
-            z-index: 50;
-        }
-
-        .tab-btn {
-            padding: 9px 18px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            transition: all .2s;
-            display: flex;
+        /* ── Segmented Control para Formato de Impresión ── */
+        .print-format-container {
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            background-color: #f1f5f9;
+            border-radius: 0.5rem;
+            padding: 2px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        body.dark-mode .print-format-container {
+            background-color: #0b1220;
+            border-color: #334155;
         }
 
-        .tab-btn:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, .08);
+        .print-format-option {
+            position: relative;
+            cursor: pointer;
         }
 
-        .tab-btn.active {
-            color: #fff;
-            border-bottom-color: #60a5fa;
-            background: rgba(255, 255, 255, .12);
+        .print-format-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .print-format-option span {
+            display: block;
+            padding: 5px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            text-align: center;
+            user-select: none;
+        }
+        
+        body.dark-mode .print-format-option span {
+            color: #94a3b8;
+        }
+
+        .print-format-option input:checked + span {
+            background-color: #ffffff;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.dark-mode .print-format-option input:checked + span {
+            background-color: #1e293b;
+            color: #60a5fa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
     </style>
-    <div class="tab-nav">
-        <button class="tab-btn active"><i class="fa-solid fa-folder"></i>Registro Completo</button>
-
-    </div>
-
-
-    <div id="tab-panel-registro">
-        <main class="">
+    <div id="tab-panel-registro" class="w-full">
+        <main class="w-full">
             <form id="form-movimiento" autocomplete="off" class="w-full">
-                <!-- Contenedor único: Se pega al tab (sin borde superior) y redondea solo abajo -->
-                <div class="bg-white border-x border-b border-gray-200 rounded-b-lg shadow-sm w-full">
-
+                <!-- Contenedor único con bordes redondeados completos y sombra, estirado a todo el ancho (w-full) -->
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm w-full overflow-hidden dark:bg-slate-900/10 dark:border-gray-800">
+                    
                     <!-- SECCIÓN 1: Cabecera -->
-                    <div class="p-3">
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+                    <div class="p-3 bg-white dark:bg-slate-900/10 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Almacén</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Almacén Origen</label>
                                 <select id="talm" name="talm"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500"
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500"
                                     required>
                                     <option value="">-- Seleccione Almacén --</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
                                 <input type="date" id="tfectra" name="tfectra"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     required>
-                                <p id="msg-fecha" class="text-red-500 text-xs mt-1 font-medium" style="display:none">
-                                </p>
+                                <p id="msg-fecha" class="text-red-500 text-xs mt-1 font-medium" style="display:none"></p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Transacción</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Transacción</label>
                                 <select id="tcodtra" name="tcodtra"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500"
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500"
                                     required>
                                     <option value="">-- Tipo de Transacción --</option>
                                 </select>
                             </div>
 
                             <div id="grupo-almacen-destino">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Almacén Destino</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Almacén Destino</label>
                                 <select id="talr" name="talr"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500">
                                     <option value="">-- Destino Opcional --</option>
                                 </select>
                             </div>
 
                             <div id="grupo-cencos-destino">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Cencos Destino</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Cencos Destino</label>
                                 <select id="tcencos_dest" name="tcencos_dest"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                                     <option value="">-- Centro Costo --</option>
                                 </select>
                             </div>
@@ -128,78 +139,76 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Cta. Cte. (Cliente/
-                                    Proveedor)</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Cta. Cte. (Cliente/Proveedor)</label>
                                 <select id="tprocli" name="tprocli"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                                     <option value="">Buscar código o nombre...</option>
                                 </select>
                             </div>
 
                             <div id="grupo-emidoc">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo Doc.</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo Doc.</label>
                                 <select id="tdoc" name="tdoc"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                                     <option value="">-- Tipo --</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Serie</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Serie</label>
                                 <input type="text" id="tserie" name="tserie"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm uppercase"
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm uppercase text-center"
                                     maxlength="4" placeholder="F001">
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Número</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Número</label>
                                 <input type="number" id="tnumfac" name="tnumfac"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm" min="0">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm" min="0">
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha Doc.</label>
+                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Fecha Doc.</label>
                                 <input type="date" id="tfecfac" name="tfecfac"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                             </div>
                         </div>
 
-                        <div class="mt-3 border-t border-gray-100 pt-3">
+                        <div class="pt-3 border-t border-gray-100 dark:border-gray-800">
                             <div class="flex flex-col md:flex-row gap-3 items-end w-full">
                                 <div id="grupo-moneda" class="w-full md:w-48 shrink-0">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Moneda</label>
+                                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Moneda</label>
                                     <select id="tmon" name="tmon"
-                                        class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                        class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                                         <option value="S/">S/ Soles</option>
                                         <option value="US$">US$ Dólares</option>
                                     </select>
                                 </div>
 
-                                <div id="grupo-tipo-cambio" class="w-full md:w-48 shrink-0" style="display: none;">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div id="grupo-tipo-cambio" class="w-full md:w-56 shrink-0" style="display: none;">
+                                    <div class="grid grid-cols-2 gap-2">
                                         <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo</label>
+                                            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
                                             <select id="tcambio-tipo" name="tcambio-tipo"
-                                                class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                                class="input-field w-full rounded-lg border-gray-300 shadow-sm">
                                                 <option value="compra" selected>Compra</option>
                                                 <option value="venta">Venta</option>
                                                 <option value="manual">Manual</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-1">T.C</label>
+                                            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">T.C</label>
                                             <input type="number" id="tcambio-valor" name="tcambio-valor"
-                                                class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                                                class="input-field w-full rounded-lg border-gray-300 shadow-sm"
                                                 step="0.001" min="0">
                                         </div>
                                     </div>
                                 </div>
 
                                 <div id="grupo-observacion" class="w-full flex-1">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observación /
-                                        Glosa</label>
+                                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Observación / Glosa</label>
                                     <input type="text" id="tglosa" name="tglosa"
-                                        class="input-field w-full rounded-md border-gray-300 shadow-sm" maxlength="250"
+                                        class="input-field w-full rounded-lg border-gray-300 shadow-sm" maxlength="250"
                                         placeholder="Detalles adicionales del movimiento...">
                                 </div>
                             </div>
@@ -207,7 +216,7 @@
                     </div>
 
                     <!-- Divisor horizontal natural -->
-                    <hr class="border-gray-200 mb-4">
+                    <hr class="border-gray-200 mb-2">
 
                     <!-- SECCIÓN 2: Ítems y Tabla -->
                     <div class="p-3">
@@ -375,56 +384,47 @@
                         </div>
                     </div>
 
-                    <!-- Divisor horizontal natural -->
-                    <hr class="border-gray-200">
-
-                    <!-- SECCIÓN 3: Acciones / Pie de formulario - Mismo layout del original -->
-                    <div class="p-3 bg-white rounded-b-lg">
+                    <!-- SECCIÓN 3: Acciones / Pie de formulario -->
+                    <div class="px-4 py-3 bg-white border-t border-gray-100 rounded-b-xl dark:bg-slate-900/20 dark:border-gray-800">
                         <div class="flex flex-wrap gap-3 items-center">
                             <!-- Limpiar -->
-                            <div class="flex flex-col items-center gap-1 shrink-0">
-                                <span class="text-[10px] text-gray-400 font-mono">Alt + L</span>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + L</span>
                                 <button type="button" id="btn-nuevo"
-                                    class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors flex items-center gap-2 shadow-sm">
-                                    Limpiar
+                                    class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-xs active:scale-[0.98]">
+                                    <i class="fa-solid fa-trash-can text-gray-400"></i> Limpiar
                                 </button>
                             </div>
 
-                            <!-- Formato de impresión (Devuelto a su posición y estilo original, pero con bordes suaves) -->
-                            <div id="box-formato-impresion"
-                                class="flex flex-col items-start gap-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 shrink-0">
-                                <span class="label-formato-impresion text-[10px] text-gray-500 font-mono">Formato de
-                                    impresión</span>
-                                <div class="flex items-center gap-4">
-                                    <label
-                                        class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
-                                        <input type="radio" name="formato-impresion" id="formato-impresion-a4"
-                                            value="a4" checked>
-                                        A4
+                            <!-- Formato de impresión -->
+                            <div id="box-formato-impresion" class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-xs dark:bg-slate-900/20 dark:border-gray-800 self-end mb-0.5">
+                                <span class="label-formato-impresion text-[11px] font-semibold text-gray-500 dark:text-gray-400">Impresión:</span>
+                                <div class="print-format-container">
+                                    <label class="print-format-option">
+                                        <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4" checked>
+                                        <span>A4</span>
                                     </label>
-                                    <label
-                                        class="opcion-formato-impresion flex items-center gap-2 text-xs text-gray-700 font-semibold cursor-pointer whitespace-nowrap">
-                                        <input type="radio" name="formato-impresion" id="formato-impresion-80mm"
-                                            value="80mm">
-                                        Ticket 80mm
+                                    <label class="print-format-option">
+                                        <input type="radio" name="formato-impresion" id="formato-impresion-80mm" value="80mm">
+                                        <span>Ticket 80mm</span>
                                     </label>
                                 </div>
                             </div>
 
                             <!-- Guardar / Vista Previa -->
-                            <div class="flex gap-3 ml-auto shrink-0 items-end">
+                            <div class="flex gap-3 items-end ml-auto">
                                 <div class="flex flex-col items-center gap-1">
-                                    <span class="text-[10px] text-gray-400 font-mono">Alt + C</span>
-                                    <button type="button" id="btn-grabar"
-                                        class="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-md font-bold transition-colors flex items-center gap-2 shadow-md">
-                                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                                    <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + R</span>
+                                    <button type="button" id="btn-generar-reporte"
+                                        class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 hover:border-amber-400 text-amber-800 px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-xs active:scale-[0.98]">
+                                        <i class="fa-solid fa-file-pdf text-amber-500"></i> Vista previa
                                     </button>
                                 </div>
                                 <div class="flex flex-col items-center gap-1">
-                                    <span class="text-[10px] text-gray-400 font-mono">Alt + R</span>
-                                    <button type="button" id="btn-generar-reporte"
-                                        class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-700 px-6 py-2 rounded-md font-medium transition-colors flex items-center gap-2 shadow-sm">
-                                        <i class="fa-solid fa-circle-question"></i> Vista previa
+                                    <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + C</span>
+                                    <button type="button" id="btn-grabar"
+                                        class="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-7 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]">
+                                        <i class="fa-solid fa-floppy-disk"></i> Guardar
                                     </button>
                                 </div>
                             </div>
