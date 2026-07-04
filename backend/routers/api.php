@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Front Controller - Punto de entrada único de la API
  * 
@@ -125,6 +125,12 @@ try {
     // ========================================
     $reporteKardexRoutes = require_once __DIR__ . '/../routes/reporteKardex.php';
     $reporteKardexRoutes($container);
+
+    // ========================================
+    // MÓDULO: GUÍAS DE REMISIÓN ELECTRÓNICA
+    // ========================================
+    $guiaElectronicaRoutes = require_once __DIR__ . '/../routes/guia-electronica.routes.php';
+    $guiaElectronicaRoutes($container);
     
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';

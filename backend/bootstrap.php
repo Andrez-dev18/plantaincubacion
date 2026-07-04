@@ -28,6 +28,7 @@ try {
     require_once __DIR__ . '/repositories/ReporteTransaccionesRepository.php';
     require_once __DIR__ . '/repositories/ReporteStockRepository.php';
     require_once __DIR__ . '/repositories/ReporteKardexRepository.php';
+    require_once __DIR__ . '/repositories/GuiaElectronicaRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php';
@@ -45,6 +46,7 @@ try {
     require_once __DIR__ . '/services/ReporteTransaccionService.php';
     require_once __DIR__ . '/services/ReporteStockService.php';
     require_once __DIR__ . '/services/ReporteKardexService.php';
+    require_once __DIR__ . '/services/GuiaElectronicaService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php';
@@ -63,6 +65,7 @@ try {
     require_once __DIR__ . '/controllers/ReporteTransaccionController.php';
     require_once __DIR__ . '/controllers/ReporteStockController.php';
     require_once __DIR__ . '/controllers/ReporteKardexController.php';
+    require_once __DIR__ . '/controllers/GuiaElectronicaController.php';
 
     // 1. Crear conexión (raíz del grafo) - Patrón Singleton
     $db = Database::getInstance()->getConnection();
@@ -79,6 +82,7 @@ try {
     $permisoRepository = new PermisoRepository($db);
     $usuarioSistemaRepository = new UsuarioSistemaRepository($db);
     $movimientoAlmacenRepository = new MovimientoAlmacenRepository($db);
+    $guiaElectronicaRepository = new GuiaElectronicaRepository($db);
 
     // 3. Crear servicios (nivel medio - dependen de repositorios)
     // NOTA: Los nuevos servicios (UsuarioService, RolService, UsuarioRolService, NavegacionService)
@@ -97,6 +101,7 @@ try {
     $reporteTransaccionService = new ReporteTransaccionService($db);
     $reporteStockService = new ReporteStockService($db);
     $reporteKardexService = new ReporteKardexService($db);
+    $guiaElectronicaService = new GuiaElectronicaService($db);
 
     // 4. Crear controladores (nivel externo - dependen de servicios o $db)
     // NOTA: Los nuevos controladores (UsuarioController, RolController, UsuarioRolController, NavegacionController)
@@ -116,6 +121,7 @@ try {
     $reporteTransaccionController = new ReporteTransaccionController($db);
     $reporteStockController = new ReporteStockController($db);
     $reporteKardexController = new ReporteKardexController($db);
+    $guiaElectronicaController = new GuiaElectronicaController($db);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -136,6 +142,7 @@ try {
             'reporteTransaccion' => $reporteTransaccionController,
             'reporteStock' => $reporteStockController,
             'reporteKardex' => $reporteKardexController,
+            'guiaElectronica' => $guiaElectronicaController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -149,6 +156,7 @@ try {
             'permiso' => $permisoService,
             'usuarioAdmin' => $usuarioAdminService,
             'movimientoAlmacen' => $movimientoAlmacenService,
+            'guiaElectronica' => $guiaElectronicaService,
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
@@ -163,7 +171,8 @@ try {
             'movimientoAlmacen' => $movimientoAlmacenRepository,
             'reporteTransacciones' => new ReporteTransaccionesRepository($db),
             'reporteStock' => new ReporteStockRepository($db),
-            'reporteKardex' => new ReporteKardexRepository($db)
+            'reporteKardex' => new ReporteKardexRepository($db),
+            'guiaElectronica' => $guiaElectronicaRepository
         ]
     ];
 } catch (Exception $e) {

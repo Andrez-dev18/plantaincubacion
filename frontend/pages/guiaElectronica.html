@@ -7,302 +7,354 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* ── Custom Scrollbar for modern tables ── */
+        .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
-<body class="bg-[#f4f7fb] min-h-screen font-sans">
+<body class="bg-[#f8fafc] min-h-screen font-sans antialiased text-slate-800">
     
-    <!-- CONTENEDOR FULL WIDTH (Aprovechando todo el espacio lateral) -->
-    <div class="w-full px-4 py-4">
+    <!-- CONTENEDOR FULL WIDTH -->
+    <div class="w-full p-3">
         
         <!-- GRAN TARJETA CONTENEDORA -->
-        <form id="formGuiaRemision" class="bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col">
+        <form id="formGuiaRemision" class="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-200/80 overflow-hidden flex flex-col w-full">
             
-            <!-- TÍTULO HEADER -->
-            <div class="bg-gradient-to-r from-orange-50 via-orange-100/50 to-orange-50 border-b border-orange-200 px-6 py-3 flex items-center justify-center">
-                <h1 class="text-base sm:text-lg font-black text-orange-800 tracking-widest uppercase shadow-sm">
-                    <i class="fas fa-file-signature mr-2 opacity-70"></i> Guía de Remisión Remitente - Planta Incubación
+            <!-- CABECERA COMPACTA -->
+            <div class="bg-blue-700 text-white py-2 px-4 flex items-center justify-center border-b border-blue-800">
+                <h1 class="text-xs sm:text-sm font-bold tracking-wider uppercase text-center">
+                    Guia de Remision Electronica
                 </h1>
             </div>
 
             <div class="p-4 space-y-4">
                 
                 <!-- 1. BLOQUE SUPERIOR (Datos Comerciales en 1 sola fila extendida) -->
-                <div class="grid grid-cols-1 xl:grid-cols-12 gap-3 bg-gray-50/50 p-3 rounded-lg border border-gray-200">
-                    <div class="xl:col-span-2 bg-white border border-gray-300 rounded-md px-2 h-9 flex items-center justify-around shadow-sm">
-                        <span class="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Envío a:</span>
-                        <label class="inline-flex items-center cursor-pointer group">
-                            <input type="radio" name="tipoEnvio" value="ALMACEN" checked class="text-blue-600 w-3.5 h-3.5 focus:ring-blue-500">
-                            <span class="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-blue-600 transition-colors">Almacén</span>
-                        </label>
-                        <label class="inline-flex items-center cursor-pointer group">
-                            <input type="radio" name="tipoEnvio" value="GRANJA" class="text-blue-600 w-3.5 h-3.5 focus:ring-blue-500">
-                            <span class="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-blue-600 transition-colors">Granja</span>
-                        </label>
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-3.5 bg-slate-50/50 p-4 rounded-xl border border-slate-200/60">
+                    <div class="xl:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Envío a</label>
+                        <div class="flex items-center w-full h-9 bg-slate-200/60 p-0.5 rounded-lg border border-slate-200">
+                            <label class="flex-1 h-full" for="tipoEnvioAlmacen">
+                                <input type="radio" name="tipoEnvio" id="tipoEnvioAlmacen" value="ALMACEN" checked class="sr-only peer">
+                                <span class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs">
+                                    Almacén
+                                </span>
+                            </label>
+                            <label class="flex-1 h-full" for="tipoEnvioGranja">
+                                <input type="radio" name="tipoEnvio" id="tipoEnvioGranja" value="GRANJA" class="sr-only peer">
+                                <span class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs">
+                                    Granja
+                                </span>
+                            </label>
+                        </div>
                     </div>
                     
                     <div class="xl:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Transacción</label>
-                        <input type="text" id="transaccion" class="w-full h-9 px-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm bg-white">
+                        <label for="transaccion" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Transacción</label>
+                        <input type="text" id="transaccion" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                     </div>
                     
                     <div class="xl:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Zona Origen</label>
-                        <select id="zonaOrigen" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs bg-white focus:ring-2 focus:ring-blue-500 transition-all shadow-sm">
+                        <label for="zonaOrigen" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Zona Origen</label>
+                        <select id="zonaOrigen" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             <option value="010">010 | ALMACEN JOYA</option>
                         </select>
                     </div>
                     
                     <div class="xl:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cliente Origen</label>
-                        <input type="text" id="clienteOrigen" class="w-full h-9 px-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 transition-all shadow-sm bg-white">
+                        <label for="clienteOrigen" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Cliente Origen</label>
+                        <input type="text" id="clienteOrigen" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                     </div>
                     
                     <div class="xl:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Zona Destino</label>
-                        <select id="zonaDestino" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs bg-white focus:ring-2 focus:ring-blue-500 transition-all shadow-sm">
+                        <label for="zonaDestino" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Zona Destino</label>
+                        <select id="zonaDestino" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             <option value="010">010 | ALMACEN JOYA</option>
                         </select>
                     </div>
                     
                     <div class="xl:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cliente Destino</label>
-                        <input type="text" id="clienteDestino" class="w-full h-9 px-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 transition-all shadow-sm bg-white">
+                        <label for="clienteDestino" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Cliente Destino</label>
+                        <input type="text" id="clienteDestino" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                     </div>
                 </div>
 
                 <!-- 2. BLOQUE CENTRAL DIVIDIDO (SUNAT vs Transporte) -->
-                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
                     
                     <!-- Lado Izquierdo: SUNAT & Rutas (Aprovecha 7 columnas) -->
-                    <div class="xl:col-span-7 bg-white">
-                        <h2 class="text-xs font-bold text-blue-700 uppercase tracking-widest mb-3 flex items-center border-b border-blue-100 pb-2">
-                            <i class="fas fa-file-invoice mr-2"></i> Datos SUNAT y Rutas
+                    <div class="xl:col-span-7 bg-white space-y-3">
+                        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                            <i class="fas fa-file-invoice text-indigo-500"></i> SUNAT
                         </h2>
                         
                         <div class="grid grid-cols-12 gap-x-3 gap-y-3">
                             <div class="col-span-3">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">F. Emisión</label>
-                                <input type="date" id="fechaEmision" value="2026-06-30" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs text-gray-700 focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="fechaEmision" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">F. Emisión</label>
+                                <input type="date" id="fechaEmision" value="2026-06-30" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div class="col-span-3">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Inicio Traslado</label>
-                                <input type="date" id="fechaTraslado" value="2026-06-30" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs text-gray-700 focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="fechaTraslado" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Inicio Traslado</label>
+                                <input type="date" id="fechaTraslado" value="2026-06-30" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div class="col-span-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Serie</label>
-                                <select id="serie" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs bg-white font-mono focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="serie" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Serie</label>
+                                <select id="serie" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                                     <option value="EG01">EG01</option>
                                 </select>
                             </div>
                             <div class="col-span-4">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Número Correlativo</label>
-                                <input type="number" id="numeroGuia" value="0" class="w-full h-9 px-3 border border-gray-300 rounded-md text-sm text-right font-bold text-blue-700 bg-blue-50/50 focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="numeroGuia" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Número Correlativo</label>
+                                <input type="number" id="numeroGuia" value="0" class="w-full h-9 px-3 bg-blue-50/20 border border-blue-200 rounded-lg text-sm text-right font-extrabold text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all shadow-2xs">
                             </div>
                             
                             <div class="col-span-4">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cliente RUC/DNI</label>
+                                <label for="clienteRuc" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Cliente RUC/DNI</label>
                                 <div class="relative">
-                                    <input type="text" id="clienteRuc" value="20419158462" class="w-full h-9 pl-8 pr-3 border border-gray-300 rounded-md text-xs font-mono focus:ring-2 focus:ring-blue-500 shadow-sm">
-                                    <i class="fas fa-id-card absolute left-2.5 top-2.5 text-gray-400"></i>
+                                    <input type="text" id="clienteRuc" value="20419158462" class="w-full h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                    <i class="fas fa-id-card absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                                 </div>
                             </div>
                             <div class="col-span-4">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tipo Transporte</label>
-                                <select id="tipoTransporte" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="tipoTransporte" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Tipo Transporte</label>
+                                <select id="tipoTransporte" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                                     <option value="01">01 | TRANSPORTE PÚBLICO</option>
                                     <option value="02">02 | TRANSPORTE PRIVADO</option>
                                 </select>
                             </div>
                             <div class="col-span-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bultos</label>
-                                <input type="number" id="numBultos" value="0" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs text-right focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="numBultos" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Bultos</label>
+                                <input type="number" id="numBultos" value="0" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs text-right focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div class="col-span-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Peso Bruto</label>
-                                <input type="number" step="0.01" id="pesoBrutoTotal" value="0.00" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs text-right font-bold focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="pesoBrutoTotal" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Peso Bruto</label>
+                                <input type="number" step="0.01" id="pesoBrutoTotal" value="0.00" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs text-right font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
-
+ 
                             <div class="col-span-12">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Motivo de Traslado</label>
-                                <select id="motivoTraslado" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="motivoTraslado" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Motivo de Traslado</label>
+                                <select id="motivoTraslado" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                                     <option value="04">04 | TRASLADO ENTRE ESTABLECIMIENTOS DE LA MISMA EMPRESA</option>
                                     <option value="01">01 | VENTA</option>
                                 </select>
                             </div>
-
+ 
                             <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Punto de Partida</label>
+                                <label for="puntoPartida" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Punto de Partida</label>
                                 <div class="relative">
-                                    <input type="text" id="puntoPartida" class="w-full h-9 pl-7 pr-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
-                                    <i class="fas fa-map-marker-alt absolute left-2.5 top-2.5 text-gray-400"></i>
+                                    <input type="text" id="puntoPartida" class="w-full h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                    <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                                 </div>
                             </div>
                             <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Punto de Llegada</label>
+                                <label for="puntoLlegada" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Punto de Llegada</label>
                                 <div class="relative">
-                                    <input type="text" id="puntoLlegada" class="w-full h-9 pl-7 pr-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
-                                    <i class="fas fa-location-dot absolute left-2.5 top-2.5 text-red-400"></i>
+                                    <input type="text" id="puntoLlegada" class="w-full h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                    <i class="fas fa-location-dot absolute left-3 top-1/2 -translate-y-1/2 text-rose-500 text-xs"></i>
                                 </div>
                             </div>
-
+ 
                             <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Observaciones</label>
-                                <input type="text" id="observaciones" class="w-full h-9 px-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="observaciones" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Observaciones</label>
+                                <input type="text" id="observaciones" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pedidos / Ref.</label>
-                                <input type="text" id="pedidosRef" class="w-full h-9 px-3 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                <label for="pedidosRef" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Pedidos / Ref.</label>
+                                <input type="text" id="pedidosRef" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                         </div>
                     </div>
-
+                    
                     <!-- Lado Derecho: Transportista (Aprovecha 5 columnas) -->
-                    <div class="xl:col-span-5 bg-gray-50/50 p-4 rounded-xl border border-gray-200 shadow-inner flex flex-col h-full">
-                        <h2 class="text-xs font-bold text-indigo-700 uppercase tracking-widest mb-3 flex items-center border-b border-indigo-100 pb-2">
-                            <i class="fas fa-truck-moving mr-2"></i> Datos de Transportación
-                        </h2>
-                        
-                        <div class="grid grid-cols-12 gap-x-3 gap-y-4 flex-1">
-                            <div class="col-span-4">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cod Transp.</label>
-                                <input type="text" id="codTransportista" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
-                            </div>
-                            <div class="col-span-8">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Razón Social Transportista</label>
-                                <input type="text" id="nomTransportista" class="w-full h-9 px-3 border border-gray-200 rounded-md text-xs bg-gray-100 text-gray-600 cursor-not-allowed" readonly placeholder="Se llena automático...">
-                            </div>
-
-                            <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Placa Vehículo (P)</label>
-                                <input type="text" id="placaP" class="w-full h-9 px-3 border border-gray-300 rounded-md text-sm font-mono uppercase focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm" placeholder="ABC-123">
-                            </div>
-                            <div class="col-span-6">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Placa Remolque (R)</label>
-                                <input type="text" id="placaR" class="w-full h-9 px-3 border border-gray-300 rounded-md text-sm font-mono uppercase focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
-                            </div>
-
+                    <div class="xl:col-span-5 bg-slate-100/100 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
+                        <div class="grid grid-cols-12 gap-x-3 gap-y-3.5 flex-1">
                             <div class="col-span-12">
-                                <hr class="border-gray-200">
+                                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/80 pb-2 mb-0.5">
+                                    <i class="fas fa-truck-moving text-indigo-500"></i> TRANSPORTE
+                                </h4>
                             </div>
 
                             <div class="col-span-4">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cod Cond.</label>
-                                <input type="text" id="codConductor" class="w-full h-9 px-2 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
+                                <label for="codTransportista" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Cod Transp.</label>
+                                <input type="text" id="codTransportista" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div class="col-span-8">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre Conductor</label>
-                                <input type="text" id="nomConductor" class="w-full h-9 px-3 border border-gray-200 rounded-md text-xs bg-gray-100 text-gray-600 cursor-not-allowed" readonly>
+                                <label for="nomTransportista" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Razón Social Transportista</label>
+                                <input type="text" id="nomTransportista" class="w-full h-9 px-3 bg-slate-100 border border-slate-200/80 rounded-lg text-xs text-slate-500 cursor-not-allowed" readonly placeholder="Se llena automático...">
                             </div>
-
+ 
+                            <div class="col-span-6">
+                                <label for="placaP" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Placa Vehículo (P)</label>
+                                <input type="text" id="placaP" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-mono uppercase focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs" placeholder="ABC-123">
+                            </div>
+                            <div class="col-span-6">
+                                <label for="placaR" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Placa Remolque (R)</label>
+                                <input type="text" id="placaR" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-mono uppercase focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                            </div>
+ 
+                            <div class="col-span-12 my-0.5">
+                                <hr class="border-slate-200/60">
+                            </div>
+ 
+                            <div class="col-span-4">
+                                <label for="codConductor" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Cod Cond.</label>
+                                <input type="text" id="codConductor" class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                            </div>
+                            <div class="col-span-8">
+                                <label for="nomConductor" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Nombre Conductor</label>
+                                <input type="text" id="nomConductor" class="w-full h-9 px-3 bg-slate-100 border border-slate-200/80 rounded-lg text-xs text-slate-500 cursor-not-allowed" readonly>
+                            </div>
+ 
                             <div class="col-span-12">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Licencia de Conducir</label>
-                                <input type="text" id="licenciaCond" class="w-full h-9 px-3 border border-gray-300 rounded-md text-sm font-mono uppercase focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
+                                <label for="licenciaCond" class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Licencia de Conducir</label>
+                                <input type="text" id="licenciaCond" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-mono uppercase focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
+ 
             <!-- 3. TABLA DE ARTÍCULOS (Grilla Full Width) -->
-            <div class="border-t border-gray-200 flex-1 flex flex-col">
+            <div class="border-t border-slate-200/80 flex-1 flex flex-col bg-white">
                 
                 <!-- Fila de Entrada Rápida de Datos -->
-                <div class="grid grid-cols-12 gap-2 bg-blue-50/50 p-2 border-b border-gray-300 items-end px-4">
+                <div class="grid grid-cols-12 gap-2 bg-slate-50/50 p-2.5 border-b border-slate-200 items-end px-4">
                     <div class="col-span-2">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Artículo</label>
-                        <input type="text" id="inputArtCodigo" class="w-full h-8 px-2 border border-blue-300 rounded text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
+                        <label for="inputArtCodigo" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Artículo</label>
+                        <input type="text" id="inputArtCodigo" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-3">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Descripción</label>
-                        <input type="text" id="inputArtDescri" class="w-full h-8 px-2 border border-blue-300 rounded text-xs focus:ring-2 focus:ring-blue-500 shadow-sm bg-white">
+                        <label for="inputArtDescri" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Descripción</label>
+                        <input type="text" id="inputArtDescri" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Und</label>
-                        <input type="text" id="inputArtUnd" class="w-full h-8 px-2 border border-blue-300 rounded text-xs text-center focus:ring-2 focus:ring-blue-500 shadow-sm bg-white">
+                        <label for="inputArtUnd" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Und</label>
+                        <input type="text" id="inputArtUnd" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-center shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Lote</label>
-                        <input type="text" id="inputArtLote" class="w-full h-8 px-2 border border-blue-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500 shadow-sm bg-white">
+                        <label for="inputArtLote" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Lote</label>
+                        <input type="text" id="inputArtLote" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs font-mono shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Cant</label>
-                        <input type="number" id="inputArtCant" class="w-full h-8 px-2 border border-blue-300 rounded text-xs text-right font-bold text-blue-700 focus:ring-2 focus:ring-blue-500 shadow-sm bg-white">
+                        <label for="inputArtCant" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Cant</label>
+                        <input type="number" id="inputArtCant" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right font-bold text-indigo-600 shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Peso</label>
-                        <input type="number" step="0.01" id="inputArtPeso" class="w-full h-8 px-2 border border-blue-300 rounded text-xs text-right focus:ring-2 focus:ring-blue-500 shadow-sm bg-white">
+                        <label for="inputArtPeso" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Peso</label>
+                        <input type="number" step="0.01" id="inputArtPeso" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Cencos</label>
-                        <input type="text" id="inputArtCencos" class="w-full h-8 px-2 border border-blue-300 rounded text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
+                        <label for="inputArtCencos" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Cencos</label>
+                        <input type="text" id="inputArtCencos" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-blue-900 uppercase mb-1">Galpón</label>
-                        <input type="text" id="inputArtGalpon" class="w-full h-8 px-2 border border-blue-300 rounded text-xs focus:ring-2 focus:ring-blue-500 shadow-sm">
+                        <label for="inputArtGalpon" class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Galpón</label>
+                        <input type="text" id="inputArtGalpon" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <button type="button" id="btnAgregarItem" class="h-8 w-full bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold tracking-widest uppercase transition-colors shadow-sm flex items-center justify-center gap-1">
-                            <i class="fas fa-plus"></i> Add
+                        <button type="button" id="btnAgregarItem" class="h-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold tracking-widest uppercase transition-all shadow-xs flex items-center justify-center gap-1 active:scale-[0.98]">
+                            <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
-
+ 
                 <!-- Grilla de Detalle con Scroll Interno -->
-                <div class="overflow-y-auto max-h-[220px] min-h-[180px] bg-[#6c757d]"> <!-- Gris similar al de FoxPro/Web Actual -->
+                <div class="overflow-y-auto max-h-[170px] min-h-[130px] bg-white border border-slate-200 rounded-xl m-4">
                     <table id="tablaDetalleGuia" class="w-full border-collapse text-xs text-left whitespace-nowrap">
-                        <thead class="bg-[#ffe8a1] text-[#333] text-[11px] uppercase font-bold sticky top-0 z-10 shadow-sm">
+                        <thead class="bg-blue-700 text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-xs border-b border-slate-200">
                             <tr>
-                                <th class="px-2 py-2 text-center w-10 border-r border-[#d4c185]">N°</th>
-                                <th class="px-3 py-2 border-r border-[#d4c185]">ARTICULO</th>
-                                <th class="px-3 py-2 border-r border-[#d4c185]">DESCRIPCION</th>
-                                <th class="px-3 py-2 border-r border-[#d4c185]">LOTE</th>
-                                <th class="px-2 py-2 text-center border-r border-[#d4c185]">UND</th>
-                                <th class="px-3 py-2 text-right border-r border-[#d4c185]">CANTIDAD</th>
-                                <th class="px-3 py-2 text-right border-r border-[#d4c185]">PESO</th>
-                                <th class="px-3 py-2 border-r border-[#d4c185]">CENCOS</th>
-                                <th class="px-3 py-2 border-r border-[#d4c185]">GALPON</th>
-                                <th class="px-2 py-2 text-center">DEL</th>
+                                <th class="px-3 py-2.5 text-center w-12 border-r border-slate-100">N°</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">ARTICULO</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">DESCRIPCION</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">LOTE</th>
+                                <th class="px-3 py-2.5 text-center border-r border-slate-100">UND</th>
+                                <th class="px-4 py-2.5 text-right border-r border-slate-100">CANTIDAD</th>
+                                <th class="px-4 py-2.5 text-right border-r border-slate-100">PESO</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">CENCOS</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">GALPON</th>
+                                <th class="px-3 py-2.5 text-center">DEL</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             <!-- Los tr dinámicos irán aquí -->
                         </tbody>
                     </table>
                 </div>
             </div>
-
+ 
             <!-- 4. PIE DE PÁGINA: ESTADO, TOTALES Y BOTONES -->
-            <div class="bg-white border-t border-gray-200 p-3 grid grid-cols-12 gap-4 items-center px-4 rounded-b-xl">
+            <div class="bg-slate-50/80 border-t border-slate-200/80 p-4 flex flex-wrap gap-4 items-center justify-between px-6 rounded-b-2xl">
                 
-                <div class="col-span-2">
-                    <button type="button" class="w-full h-10 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 text-[11px] font-bold rounded-lg border border-gray-300 flex items-center justify-center transition-colors shadow-sm gap-2">
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btn-eliminar" class="px-4 py-2 bg-red-600 text-white hover:bg-red-500 border border-slate-200 hover:border-rose-350 text-rose-600 text-xs font-semibold rounded-lg flex items-center justify-center transition-all shadow-2xs gap-1.5 active:scale-[0.98]">
+                        <i class="fas fa-trash text-sm"></i> Eliminar
+                    </button>
+                    <button type="button" id="btn-eliminar-todos" class="px-4 py-2 bg-red-600 text-white hover:bg-red-500 border border-slate-200 hover:border-rose-350 text-rose-600 text-xs font-semibold rounded-lg flex items-center justify-center transition-all shadow-2xs gap-1.5 active:scale-[0.98]">
                         <i class="fas fa-trash-can text-sm"></i> Eliminar Todos
                     </button>
                 </div>
                 
-                <div class="col-span-6 flex flex-col items-center justify-center">
-                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Estado del Documento</span>
-                    <span class="text-base font-black text-red-600 tracking-widest uppercase">PENDIENTE GUARDAR</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estado:</span>
+                    <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 border border-amber-500/25 tracking-wider uppercase animate-pulse">
+                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span> PENDIENTE GUARDAR
+                    </span>
                 </div>
-
-                <div class="col-span-2 flex flex-col justify-center border-l border-gray-200 pl-4 text-xs space-y-1">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Total Cantidad:</span>
-                        <span class="font-black text-gray-900 text-sm">0.00</span>
+ 
+                <div class="flex items-center gap-5 text-xs border-l border-slate-200 pl-6">
+                    <div class="flex flex-col items-end">
+                        <span class="font-bold text-slate-400 uppercase tracking-wider text-[9px]">Total Cant:</span>
+                        <span class="font-extrabold text-slate-800 text-sm">0.00</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Total Peso:</span>
-                        <span class="font-black text-gray-900 text-sm">0.00</span>
+                    <div class="w-px h-6 bg-slate-200"></div>
+                    <div class="flex flex-col items-end">
+                        <span class="font-bold text-slate-400 uppercase tracking-wider text-[9px]">Total Peso:</span>
+                        <span class="font-extrabold text-slate-800 text-sm">0.00</span>
                     </div>
                 </div>
-
-                <div class="col-span-2">
-                    <button type="submit" class="w-full h-11 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-black tracking-widest uppercase rounded-lg border-2 border-blue-200 flex items-center justify-center transition-colors shadow-sm gap-2">
-                        <i class="fas fa-save text-lg"></i> Guardar
+ 
+                <div>
+                    <button type="button" id="btn-guardar" class="px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-widest uppercase rounded-lg flex items-center justify-center transition-all shadow-md active:scale-[0.98] gap-1.5">
+                        <i class="fas fa-save text-sm"></i> Guardar
                     </button>
                 </div>
             </div>
-
+ 
         </form>
     </div>
+
+    <!-- SCRIPTS CORE & MODULES -->
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/modules/guiaElectronica/guiaElectronica.service.js"></script>
+    <script src="../js/modules/guiaElectronica/guiaElectronica.controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const controller = new window.GuiaElectronicaController();
+            controller.init();
+        });
+    </script>
 </body>
 </html>
