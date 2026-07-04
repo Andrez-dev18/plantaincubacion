@@ -52,10 +52,33 @@ class FormNavigation {
     }
 
     handleKeyDown(e) {
-        // Solo procesar Enter
-        if (e.key !== 'Enter') return;
+        // Si hay un modal de SweetAlert2 abierto, no hacer nada y dejar que Swal maneje el teclado
+        if (document.querySelector('.swal2-container')) {
+            return;
+        }
+
+        // Procesar Enter y Escape
+        if (e.key !== 'Enter' && e.key !== 'Escape') return;
 
         const target = e.target;
+
+        // Escape retrocede al campo anterior
+        if (e.key === 'Escape') {
+            // Si está dentro de un dropdown de SearchableSelect abierto, permitir que el componente maneje Escape
+            if (target.closest('.searchable-select-dropdown')) {
+                return;
+            }
+            if (this.isFocusableField(target)) {
+                e.preventDefault();
+                this.moveToPreviousField(target);
+            }
+            return;
+        }
+
+        // Si es un SearchableSelect cerrado, no avanzar en Enter (permitir que el SearchableSelect se abra)
+        if (target.classList.contains('searchable-select-display')) {
+            return;
+        }
 
         // Si es un textarea, solo avanzar con Ctrl+Enter
         if (target.tagName === 'TEXTAREA') {
@@ -68,7 +91,7 @@ class FormNavigation {
         }
 
         // Si es un botón, permitir comportamiento normal (submit, click)
-        if (target.tagName === 'BUTTON' || target.type === 'submit') {
+        if (target.tagName === 'BUTTON' || target.type === 'submit' || target.type === 'button') {
             return;
         }
 

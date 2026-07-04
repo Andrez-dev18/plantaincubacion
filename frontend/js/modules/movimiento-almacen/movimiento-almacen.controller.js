@@ -40,7 +40,7 @@ class MovimientoAlmacenController extends Component {
 
         this._draftKey = 'draft_movimiento_almacen_v1';
         this._autoSaveDraft = this._debounce(() => this._guardarBorradorLocal(), 1500);
-
+        this.filaSeleccionadaIndex = -1;
     }
 
     _setFieldValue(id, value) {
@@ -945,6 +945,7 @@ class MovimientoAlmacenController extends Component {
 
         // Botones
         bind('btn-nuevo', 'click', () => this._resetFormulario());
+        bind('btn-quitar-item', 'click', () => this._quitarFilaSeleccionada());
         bind('btn-grabar', 'click', () => this._grabar());
         bind('btn-borrar-mov', 'click', () => this._borrarMovimiento());
         bind('btn-borrar-todos', 'click', () => this._borrarTodos());
@@ -1034,6 +1035,7 @@ class MovimientoAlmacenController extends Component {
                 // Atajos de botones inferiores
                 c: () => this._grabar(),
                 n: () => this._resetFormulario(),
+                q: () => this._quitarFilaSeleccionada(),
                 b: () => this._borrarMovimiento(),
                 t: () => this._borrarTodos(),
                 v: () => this._verMovimientos(),
@@ -2564,6 +2566,29 @@ class MovimientoAlmacenController extends Component {
         this._autoSaveDraft();
     }
 
+    _seleccionarFila(idx) {
+        if (this.filaSeleccionadaIndex === idx) {
+            this.filaSeleccionadaIndex = -1;
+        } else {
+            this.filaSeleccionadaIndex = idx;
+        }
+        this._renderGrid();
+    }
+
+    _quitarFilaSeleccionada() {
+        if (this.filaSeleccionadaIndex === undefined || this.filaSeleccionadaIndex === -1) {
+            if (this.detalle.length > 0) {
+                this._eliminarItemGrid(this.detalle.length - 1);
+            } else {
+                this._popupWarning('Seleccione una fila de la grilla para quitar.');
+            }
+            return;
+        }
+
+        this._eliminarItemGrid(this.filaSeleccionadaIndex);
+        this.filaSeleccionadaIndex = -1;
+    }
+
     async _cambiarItemGrid(idx) {
         const item = this.detalle[idx];
         if (!item) return;
@@ -2668,24 +2693,31 @@ class MovimientoAlmacenController extends Component {
         }
         const mostrarPrecio = this._mostrarPrecio !== false;
         const dNone = 'style="display:none"';
-        tbody.innerHTML = this.detalle.map((it, i) => `
-            <tr>
-                <td class="px-4 py-3">${it.tcodigo}</td>
-                <td class="px-4 py-3">${it.tdescri}</td>
-                <td class="px-4 py-3">${it.tcencos}</td>
-                <td class="px-4 py-3 font-mono">${`${this._padAbc(it.tcodproc)}${this._padAbc(it.tcodsubproc)}${this._padAbc(it.tcodacti)}${this._padAbc(it.tcodtarea)}`}</td>
-                <td class="px-4 py-3">${it.tnumlot}</td>
-                <td class="px-4 py-3 text-right">${it.tcantid}</td>
-                <td class="px-4 py-3 text-right">${it.tpeso}</td>
-                <td class="px-4 py-3 text-right col-precio" ${mostrarPrecio ? '' : dNone}>${it.tpreuni}</td>
-                <td class="px-4 py-3 text-right col-importe" ${mostrarPrecio ? '' : dNone}>${it.timport}</td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="movAlmCtrl._cambiarItemGrid(${i})"
-                        class="text-blue-400 hover:text-blue-300 mr-3" title="Cambiar">↺</button>
-                    <button onclick="movAlmCtrl._eliminarItemGrid(${i})"
-                        class="text-red-500 hover:text-red-700" title="Eliminar">✕</button>
-                </td>
-            </tr>`).join('');
+        tbody.innerHTML = this.detalle.map((it, i) => {
+            const isSelected = this.filaSeleccionadaIndex === i;
+            const rowClass = isSelected 
+                ? 'bg-blue-50/70 dark:bg-slate-800/80 border-l-4 border-blue-500 transition-all cursor-pointer' 
+                : 'hover:bg-gray-50/50 dark:hover:bg-slate-850/40 transition-all cursor-pointer';
+
+            return `
+                <tr onclick="movAlmCtrl._seleccionarFila(${i})" class="${rowClass}">
+                    <td class="px-4 py-3">${it.tcodigo}</td>
+                    <td class="px-4 py-3">${it.tdescri}</td>
+                    <td class="px-4 py-3">${it.tcencos}</td>
+                    <td class="px-4 py-3 font-mono">${`${this._padAbc(it.tcodproc)}${this._padAbc(it.tcodsubproc)}${this._padAbc(it.tcodacti)}${this._padAbc(it.tcodtarea)}`}</td>
+                    <td class="px-4 py-3">${it.tnumlot}</td>
+                    <td class="px-4 py-3 text-right">${it.tcantid}</td>
+                    <td class="px-4 py-3 text-right">${it.tpeso}</td>
+                    <td class="px-4 py-3 text-right col-precio" ${mostrarPrecio ? '' : dNone}>${it.tpreuni}</td>
+                    <td class="px-4 py-3 text-right col-importe" ${mostrarPrecio ? '' : dNone}>${it.timport}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="event.stopPropagation(); movAlmCtrl._cambiarItemGrid(${i})"
+                            class="text-blue-400 hover:text-blue-300 mr-3" title="Cambiar">↺</button>
+                        <button onclick="event.stopPropagation(); movAlmCtrl._eliminarItemGrid(${i})"
+                            class="text-red-500 hover:text-red-700" title="Eliminar">✕</button>
+                    </td>
+                </tr>`;
+        }).join('');
     }
 
     _actualizarTotales() {
@@ -3189,6 +3221,7 @@ class MovimientoAlmacenController extends Component {
         this.detalle = [];
         this._productoActual = null;
         this._lotes = [];
+        this.filaSeleccionadaIndex = -1;
         this._kardexBase = { qstock: 0, pstock: 0, cosuni: 0, vstock: 0 };
         this._kardexContext = { codigo: '', lote: '00000000', alma: '' };
         this._kardexActual = { qstock: 0, pstock: 0, cosuni: 0, vstock: 0 };
