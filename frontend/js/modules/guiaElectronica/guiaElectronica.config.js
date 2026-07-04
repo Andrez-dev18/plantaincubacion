@@ -1,0 +1,179 @@
+// guiaElectronica.config.js
+// Configuración de búsquedas dinámicas para el módulo de Guía de Remisión Electrónica
+const BUSQUEDAS_CONFIG = {
+    'codTransportista': {
+        title: 'Buscar Transportista',
+        iconClass: 'fa-solid fa-truck',
+        placeholder: 'Escriba RUC o Razón Social para buscar...',
+        headers: ['N°', 'RUC', 'Nombre / Razón Social', 'TUC', 'Estado'],
+        fetchData: (service, query) => service.getTransportistas(query),
+        renderRow: (item, index) => {
+            const estado = (item.testado || item.estado || 'A').toUpperCase();
+            const isActivo = (estado === 'A' || estado === 'ACTIVO');
+            const estadoTexto = isActivo ? 'ACTIVO' : 'INACTIVO';
+            const badgeClass = isActivo 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-250/65' 
+                : 'bg-slate-100 text-slate-650 border-slate-200';
+
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.ruc}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.nombre}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.tuc || '-'}</td>
+                <td class="px-4 py-2.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                        ${estadoTexto}
+                    </span>
+                </td>
+            `;
+        },
+        onSelect: (item) => {
+            const codInput = document.getElementById('codTransportista');
+            const nomInput = document.getElementById('nomTransportista');
+            if (codInput) codInput.value = item.ruc;
+            if (nomInput) nomInput.value = item.nombre;
+        }
+    },
+    'codConductor': {
+        title: 'Buscar Conductor',
+        iconClass: 'fa-solid fa-id-card',
+        placeholder: 'Escriba Código, Nombre o Licencia para buscar...',
+        headers: ['N°', 'DNI', 'Nombre Conductor', 'Licencia', 'Estado'],
+        fetchData: (service, query) => service.getConductores(query),
+        renderRow: (item, index) => {
+            const estado = (item.testado || item.estado || 'A').toUpperCase();
+            const isActivo = (estado === 'A' || estado === 'ACTIVO');
+            const estadoTexto = isActivo ? 'ACTIVO' : 'INACTIVO';
+            const badgeClass = isActivo 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-250/65' 
+                : 'bg-slate-100 text-slate-650 border-slate-200';
+
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.dni || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.nombre || ''}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.licencia || '-'}</td>
+                <td class="px-4 py-2.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                        ${estadoTexto}
+                    </span>
+                </td>
+            `;
+        },
+        onSelect: (item) => {
+            const codInput = document.getElementById('codConductor');
+            const nomInput = document.getElementById('nomConductor');
+            const licInput = document.getElementById('licenciaCond');
+            if (codInput) codInput.value = item.dni || '';
+            if (nomInput) nomInput.value = item.nombre || '';
+            if (licInput) licInput.value = item.licencia || '';
+        }
+    },
+    'placaP': {
+        title: 'Buscar Placa Vehículo P',
+        iconClass: 'fa-solid fa-truck-pickup',
+        placeholder: 'Escriba Placa o Marca para buscar...',
+        headers: ['N°', 'Placa', 'Marca', 'C. Inscripción', 'Conf. Vehicular', 'SOAT', 'F. Venc. SOAT'],
+        fetchData: (service, query) => service.getCamiones(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.placa}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.marca || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.cinscripcion || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.confvehicular || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.soat || '-'}</td>
+                <td class="px-4 py-2.5 text-center font-mono text-slate-500">${item.fechaisoat || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const placaInput = document.getElementById('placaP');
+            if (placaInput) placaInput.value = item.placa;
+        }
+    },
+    'placaR': {
+        title: 'Buscar Placa R',
+        iconClass: 'fa-solid fa-trailer',
+        placeholder: 'Escriba Placa o Marca para buscar...',
+        headers: ['N°', 'Placa', 'Marca', 'C. Inscripción', 'Conf. Vehicular', 'SOAT', 'F. Venc. SOAT'],
+        fetchData: (service, query) => service.getCamiones(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.placa}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.marca || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.cinscripcion || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.confvehicular || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.soat || '-'}</td>
+                <td class="px-4 py-2.5 text-center font-mono text-slate-500">${item.fechaisoat || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const placaInput = document.getElementById('placaR');
+            if (placaInput) placaInput.value = item.placa;
+        }
+    },
+    'clienteOrigen': {
+        title: 'Buscar Cliente Origen',
+        iconClass: 'fa-solid fa-user-tag',
+        placeholder: 'Escribe codigo o nombre para buscar...',
+        headers: ['N°', 'Codigo', 'Nombre', 'Direccion'],
+        fetchData: (service, query) => service.getClientes(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.codigo}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.nombre || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.direccion || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const clienteOrigen = document.getElementById('clienteOrigen');
+            if (clienteOrigen) clienteOrigen.value = item.codigo;
+        }
+    },
+    'clienteDestino': {
+        title: 'Buscar Cliente Destino',
+        iconClass: 'fa-solid fa-user-tag',
+        placeholder: 'Escribe codigo o nombre para buscar...',
+        headers: ['N°', 'Codigo', 'Nombre', 'Direccion'],
+        fetchData: (service, query) => service.getClientes(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.codigo}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.nombre || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.direccion || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const clienteDestino = document.getElementById('clienteDestino');
+            if (clienteDestino) clienteDestino.value = item.codigo;
+        }
+
+    },
+    'clienteRuc': {
+        title: 'Buscar Cliente',
+        iconClass: 'fa-solid fa-user-tag',
+        placeholder: 'Escribe codigo o nombre para buscar...',
+        headers: ['N°', 'Codigo', 'Nombre', 'Direccion'],
+        fetchData: (service, query) => service.getClientes(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.codigo}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.nombre || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.direccion || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const clienteRuc = document.getElementById('clienteRuc');
+            if (clienteRuc) clienteRuc.value = item.codigo;
+            const clienteNombre = document.getElementById('clienteNombre');
+            if (clienteNombre) clienteNombre.value = item.nombre;
+        }
+
+    }
+};
+
+window.GuiaElectronicaConfig = BUSQUEDAS_CONFIG;

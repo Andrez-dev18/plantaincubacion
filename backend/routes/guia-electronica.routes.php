@@ -29,4 +29,28 @@ return function ($container) {
         $controller->getTiposTransporte();
         exit;
     }
+
+    // GET /api/guia-electronica/transportistas
+    if ($method === 'GET' && $uri === '/api/guia-electronica/transportistas') {
+        $controller->getTransportistas();
+        exit;
+    }
+
+     // GET /api/guia-electronica/conductores
+    if ($method === 'GET' && $uri === '/api/guia-electronica/conductores') {
+        $controller->getConductores();
+        exit;
+    }
+
+    // GET /api/guia-electronica/camiones
+    if ($method === 'GET' && $uri === '/api/guia-electronica/camiones') {
+        $controller->getCamiones();
+        exit;
+    }
+
+    // GET /api/guia-electronica/clientes
+    if ($method === 'GET' && $uri === '/api/guia-electronica/clientes') {
+        $controller->getClientes();
+        exit;
+    }
 };
