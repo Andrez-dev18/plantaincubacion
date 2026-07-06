@@ -41,4 +41,24 @@ class GuiaElectronicaService
     {
         return $this->repo->obtenerClientes($search);
     }
+
+    public function listarArticulos(?string $search = null): array
+    {
+        return $this->repo->obtenerArticulos($search);
+    }
+
+    public function listarLotes(string $almacen, string $codigoArticulo, int $anio): array
+    {
+        return $this->repo->obtenerLotesPorArticulo($almacen, $codigoArticulo, $anio);
+    }
+
+    public function listarSeries(string $almacen, string $cliente): array
+    {
+        return $this->repo->obtenerSeriesConCorrelativo($almacen, $cliente);
+    }
+
+    public function listarMotivosTraslado(): array
+    {
+        return $this->repo->obtenerMotivosTraslado();
+    }
 }

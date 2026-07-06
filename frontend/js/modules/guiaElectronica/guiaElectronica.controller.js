@@ -13,8 +13,10 @@ class GuiaElectronicaController {
 
     async init() {
         this.setupEventListeners();
+        this.setupEventTipoEnvio();
         await this.cargarZonas();
         await this.cargarTiposTransporte();
+        await this.cargarMotivosTraslado();
 
         // Enviar foco inicial al input de tipoEnvio (tipoEnvioAlmacen)
         setTimeout(() => {
@@ -92,6 +94,54 @@ class GuiaElectronicaController {
                 }
             });
         }
+
+        // Listener para cambio en zonaOrigen (almacén de origen)
+        const selectOrigen = document.getElementById('zonaOrigen');
+        if (selectOrigen) {
+            selectOrigen.addEventListener('change', () => {
+                this.cargarSeriesAlmacenCliente();
+            });
+        }
+
+        // Listener para cambio/edición en clienteOrigen
+        const inputClienteOrigen = document.getElementById('clienteOrigen');
+        if (inputClienteOrigen) {
+            inputClienteOrigen.addEventListener('change', () => {
+                this.cargarSeriesAlmacenCliente();
+            });
+        }
+
+        // Listener para cambio en el select de serie
+        const selectSerie = document.getElementById('serie');
+        if (selectSerie) {
+            selectSerie.addEventListener('change', () => {
+                this.actualizarCamposSerie();
+            });
+        }
+    }
+
+    setupEventTipoEnvio() {
+        const radioAlmacen = document.getElementById('tipoEnvioAlmacen');
+        const radioGranja = document.getElementById('tipoEnvioGranja');
+        const inputTransaccion = document.getElementById('transaccion');
+
+        // 2. Creamos la función que cambia el valor
+        const actualizarTransaccion = () => {
+            if (radioAlmacen.checked) {
+                inputTransaccion.value = 'S440';
+            } else if (radioGranja.checked) {
+                inputTransaccion.value = 'S400';
+            }
+        };
+
+        // 3. Le decimos a los radio buttons que escuchen el evento 'change'
+        if (radioAlmacen && radioGranja && inputTransaccion) {
+            radioAlmacen.addEventListener('change', actualizarTransaccion);
+            radioGranja.addEventListener('change', actualizarTransaccion);
+
+            // 4. Ejecutamos la función una vez al cargar la página para poner el valor por defecto (S440)
+            actualizarTransaccion();
+        }
     }
 
     async cargarZonas() {
@@ -166,6 +216,35 @@ class GuiaElectronicaController {
         }
     }
 
+    async cargarMotivosTraslado() {
+        const selectMotivo = document.getElementById('motivoTraslado');
+        if (!selectMotivo) return;
+
+        try {
+            const response = await this.guiaService.getMotivosTraslado();
+
+            if (response && response.success && Array.isArray(response.data)) {
+                const fragment = document.createDocumentFragment();
+
+                selectMotivo.innerHTML = '<option value="">-- Seleccione Motivo Traslado --</option>';
+
+                response.data.forEach(item => {
+                    const codigo = item.codigo || item.cod;
+                    const descripcion = item.descripcion || item.nom;
+
+                    const opt = document.createElement('option');
+                    opt.value = codigo;
+                    opt.textContent = `${codigo} | ${descripcion.toUpperCase()}`;
+                    fragment.appendChild(opt);
+                });
+
+                selectMotivo.appendChild(fragment);
+            }
+        } catch (error) {
+            console.error("Error al cargar motivos de traslado:", error);
+        }
+    }
+
     // ── LOGICA BUSCADOR DINAMICO REUSABLE ──────────────────────────────────
 
     abrirBuscadorDinamico(inputId) {
@@ -200,17 +279,17 @@ class GuiaElectronicaController {
             thead.innerHTML = `
                 <tr>
                     ${config.headers.map((h, idx) => {
-                        let widthClass = '';
-                        let alignClass = '';
-                        let borderClass = idx < config.headers.length - 1 ? 'border-r border-slate-100' : '';
-                        if (idx === 0) {
-                            widthClass = 'w-12';
-                            alignClass = 'text-center';
-                        } else if (h === 'Estado' || h === 'DEL') {
-                            alignClass = 'text-center';
-                        }
-                        return `<th class="px-4 py-3 ${alignClass} ${widthClass} ${borderClass}">${h}</th>`;
-                    }).join('')}
+                let widthClass = '';
+                let alignClass = '';
+                let borderClass = idx < config.headers.length - 1 ? 'border-r border-slate-100' : '';
+                if (idx === 0) {
+                    widthClass = 'w-12';
+                    alignClass = 'text-center';
+                } else if (h === 'Estado' || h === 'DEL') {
+                    alignClass = 'text-center';
+                }
+                return `<th class="px-4 py-3 ${alignClass} ${widthClass} ${borderClass}">${h}</th>`;
+            }).join('')}
                 </tr>
             `;
         }
@@ -298,8 +377,17 @@ class GuiaElectronicaController {
                     tr.className = 'hover:bg-slate-50 cursor-pointer transition-all focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 
                     tr.addEventListener('click', () => {
+                        const inputId = this.activeSearchInputId;
                         this.activeSearchConfig.onSelect(item);
-                        this.cerrarBuscadorDinamico(true); // Avanzar al siguiente campo
+                        if (inputId === 'inputArtCodigo') {
+                            this.cerrarBuscadorDinamico(false); // Cerrar sin avanzar
+                            this.procesarLotesArticulo(item.codigo);
+                        } else if (inputId === 'clienteOrigen') {
+                            this.cerrarBuscadorDinamico(true); // Avanzar
+                            this.cargarSeriesAlmacenCliente();
+                        } else {
+                            this.cerrarBuscadorDinamico(true); // Avanzar al siguiente campo
+                        }
                     });
 
                     // Eventos de teclado en la fila
@@ -319,8 +407,17 @@ class GuiaElectronicaController {
                             }
                         } else if (e.key === 'Enter') {
                             e.preventDefault();
+                            const inputId = this.activeSearchInputId;
                             this.activeSearchConfig.onSelect(item);
-                            this.cerrarBuscadorDinamico(true); // Seleccionar y avanzar al siguiente campo
+                            if (inputId === 'inputArtCodigo') {
+                                this.cerrarBuscadorDinamico(false); // Cerrar sin avanzar
+                                this.procesarLotesArticulo(item.codigo);
+                            } else if (inputId === 'clienteOrigen') {
+                                this.cerrarBuscadorDinamico(true); // Avanzar
+                                this.cargarSeriesAlmacenCliente();
+                            } else {
+                                this.cerrarBuscadorDinamico(true); // Seleccionar y avanzar al siguiente campo
+                            }
                         }
                     });
 
@@ -347,6 +444,165 @@ class GuiaElectronicaController {
                     </td>
                 </tr>
             `;
+        }
+    }
+
+    async procesarLotesArticulo(codigoArticulo) {
+        const inputLote = document.getElementById('inputArtLote');
+        const inputCant = document.getElementById('inputArtCant');
+
+        if (!inputLote) return;
+
+        const almacen = document.getElementById('zonaOrigen')?.value || '';
+        const fechaVal = document.getElementById('fechaEmision')?.value;
+        const anio = fechaVal ? new Date(fechaVal).getFullYear() : new Date().getFullYear();
+
+        if (!almacen) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Almacén de origen requerido',
+                text: 'Por favor, seleccione una Zona de Origen antes de elegir el artículo.'
+            });
+            inputLote.value = '';
+            return;
+        }
+
+        try {
+            const response = await this.guiaService.getLotes(almacen, codigoArticulo, anio);
+            if (response && response.success && Array.isArray(response.data)) {
+                const lotes = response.data;
+
+                if (lotes.length === 0) {
+                    window.Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin stock',
+                        text: 'No hay lotes con stock disponible para este artículo.'
+                    });
+                    inputLote.value = '';
+                    inputLote.disabled = true;
+                }
+                else if (lotes.length === 1) {
+                    inputLote.disabled = false;
+                    inputLote.value = lotes[0].lote || '';
+                    if (inputCant) {
+                        inputCant.focus();
+                        inputCant.select();
+                    }
+                }
+                else {
+                    inputLote.disabled = false;
+
+                    const options = {};
+                    lotes.forEach(l => {
+                        options[l.lote] = `Lote: ${l.lote} (Stock: ${l.stock_cantidad} | Peso: ${l.stock_peso})`;
+                    });
+
+                    window.Swal.fire({
+                        title: 'Seleccionar Lote',
+                        text: 'Múltiples lotes disponibles. Elija uno:',
+                        input: 'select',
+                        inputOptions: options,
+                        inputPlaceholder: '-- Seleccione un Lote --',
+                        showCancelButton: true,
+                        confirmButtonText: 'Seleccionar',
+                        cancelButtonText: 'Cancelar',
+                        inputValidator: (value) => {
+                            if (!value) {
+                                return 'Debe seleccionar un lote';
+                            }
+                        },
+                        customClass: {
+                            confirmButton: 'btn-primary px-4 py-2 bg-blue-600 text-white rounded-md mr-2',
+                            cancelButton: 'btn-secondary px-4 py-2 bg-gray-250 text-gray-700 rounded-md'
+                        },
+                        buttonsStyling: false
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            inputLote.value = result.value;
+                            if (inputCant) {
+                                inputCant.focus();
+                                inputCant.select();
+                            }
+                        }
+                    });
+                }
+            } else {
+                console.error("Error al obtener los lotes:", response?.message);
+            }
+        } catch (error) {
+            console.error("Error en la petición de lotes:", error);
+        }
+    }
+
+    async cargarSeriesAlmacenCliente() {
+        const selectOrigen = document.getElementById('zonaOrigen');
+        const inputClienteOrigen = document.getElementById('clienteOrigen');
+        const selectSerie = document.getElementById('serie');
+        const inputDescSerie = document.getElementById('descripcionSerie');
+        const inputNumeroGuia = document.getElementById('numeroGuia');
+
+        if (!selectOrigen || !inputClienteOrigen || !selectSerie) return;
+
+        const almacen = selectOrigen.value;
+        const cliente = inputClienteOrigen.value;
+
+        // Si falta alguno de los dos, limpiamos y salimos
+        if (!almacen || !cliente) {
+            selectSerie.innerHTML = '<option value="">-- Serie --</option>';
+            if (inputDescSerie) inputDescSerie.value = '';
+            if (inputNumeroGuia) inputNumeroGuia.value = '0';
+            return;
+        }
+
+        try {
+            const response = await this.guiaService.getSeries(almacen, cliente);
+            if (response && response.success && Array.isArray(response.data)) {
+                const series = response.data;
+
+                if (series.length === 0) {
+                    window.Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin series asignadas',
+                        text: 'El cliente o almacén de origen seleccionado no cuenta con series asignadas.'
+                    });
+                    selectSerie.innerHTML = '<option value="">-- Sin Series --</option>';
+                    if (inputDescSerie) inputDescSerie.value = '';
+                    if (inputNumeroGuia) inputNumeroGuia.value = '0';
+                } else {
+                    let html = '';
+                    series.forEach(s => {
+                        html += `<option value="${s.serie}" data-descripcion="${s.descripcion}" data-correlativo="${s.correlativo}">${s.serie}</option>`;
+                    });
+                    selectSerie.innerHTML = html;
+
+                    // Disparar la actualización del primer elemento seleccionado por defecto
+                    this.actualizarCamposSerie();
+                }
+            } else {
+                console.error("Error al cargar las series:", response?.message);
+            }
+        } catch (error) {
+            console.error("Error en la petición de series:", error);
+        }
+    }
+
+    actualizarCamposSerie() {
+        const selectSerie = document.getElementById('serie');
+        const inputDescSerie = document.getElementById('descripcionSerie');
+        const inputNumeroGuia = document.getElementById('numeroGuia');
+
+        if (!selectSerie) return;
+
+        const selectedOption = selectSerie.options[selectSerie.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const descripcion = selectedOption.getAttribute('data-descripcion') || '';
+            const correlativo = selectedOption.getAttribute('data-correlativo') || '0';
+
+            if (inputDescSerie) inputDescSerie.value = descripcion;
+            if (inputNumeroGuia) inputNumeroGuia.value = correlativo;
+        } else {
+            if (inputDescSerie) inputDescSerie.value = '';
+            if (inputNumeroGuia) inputNumeroGuia.value = '0';
         }
     }
 }

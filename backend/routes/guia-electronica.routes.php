@@ -53,4 +53,28 @@ return function ($container) {
         $controller->getClientes();
         exit;
     }
+
+    // GET /api/guia-electronica/articulos
+    if ($method === 'GET' && $uri === '/api/guia-electronica/articulos') {
+        $controller->getArticulos();
+        exit;
+    }
+
+    // GET /api/guia-electronica/lotes
+    if ($method === 'GET' && $uri === '/api/guia-electronica/lotes') {
+        $controller->getLotes();
+        exit;
+    }
+
+    // GET /api/guia-electronica/series
+    if ($method === 'GET' && $uri === '/api/guia-electronica/series') {
+        $controller->getSeries();
+        exit;
+    }
+
+    // GET /api/guia-electronica/motivos-traslado
+    if ($method === 'GET' && $uri === '/api/guia-electronica/motivos-traslado') {
+        $controller->getMotivosTraslado();
+        exit;
+    }
 };

@@ -149,4 +149,104 @@ class GuiaElectronicaController
         }
         exit;
     }
+
+    /**
+     * Retorna el listado de artículos (mitm) filtrado o completo en formato JSON
+     */
+    public function getArticulos()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $search = $_GET['q'] ?? null;
+            $articulos = $this->service->listarArticulos($search);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $articulos
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener los artículos: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna el listado de lotes para un almacén, artículo y año en formato JSON
+     */
+    public function getLotes()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $almacen = $_GET['almacen'] ?? '';
+            $articulo = $_GET['articulo'] ?? '';
+            $anio = intval($_GET['anio'] ?? date('Y'));
+
+            $lotes = $this->service->listarLotes($almacen, $articulo, $anio);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $lotes
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener los lotes: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna las series y descripciones filtradas por almacén y cliente en formato JSON
+     */
+    public function getSeries()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $almacen = $_GET['almacen'] ?? '';
+            $cliente = $_GET['cliente'] ?? '';
+
+            $series = $this->service->listarSeries($almacen, $cliente);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $series
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener las series: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna los motivos de traslado en formato JSON
+     */
+    public function getMotivosTraslado()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $motivos = $this->service->listarMotivosTraslado();
+
+            echo json_encode([
+                "success" => true,
+                "data" => $motivos
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener los motivos de traslado: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
 }

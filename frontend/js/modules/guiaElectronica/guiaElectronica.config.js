@@ -173,6 +173,29 @@ const BUSQUEDAS_CONFIG = {
             if (clienteNombre) clienteNombre.value = item.nombre;
         }
 
+    },
+    'inputArtCodigo': {
+        title: 'Buscar Artículo por Código',
+        iconClass: 'fa-solid fa-cart-shopping',
+        placeholder: 'Escribe codigo o nombre para buscar...',
+        headers: ['N°', 'Codigo', 'Nombre', 'UNIDAD'],
+        fetchData: (service, query) => service.getArticulos(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.codigo}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.descri || '-'}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-mono">${item.unidad || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const inputArtCodigo = document.getElementById('inputArtCodigo');
+            if (inputArtCodigo) inputArtCodigo.value = item.codigo;
+            const inputArtDescri = document.getElementById('inputArtDescri');
+            if (inputArtDescri) inputArtDescri.value = item.descri;
+            const inputArtUnd = document.getElementById('inputArtUnd');
+            if (inputArtUnd) inputArtUnd.value = item.unidad || '';
+        }
     }
 };
 

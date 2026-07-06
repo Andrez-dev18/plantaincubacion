@@ -92,8 +92,8 @@ class GuiaElectronicaNavigation {
 
         // 3. ENTER -> Avanzar (evitando choques en inputs que abren modales)
         if (e.key === 'Enter') {
-            const modalInputs = ['codTransportista', 'codConductor', 'placaP', 'placaR'];
-            if (modalInputs.includes(target.id)) {
+            const hasModalConfig = window.GuiaElectronicaConfig && window.GuiaElectronicaConfig[target.id];
+            if (hasModalConfig) {
                 // Dejar que el listener del controlador abra el modal dinámico sin interferir
                 return;
             }

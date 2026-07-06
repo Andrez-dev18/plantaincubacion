@@ -86,7 +86,7 @@
                     <div class="xl:col-span-2">
                         <label for="transaccion"
                             class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Transacción</label>
-                        <input type="text" id="transaccion"
+                        <input type="text" id="transaccion" disabled
                             class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                     </div>
 
@@ -157,10 +157,17 @@
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Serie</label>
                                 <select id="serie"
                                     class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
-                                    <option value="EG01">EG01</option>
+                                    <option value="">-- Serie --</option>
                                 </select>
                             </div>
-                            <div class="col-span-4">
+                            <div class="col-span-2">
+                                <label for="descripcionSerie"
+                                    class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Desc. Serie</label>
+                                <input type="text" id="descripcionSerie"
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs"
+                                    disabled placeholder="Nombre de Serie...">
+                            </div>
+                            <div class="col-span-2">
                                 <label for="numeroGuia"
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Número
                                     Correlativo</label>
@@ -217,8 +224,7 @@
                                     de Traslado</label>
                                 <select id="motivoTraslado"
                                     class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
-                                    <option value="04">04 | TRASLADO ENTRE ESTABLECIMIENTOS DE LA MISMA EMPRESA</option>
-                                    <option value="01">01 | VENTA</option>
+                                    <option value="">-- Cargando Motivos --</option>
                                 </select>
                             </div>
 
@@ -284,8 +290,8 @@
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Razón
                                     Social Transportista</label>
                                 <input type="text" id="nomTransportista"
-                                    class="w-full h-9 px-3 bg-slate-100 border border-slate-200/80 rounded-lg text-xs text-slate-500 cursor-not-allowed"
-                                    readonly placeholder="Se llena automático...">
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs"
+                                    disabled placeholder="Se llena automático...">
                             </div>
 
                             <div class="col-span-6">
@@ -320,8 +326,8 @@
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Nombre
                                     Conductor</label>
                                 <input type="text" id="nomConductor"
-                                    class="w-full h-9 px-3 bg-slate-100 border border-slate-200/80 rounded-lg text-xs text-slate-500 cursor-not-allowed"
-                                    readonly>
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs"
+                                    disabled>
                             </div>
 
                             <div class="col-span-12">
@@ -329,7 +335,8 @@
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Licencia
                                     de Conducir</label>
                                 <input type="text" id="licenciaCond"
-                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-mono uppercase focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-mono uppercase shadow-2xs"
+                                    disabled>
                             </div>
                         </div>
                     </div>
@@ -351,13 +358,15 @@
                         <label for="inputArtDescri"
                             class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Descripción</label>
                         <input type="text" id="inputArtDescri"
-                            class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
+                            class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-xs shadow-2xs"
+                            disabled>
                     </div>
                     <div class="col-span-1">
                         <label for="inputArtUnd"
                             class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Und</label>
                         <input type="text" id="inputArtUnd"
-                            class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-center shadow-2xs">
+                            class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-xs text-center shadow-2xs"
+                            disabled>
                     </div>
                     <div class="col-span-1">
                         <label for="inputArtLote"
@@ -529,6 +538,9 @@
 
         </div>
     </div>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- SCRIPTS CORE & MODULES -->
     <script src="../js/core/Http.js"></script>

@@ -1,0 +1,1706 @@
+Dim miFila
+
+Private Sub btnConsultarCS_Click()
+Call ConsultarGuiaNubeFact
+End Sub
+Private Sub ConsultarGuiaNubeFact()
+    Dim xFormulario As String
+    Dim xDoc As String
+    Dim xSerie As String
+    Dim xNumero As String
+    
+    xFormulario = txtFormularioCS.Text
+    xDoc = "09"
+    xSerie = txtSerieCS.Text
+    xNumero = txtNumeroCS.Text
+    
+    btnImprimirCS.Enabled = False
+    
+    xMensaje = "Guía Procesado Correctamente"
+    Dim resp As String
+    resp = consultarGuiaRemitente(xFormulario, xDoc, xSerie, xNumero)
+    If resp = "OK" Then
+        xMensaje = "Guía a sido aceptado por SUNAT: " & resp
+'        MsgBox xMensaje, vbInformation, "GUÍA"
+        btnImprimirCS.Enabled = True
+        
+    Else
+        xMensaje = "Error Rechazado por SUNAT: " & resp
+'        MsgBox xMensaje, vbError, "GUÍA"
+    End If
+    txtRespuestaServidorCS = xMensaje
+End Sub
+
+Private Sub btnEliminar_Click()
+    If flxDetalle.Rows > 1 Then
+       If flxDetalle.Rows = 2 Then
+          flxDetalle.Rows = 1
+       Else
+          flxDetalle.RemoveItem (flxDetalle.RowSel)
+       End If
+       
+    End If
+    Call calcularGrilla
+    btnEliminar.Enabled = False
+    btnEliminarTodo.Enabled = False
+End Sub
+
+Private Sub btnEliminarTodo_Click()
+    flxDetalle.Rows = 1
+    Call calcularGrilla
+    btnEliminar.Enabled = False
+    btnEliminarTodo.Enabled = False
+End Sub
+
+Sub imprimirGuia()
+'    Call GenerarJSONDesdeDB
+'creamos el temporal
+
+    CN.Execute "DELETE FROM temp_guiaelec where tuser='" & Clv & "' "
+
+    querysI = "INSERT INTO temp_guiaelec (tuser,tdate,ttime,tprocli,tfecha,tfecha_traslado,tdoc,tserie,tnumfac,tmotivo,tdecripcion_motivo,ttipo_transporte,tpeso_bruto,tnum_bultos,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcodigo,tcencos,tgalpon,tlote,tdetalle,tcantidad,tpeso,tnum,tobservaciones)"
+    querysI = querysI & " SELECT '" & Clv & "',a.tdate,a.ttime,a.tprocli,a.tfectra,a.tfecrem,a.tdoc,a.tserie,a.tnumfac,a.tmotivo_traslado,a.tdesmot_traslado,a.ttip_transporte,a.tpesotot,a.tcanttot,a.tcod_transportista,a.tcod_conductor,a.tplaca,a.tplaca2,a.tcli_origen,a.tcli_destino,b.tcodigo,b.tcencos,b.tgalpon,b.tlote,b.tdet_adicional,b.tcantid,b.tpeso,b.count,a.tglosa "
+    querysI = querysI & " FROM guia AS a "
+    querysI = querysI & " INNER JOIN imov AS b ON a.tfectra=b.tfectra AND  a.tdoc=b.tdoc AND a.tserie=b.tserie AND a.tnumfac=b.tnumfac "
+    querysI = querysI & " WHERE a.tserie='" & cbSerie.Text & "' AND a.tnumfac='" & txtNumero.Text & "' AND left(a.tcodtra,1)='S' ; "
+    CN.Execute querysI
+    
+    
+    crGuia.Connect = cadconex
+    crGuia.DiscardSavedData = True
+    crGuia.Destination = crptToWindow ' destino de reporte a imprimir ejemplo pantall=crpttowindows
+    crGuia.WindowTitle = "IMPRESION DE GUIA DE REMISION REMITENTE JOYA" ' titulo de la pantalla del cristal
+    crGuia.WindowState = crptMaximized ' modi de presentacion, maximizado, minimizado
+    crGuia.SelectionFormula = "{temp_guiaelec.tuser}='" & Clv & "'  "
+    crGuia.ReportFileName = App.Path & "\reporte\rptGuiaJoyaProduccionA4.rpt" 'ruta de los reportes
+    crGuia.Action = 1 ' manda a ejecutar
+'    Call nuevo
+End Sub
+Sub nuevo()
+    frZona.Enabled = True
+    frDatos.Enabled = True
+    frDetalle.Enabled = True
+        
+    frConsulta.Visible = False
+    flxDetalle.Rows = 1
+    txtObservaciones.Text = ""
+    optTipo(0).Value = True
+    optTipo(0).SetFocus
+    
+    txtObservaciones = ""
+    txtCodtra = ""
+    txtClienteOrigen = ""
+    txtClienteDestino = ""
+    
+    txtCodTransportista = ""
+    txtNomTransportista = ""
+    txtPlacaP = ""
+    
+    txtPlacaPMarca = ""
+    txtPlacaPNtm = ""
+    txtPlacaPCv = ""
+    
+    txtPlacaRMarca = ""
+    txtPlacaRNtm = ""
+    txtPlacaRCv = ""
+    
+    txtUbigeoPp = ""
+    txtPuntoPartida = ""
+    txtUbigeoPl = ""
+    txtPuntoLlegada = ""
+    
+    txtCodConductor = ""
+    txtNomConductor = ""
+    txtLicConductor = ""
+    
+    txtCodArticulo = ""
+    txtNomArticulo = ""
+    txtUndArticulo = ""
+    txtLote = ""
+    txtCantidad = ""
+    txtPeso = ""
+    txtCencos = ""
+    txtGalpon = ""
+    txtDetalleAdicional = ""
+    txtOk = ""
+    
+    btnGuardar.Enabled = True
+
+
+End Sub
+Private Sub btnGuardar_Click()
+    If Val(txtPesoBrutoTotal) <= 0 Then
+        MsgBox "Peso Bruto no puede ser menor a Cero", vbInformation, "Peso Bruto"
+    Else
+        Call guardarDatos
+    End If
+End Sub
+
+Sub guardarDatos()
+
+Pgr = MsgBox("ESTÁ SEGURO DE GUARDAR EL REGISTRO", vbYesNo + vbQuestion, "ADVERTENCIA")
+
+If Pgr = vbNo Then
+    Exit Sub
+End If
+    
+ 
+    
+    Dim rptFec As Boolean
+    rptFec = VerificaFecha(Format(mskFecha, "yyyy-MM-dd"))
+    If rptFec = False Then
+        Exit Sub
+    End If
+
+    gDia = FechaServidor
+    gHora = HoraServidor
+    
+    gAlma = Left(cbZonaOrigen.Text, 3)
+    gAlmaDestino = Left(cbZonaDestino.Text, 3)
+    gCliente = txtCodCliente.Text
+    gDoc = "09"
+    gSerie = cbSerie.Text
+    gNumero = txtNumero.Text
+    
+
+    
+    gFecha = Format(FechaServidor, "yyyy-MM-dd")
+    gCodtra = txtCodtra
+    gFecTras = Format(mskFechaTraslado, "yyyy-MM-dd")
+    
+    gTransportista = txtCodTransportista
+    gConductor = txtCodConductor
+    gPlacaP = txtPlacaP
+    gPlacaR = txtPlacaR
+    
+    gObservacion = IIf(Trim(txtObservaciones) = "", "-", txtObservaciones)
+    
+    gCliOrigen = txtClienteOrigen
+    gCliDestino = txtClienteDestino
+    
+    gBultos = txtNumeroBultos
+    gPesBruto = txtPesoBrutoTotal
+    
+    gTipTransporte = Left(cbTipoTransporte.Text, 2)
+    gMotivoTraslado = Left(cbMotivoTraslado.Text, 2)
+    gDescripcionMotivoTraslado = txtMotivoTrasladoOtros
+    
+    xNumTra = 1
+    If optTipo(1).Value = True Then 'SI ES ENVIO A GRANJA
+        If Left(cbZonaOrigen, 3) = "010" Then 'SI ES ENVIO DESDE EL ALAMCEN JOYA 010
+'            If gFecha <> gFecTras Then 'SI LA FECHA DE TRASLADO ES DIFERENTE A LA FECHA DE EMISION
+                xNumTra = 3
+'            End If
+        End If
+    End If
+    
+    For w = 1 To 1
+'        If w = 2 Then
+'            gCodtra = "E" & Right(gCodtra, 3)
+'            gAlma = Left(cbZonaDestino.Text, 3)
+'            gAlmaDestino = Left(cbZonaOrigen.Text, 3)
+'        End If
+    
+        gRegistro = maxRegImov()
+        For q = 1 To xNumTra
+            If q = 1 Then
+                queryCab = "INSERT INTO guia(tuser,tdate,ttime,tprocli,tdoc,tserie,tnumfac,tfectra,tlib,treg,talm,tnumreg,tcodtra,ttip_transporte,tmotivo_traslado,tdesmot_traslado,"
+                queryCab = queryCab & " tfecrem,tglosa,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcanttot,tpesotot,mark,tgre )"
+                queryCab = queryCab & " VALUES ('" & Clv & "','" & gDia & "','" & gHora & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecha & "','AL','" & gRegistro & "','" & gAlma & "','" & gNumero & "','" & gCodtra & "','" & gTipTransporte & "','" & gMotivoTraslado & "','" & gDescripcionMotivoTraslado & "',"
+                queryCab = queryCab & " '" & gFecTras & "','" & gObservacion & "','" & gTransportista & "','" & gConductor & "','" & gPlacaP & "','" & gPlacaR & "','" & gCliOrigen & "','" & gCliDestino & "','" & gBultos & "','" & gPesBruto & "','JE1','S')"
+            ElseIf q = 2 Then
+                queryCab = "INSERT INTO guia(tuser,tdate,ttime,tprocli,tdoc,tserie,tnumfac,tfectra,tlib,treg,talm,tnumreg,tcodtra,ttip_transporte,tmotivo_traslado,tdesmot_traslado,"
+                queryCab = queryCab & " tfecrem,tglosa,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcanttot,tpesotot,mark,tgre )"
+                queryCab = queryCab & " VALUES ('" & Clv & "','" & gDia & "','" & gHora & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecha & "','AL','" & gRegistro & "','10T','" & gNumero & "','E450','" & gTipTransporte & "','" & gMotivoTraslado & "','" & gDescripcionMotivoTraslado & "',"
+                queryCab = queryCab & " '" & gFecTras & "','" & gObservacion & "','" & gTransportista & "','" & gConductor & "','" & gPlacaP & "','" & gPlacaR & "','" & gCliOrigen & "','" & gCliDestino & "','" & gBultos & "','" & gPesBruto & "','TE1','N')"
+            Else
+                queryCab = "INSERT INTO guia(tuser,tdate,ttime,tprocli,tdoc,tserie,tnumfac,tfectra,tlib,treg,talm,tnumreg,tcodtra,ttip_transporte,tmotivo_traslado,tdesmot_traslado,"
+                queryCab = queryCab & " tfecrem,tglosa,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcanttot,tpesotot,mark,tgre )"
+                queryCab = queryCab & " VALUES ('" & Clv & "','" & gDia & "','" & gHora & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "','AL','" & gRegistro & "','10T','" & gNumero & "','S450','" & gTipTransporte & "','" & gMotivoTraslado & "','" & gDescripcionMotivoTraslado & "',"
+                queryCab = queryCab & " '" & gFecTras & "','" & gObservacion & "','" & gTransportista & "','" & gConductor & "','" & gPlacaP & "','" & gPlacaR & "','" & gCliOrigen & "','" & gCliDestino & "','" & gBultos & "','" & gPesBruto & "','TS1','N')"
+            End If
+            
+            CN.Execute queryCab
+        Next
+        
+        For i = 1 To flxDetalle.Rows - 1
+            ' 0      1           2       3    4       5        6     7         8          9            10
+            'NUM| ARTICULO |DESCRIPCION|LOTE|UND| CANTIDAD | PESO| CENCOS | GALPON | DETALLE ADICIONAL |DETALLE ADICIONAL NUBEFACT
+            iCodigo = flxDetalle.TextMatrix(i, 1)
+            iDescripcion = flxDetalle.TextMatrix(i, 2)
+            iLote = flxDetalle.TextMatrix(i, 3)
+            iUnidad = flxDetalle.TextMatrix(i, 4)
+            iCantidad = Val(flxDetalle.TextMatrix(i, 5))
+            iPeso = Val(flxDetalle.TextMatrix(i, 6))
+        
+            iCencos = flxDetalle.TextMatrix(i, 7)
+    
+            iGalpon = flxDetalle.TextMatrix(i, 8)
+            iDetalleAdicional = flxDetalle.TextMatrix(i, 9) 'Detalle adicional
+            iNumLote = "00000000"
+            iDetalleAdicionalNubefact = flxDetalle.TextMatrix(i, 10)
+            
+            iPu = StockProducto(gAlma, iCodigo, iLote)
+            iImporte = Round(iCantidad * iPu, 2)
+            
+            If Left(tcodigo, 1) = "E" Then
+                xGuiEle = "N"
+            Else
+                xGuiEle = "S"
+            End If
+            
+            For q = 1 To xNumTra
+                If q = 1 Then
+                    If xNumTra > 1 Then
+                        gAlmaDestino = "10T"
+                    End If
+                    querysI = "INSERT INTO imov(tuser,tdate,ttime,tcodigo,tfectra,tcodtra,tlib,tnumreg,treg,"
+                    querysI = querysI & " talm,talr,tnumlot,tprocli,tdoc,tserie,tnumfac,tfecrem,"
+                    querysI = querysI & " tcencos,tcoscen,tgalpon,tcantid,tsacos,tsacos2,tpeso,COUNT,tlote,"
+                    querysI = querysI & " tglosa,tdet_adicional,timport,tkardex,mark,tgre)"
+                    querysI = querysI & " VALUES('" & Clv & "','" & gDia & "','" & gHora & "','" & iCodigo & "','" & gFecha & "','" & gCodtra & "','AL','" & gNumero & "','" & gRegistro & "',"
+                    querysI = querysI & " '" & gAlma & "','" & gAlmaDestino & "','" & iNumLote & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "',"
+                    querysI = querysI & " '" & iCencos & "','" & iCencos & "','" & iGalpon & "','" & iCantidad & "','" & iCantidad & "','" & iCantidad & "','" & iPeso & "','" & i & "','" & iLote & "',"
+                    querysI = querysI & " '" & iDetalleAdicionalNubefact & "','" & iDetalleAdicional & "','" & iImporte & "','" & iImporte & "','JE1','" & xGuiEle & "')"
+                ElseIf q = 2 Then
+                    querysI = "INSERT INTO imov(tuser,tdate,ttime,tcodigo,tfectra,tcodtra,tlib,tnumreg,treg,"
+                    querysI = querysI & " talm,talr,tnumlot,tprocli,tdoc,tserie,tnumfac,tfecrem,"
+                    querysI = querysI & " tcencos,tcoscen,tgalpon,tcantid,tsacos,tsacos2,tpeso,COUNT,tlote,"
+                    querysI = querysI & " tglosa,tdet_adicional,timport,tkardex,mark,tgre)"
+                    querysI = querysI & " VALUES('" & Clv & "','" & gDia & "','" & gHora & "','" & iCodigo & "','" & gFecha & "','E450','AL','" & gNumero & "','" & gRegistro & "',"
+                    querysI = querysI & " '10T','010','" & iNumLote & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "',"
+                    querysI = querysI & " '" & iCencos & "','" & iCencos & "','" & iGalpon & "','" & iCantidad & "','" & iCantidad & "','" & iCantidad & "','" & iPeso & "','" & i & "','" & iLote & "',"
+                    querysI = querysI & " '" & iDetalleAdicionalNubefact & "','" & iDetalleAdicional & "','" & iImporte & "','" & iImporte & "','TE1','N')"
+                ElseIf q = 3 Then
+                    querysI = "INSERT INTO imov(tuser,tdate,ttime,tcodigo,tfectra,tcodtra,tlib,tnumreg,treg,"
+                    querysI = querysI & " talm,talr,tnumlot,tprocli,tdoc,tserie,tnumfac,tfecrem,"
+                    querysI = querysI & " tcencos,tcoscen,tgalpon,tcantid,tsacos,tsacos2,tpeso,COUNT,tlote,"
+                    querysI = querysI & " tglosa,tdet_adicional,timport,tkardex,mark,tgre)"
+                    querysI = querysI & " VALUES('" & Clv & "','" & gDia & "','" & gHora & "','" & iCodigo & "','" & gFecTras & "','S450','AL','" & gNumero & "','" & gRegistro & "',"
+                    querysI = querysI & " '10T','010','" & iNumLote & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "',"
+                    querysI = querysI & " '" & iCencos & "','" & iCencos & "','" & iGalpon & "','" & iCantidad & "','" & iCantidad & "','" & iCantidad & "','" & iPeso & "','" & i & "','" & iLote & "',"
+                    querysI = querysI & " '" & iDetalleAdicionalNubefact & "','" & iDetalleAdicional & "','" & iImporte & "','" & iImporte & "','TS1','N')"
+                End If
+                    CN.Execute querysI
+            Next
+            
+            If (optTipo(0).Value = True) Then 'Envio a un Almacen
+                gCodtra2 = "E" & Right(gCodtra, 3)
+                gAlma2 = Left(cbZonaDestino.Text, 3)
+                gAlmaDestino2 = Left(cbZonaOrigen.Text, 3)
+                If (i = 1) Then
+                    gRegistro2 = maxRegImov()
+        
+                    queryCab = "INSERT INTO guia(tuser,tdate,ttime,tprocli,tdoc,tserie,tnumfac,tfectra,tlib,treg,talm,tnumreg,tcodtra,ttip_transporte,tmotivo_traslado,tdesmot_traslado,"
+                    queryCab = queryCab & " tfecrem,tglosa,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcanttot,tpesotot,mark,tgre )"
+                    queryCab = queryCab & " VALUES ('" & Clv & "','" & gDia & "','" & gHora & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecha & "','AL','" & gRegistro2 & "','" & gAlma2 & "','" & gNumero & "','" & gCodtra2 & "','" & gTipTransporte & "','" & gMotivoTraslado & "','" & gDescripcionMotivoTraslado & "',"
+                    queryCab = queryCab & " '" & gFecTras & "','" & gObservacion & "','" & gTransportista & "','" & gConductor & "','" & gPlacaP & "','" & gPlacaR & "','" & gCliOrigen & "','" & gCliDestino & "','" & gBultos & "','" & gPesBruto & "','JE1','N')"
+                    CN.Execute queryCab
+                End If
+                
+                querysI = "INSERT INTO imov(tuser,tdate,ttime,tcodigo,tfectra,tcodtra,tlib,tnumreg,treg,"
+                querysI = querysI & " talm,talr,tnumlot,tprocli,tdoc,tserie,tnumfac,tfecrem,"
+                querysI = querysI & " tcencos,tcoscen,tgalpon,tcantid,tsacos,tsacos2,tpeso,COUNT,tlote,"
+                querysI = querysI & " tglosa,tdet_adicional,mark,tgre)"
+                querysI = querysI & " VALUES('" & Clv & "','" & gDia & "','" & gHora & "','" & iCodigo & "','" & gFecha & "','" & gCodtra2 & "','AL','" & gNumero & "','" & gRegistro2 & "',"
+                querysI = querysI & " '" & gAlma2 & "','" & gAlmaDestino2 & "','" & iNumLote & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "',"
+                querysI = querysI & " '" & iCencos & "','" & iCencos & "','" & iGalpon & "','" & iCantidad & "','" & iCantidad & "','" & iCantidad & "','" & iPeso & "','" & i & "','" & iLote & "',"
+                querysI = querysI & " '" & iDetalleAdicionalNubefact & "','" & iDetalleAdicional & "','JE1','N')"
+                CN.Execute querysI
+
+            
+            Else 'Envio a Granja
+                gFechaMZ = gFecha
+                If xNumTra = "3" Then
+                    gFechaMZ = gFecTras
+                End If
+                If (i = 1) Then
+                    gRegistroPro = maxRegPro()
+                    
+                    
+                    
+                    queryCab = "INSERT INTO cabe_zonas(tuser,tdate,ttime,tprocli,tdoc,tserie,tnumfac,tfectra,tlib,treg,talm,tnumreg,tcodtra,ttip_transporte,tmotivo_traslado,tdesmot_traslado,"
+                    queryCab = queryCab & " tfecrem,tglosa,tcod_transportista,tcod_conductor,tplaca,tplaca2,tcli_origen,tcli_destino,tcanttot,tpesotot,mark ,tgre)"
+                    queryCab = queryCab & " VALUES ('" & Clv & "','" & gDia & "','" & gHora & "','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFechaMZ & "','AL','" & gRegistroPro & "','" & gAlma & "','" & gNumero & "','E400','" & gTipTransporte & "','" & gMotivoTraslado & "','" & gDescripcionMotivoTraslado & "',"
+                    queryCab = queryCab & " '" & gFecTras & "','" & gObservacion & "','" & gTransportista & "','" & gConductor & "','" & gPlacaP & "','" & gPlacaR & "','" & gCliOrigen & "','" & gCliDestino & "','" & gBultos & "','" & gPesBruto & "','JE1','N' )"
+                    CN.Execute queryCab
+                End If
+                
+                iLineaPro = "000"
+                Dim bsqLinea As ADODB.Recordset
+                Set bsqLinea = New ADODB.Recordset
+                queryM = "SELECT lin FROM mitm USE INDEX(PRIMARY) WHERE codigo='" & iCodigo & "' "
+                bsqLinea.Open queryM, CN, adOpenStatic, adLockOptimistic
+                If bsqLinea.RecordCount > 0 Then
+                   iLineaPro = IIf(IsNull(bsqLinea!lin) = True, "000", bsqLinea!lin)
+                End If
+               
+                querysI = "INSERT INTO movi_zonas(tuser,tdate,ttime,tcodigo,tline,tfectra,tcodtra,treg,"
+                querysI = querysI & " tcencos,tcodint,tcoscen,tgalpon,tprocli,tdoc,tserie,tnumfac,tfecrem,"
+                querysI = querysI & " tcantid,tsacos,tsacos2,tpeso,idmovi,"
+                querysI = querysI & " tglosa,tdet_adicional,timport,mark,tgre)"
+                querysI = querysI & " VALUES('" & Clv & "','" & gDia & "','" & gHora & "','" & iCodigo & "','" & iLineaPro & "','" & gFechaMZ & "','E400','" & gRegistroPro & "',"
+                querysI = querysI & " '" & iCencos & "','" & iGalpon & "','','','" & gCliente & "','" & gDoc & "','" & gSerie & "','" & gNumero & "','" & gFecTras & "',"
+                querysI = querysI & " '" & iCantidad & "','" & iPeso & "','" & iPeso & "','" & iPeso & "','" & i & "',"
+                querysI = querysI & " '" & iDetalleAdicionalNubefact & "','" & iDetalleAdicional & "','" & iImporte & "','JE1','N')"
+                CN.Execute querysI
+            
+            End If
+            
+        Next
+    Next
+    
+    MsgBox "Guia Grabada", vbInformation, "Guía"
+    
+    Call EnviarGuiaNubeFact
+    
+    
+    Screen.MousePointer = vbDefault
+    
+End Sub
+Private Sub EnviarGuiaNubeFact()
+    
+    Dim xFormulario As String
+    Dim xDoc As String
+    Dim xSerie As String
+    Dim xNumero As String
+    
+    xFormulario = "JOYA_ALMA"
+    xDoc = "09"
+    xSerie = cbSerie.Text
+    xNumero = txtNumero.Text
+    
+    xMensaje = "Guía Procesado Correctamente"
+    Dim resp As String
+    resp = crearGuiaRemitente(xFormulario, xDoc, xSerie, xNumero)
+    If resp = "OK" Then ' guia enviada a Nubefact a la espera de ser aprobada
+    
+    Else 'Rechazo de nubefact
+        xMensaje = "Error al Generar guía para SUNAT: " & resp
+    End If
+    
+    
+    
+    If resp = "Guía a la espera de ser aceptado por SUNAT" Or resp = "OK" Then
+        txtFormularioCS = xFormulario
+        txtSerieCS = xSerie
+        txtNumeroCS = xNumero
+        txtRespuestaServidorCS = xMensaje
+        
+        btnImprimirCS.Enabled = False
+        
+        frConsulta.Visible = True
+'        frmConsultarValidez.Show
+        frZona.Enabled = False
+        frDatos.Enabled = False
+        frDetalle.Enabled = False
+        
+    End If
+        
+    txtRespuestaServidor.Text = xMensaje
+    btnGuardar.Enabled = False
+    
+End Sub
+
+Private Sub btnImprimirCS_Click()
+    Dim xFormulario As String
+    Dim xDoc As String
+    Dim xSerie As String
+    Dim xNumero As String
+    
+    xFormulario = txtFormularioCS.Text
+    xDoc = "09"
+    xSerie = txtSerieCS.Text
+    xNumero = txtNumeroCS.Text
+    
+    resp = ImprimirGuiaEmpresa(xFormulario, xDoc, xSerie, xNumero)
+    If resp = "OK" Then
+        Call nuevo
+        Call imprimirGuiaLima
+    Else
+        xMensaje = "Error al Imprimir  Guía " & resp
+        MsgBox xMensaje, vbInformation, "Guía"
+    End If
+End Sub
+Sub imprimirGuiaLima()
+    crGuia.Connect = cadconex
+    crGuia.DiscardSavedData = True
+    crGuia.Destination = crptToWindow ' destino de reporte a imprimir ejemplo pantall=crpttowindows
+    crGuia.WindowTitle = "IMPRESION DE GUIA DE REMISION REMITENTE JOYA" ' titulo de la pantalla del cristal
+    crGuia.WindowState = crptMaximized ' modi de presentacion, maximizado, minimizado
+    crGuia.SelectionFormula = "{temp_guiaelec.tuser}='" & Clv & "'  "
+    crGuia.ReportFileName = App.Path & "\reporte\rptGuiaJoyaA4.rpt" 'ruta de los reportes
+    crGuia.Action = 1 ' manda a ejecutar
+    crGuia.ReportFileName = App.Path & "\reporte\rptGuiaJoyaA4res.rpt" 'ruta de los reportes
+    crGuia.Action = 1 ' manda a ejecutar
+
+End Sub
+
+Private Sub mskFecha_KeyPress(KeyAscii As Integer)
+'    If KeyAscii = 13 Then
+'        resp = VerificaFecha(Format(mskFecha, "yyyy-MM-dd"))
+'        If resp = True Then
+'            mskFechaTraslado.SetFocus
+'        End If
+'    End If
+End Sub
+
+Private Sub optTipo_Click(Index As Integer)
+    Select Case Index
+        Case 0: txtCodtra.Text = "S440"
+            For w = 0 To cbZonaDestino.ListCount - 1
+                cbZonaDestino.ListIndex = w
+                If Left(cbZonaDestino.Text, 3) = "011" Then
+                    Exit For
+                End If
+            Next
+        Case 1: txtCodtra.Text = "S400"
+            For w = 0 To cbZonaDestino.ListCount - 1
+                cbZonaDestino.ListIndex = w
+                If Left(cbZonaDestino.Text, 3) = "010" Then
+                    Exit For
+                End If
+            Next
+        End Select
+        
+        
+        txtCodtra.Enabled = True
+        txtCodtra.SelStart = 0
+        txtCodtra.SelLength = Len(txtCodtra)
+        txtCodtra.SetFocus
+End Sub
+
+Private Sub txtGalpon_KeyPress(KeyAscii As Integer)
+    KeyAscii = SoloNumeros(KeyAscii)
+    If KeyAscii = 13 Then
+        If txtGalpon = "0" Then
+            txtDetalleAdicional.Enabled = True
+            txtDetalleAdicional.SelStart = 0
+            txtDetalleAdicional.SelLength = Len(txtDetalleAdicional)
+            txtDetalleAdicional.SetFocus
+        Else
+            Dim bsqGalpon As ADODB.Recordset
+            Set bsqGalpon = New ADODB.Recordset
+            querys = "SELECT tcodint FROM regcencosgalpones WHERE tcencos='" & Left(txtCencos, 3) & "'  and tcodint='" & txtGalpon & "' group by ABS(tcodint)"
+            bsqGalpon.Open querys, CN, adOpenStatic, adLockOptimistic
+            If bsqGalpon.RecordCount > 0 Then
+                txtDetalleAdicional.Enabled = True
+                txtDetalleAdicional.SelStart = 0
+                txtDetalleAdicional.SelLength = Len(txtDetalleAdicional)
+                txtDetalleAdicional.SetFocus
+            Else
+                MsgBox "Galpon no Existe", vbInformation, "Galpon"
+                txtGalpon.Enabled = True
+                txtGalpon.SelStart = 0
+                txtGalpon.SelLength = Len(txtGalpon)
+                txtGalpon.SetFocus
+            End If
+        End If
+        
+    End If
+End Sub
+
+
+
+Private Sub flxDetalle_Click()
+    If flxDetalle.Rows > 1 Then
+    
+       txtCodArticulo = flxDetalle.TextMatrix(flxDetalle.RowSel, 1)
+       txtNomArticulo = flxDetalle.TextMatrix(flxDetalle.RowSel, 2)
+       txtUndArticulo = flxDetalle.TextMatrix(flxDetalle.RowSel, 4)
+       txtLote = flxDetalle.TextMatrix(flxDetalle.RowSel, 3)
+       txtCantidad = flxDetalle.TextMatrix(flxDetalle.RowSel, 5)
+       txtPeso = flxDetalle.TextMatrix(flxDetalle.RowSel, 6)
+       
+       txtCencos = flxDetalle.TextMatrix(flxDetalle.RowSel, 7)
+       txtGalpon.Text = flxDetalle.TextMatrix(flxDetalle.RowSel, 8)
+       txtDetalleAdicional = flxDetalle.TextMatrix(flxDetalle.RowSel, 9)
+       
+       miFila = flxDetalle.RowSel
+    End If
+End Sub
+
+Private Sub txtLote_GotFocus()
+    If sCodLote <> "" Then
+        txtLote = sCodLote
+    End If
+End Sub
+
+Private Sub txtLote_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        saAlma = Left(cbZonaOrigen.Text, 3)
+        saArticulo = txtCodArticulo.Text
+        saLote = txtLote.Text
+    
+        Dim bsqStock As ADODB.Recordset
+        Set bsqStock = New ADODB.Recordset
+        querys = "SELECT codigo,lote,SUM(tcantid)tcantid,SUM(tpeso)tpeso FROM ("
+        querys = querys & " SELECT  tcodigo codigo,tlote lote,SUM(IF(LEFT(tcodtra,1)='E',tcantid,-1*tcantid))tcantid,ROUND(SUM(IF(LEFT(tcodtra,1)='E',tpeso,-1*tpeso)),2)tpeso,'1' mov FROM imov WHERE tcodigo='" & saArticulo & "' AND talm='" & saAlma & "' AND tlote='" & saLote & "' AND year(tfectra)='" & vgEAno & "' group by tcodigo,tlote "
+        querys = querys & " Union"
+        querys = querys & " SELECT codigo,lote,qiniano tcantid,piniano tpeso,'2'mov FROM mzon WHERE codigo='" & saArticulo & "' AND alma='" & saAlma & "' AND lote='" & saLote & "'"
+        querys = querys & " )AS ntabla GROUP BY lote"
+        bsqStock.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqStock.RecordCount > 0 Then
+            
+            If Left(txtCodArticulo, 2) = "PL" And Left(txtLote, 1) = "G" Then
+                txtCantidad = "0"
+                txtPeso.Enabled = True
+                txtPeso.SelStart = 0
+                txtPeso.SelLength = Len(txtPeso)
+                txtPeso.SetFocus
+            Else
+                txtCantidad.Enabled = True
+                txtCantidad.SelStart = 0
+                txtCantidad.SelLength = Len(txtCantidad)
+                txtCantidad.SetFocus
+            End If
+            
+            
+        Else
+            MsgBox "Lote no existe", vbInformation, "LOTE"
+            txtLote.Enabled = True
+            txtLote.SelStart = 0
+            txtLote.SelLength = Len(txtLote)
+            txtLote.SetFocus
+        End If
+    
+        
+    End If
+End Sub
+Sub stockArticulo()
+    frStock.Visible = True
+    saAlma = Left(cbZonaOrigen.Text, 3)
+    saArticulo = txtCodArticulo.Text
+    saLote = txtLote.Text
+    
+    lbStkCantidad.Caption = 0
+    lbStkPeso.Caption = 0
+    
+    Dim bsqStock As ADODB.Recordset
+    Set bsqStock = New ADODB.Recordset
+    querys = "SELECT codigo,lote,SUM(tcantid)tcantid,SUM(tpeso)tpeso FROM ("
+    querys = querys & " SELECT  tcodigo codigo,tlote lote,SUM(IF(LEFT(tcodtra,1)='E',tcantid,-1*tcantid))tcantid,ROUND(SUM(IF(LEFT(tcodtra,1)='E',tpeso,-1*tpeso)),2)tpeso,'1' mov FROM imov WHERE tcodigo='" & saArticulo & "' AND talm='" & saAlma & "' AND tlote='" & saLote & "' AND year(tfectra)='" & vgEAno & "' group by tcodigo,tlote "
+    querys = querys & " Union"
+    querys = querys & " SELECT codigo,lote,qiniano tcantid,piniano tpeso,'2'mov FROM mzon WHERE codigo='" & saArticulo & "' AND alma='" & saAlma & "' AND lote='" & saLote & "'"
+    querys = querys & " )AS ntabla GROUP BY lote"
+    bsqStock.Open querys, CN, adOpenStatic, adLockOptimistic
+    If bsqStock.RecordCount > 0 Then
+        lbStkCantidad.Caption = bsqStock!tcantid
+        lbStkPeso.Caption = bsqStock!tpeso
+    End If
+    
+    For w = 1 To flxDetalle.Rows - 1
+        xCodigo = flxDetalle.TextMatrix(w, 1)
+        xLote = flxDetalle.TextMatrix(w, 3)
+        
+        xCantidad = flxDetalle.TextMatrix(w, 5)
+        xPeso = flxDetalle.TextMatrix(w, 6)
+        
+        If saArticulo = xCodigo And saLote = xLote Then
+            lbStkCantidad.Caption = Val(lbStkCantidad.Caption) - Val(xCantidad)
+            lbStkPeso.Caption = Val(lbStkPeso.Caption) - Val(xPeso)
+        End If
+    Next
+    
+    
+    
+End Sub
+
+Private Sub cbMotivoTraslado_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        If Left(cbMotivoTraslado.Text, 2) = "13" Then
+            txtMotivoTrasladoOtros.Enabled = True
+            txtMotivoTrasladoOtros.SelStart = 0
+            txtMotivoTrasladoOtros.SelLength = Len(txtMotivoTrasladoOtros)
+            txtMotivoTrasladoOtros.SetFocus
+        Else
+            txtNumeroBultos.Enabled = True
+            txtNumeroBultos.SelStart = 0
+            txtNumeroBultos.SelLength = Len(txtNumeroBultos)
+            txtNumeroBultos.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub cbSerie_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Dim datos() As String
+    
+        Dim filas As Integer
+        Dim columnas As Integer
+        Dim i As Integer
+        Dim j As Integer
+        
+        datos = datosSerie(Left(cbZonaOrigen.Text, 3), txtClienteOrigen.Text, cbSerie.Text)
+        
+         For Fila = LBound(datos, 1) To UBound(datos, 1)
+'            For columna = LBound(datos, 2) To UBound(datos, 2)
+'                cbSerie.AddItem datos(fila, columna)
+'            Next columna
+            txtNomSerie = datos(Fila, 1)
+        Next Fila
+'
+        txtNumero.Text = correlativoGuia("09", cbSerie.Text)
+        
+        txtCodCliente.Enabled = True
+        txtCodCliente.SelStart = 0
+        txtCodCliente.SelLength = Len(txtCodCliente)
+        txtCodCliente.SetFocus
+    End If
+End Sub
+
+Private Sub cbTipoTransporte_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        cbMotivoTraslado.Enabled = True
+        cbMotivoTraslado.SetFocus
+    End If
+End Sub
+
+Private Sub cbZonaDestino_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        If Left(cbZonaDestino.Text, 3) = "011" Then
+            txtClienteDestino = "121011"
+        ElseIf Left(cbZonaDestino.Text, 3) = "MA1" Then
+            txtClienteDestino = "M01"
+        Else
+            txtClienteDestino = ""
+        End If
+        
+        txtClienteDestino.Enabled = True
+        txtClienteDestino.SelStart = 0
+        txtClienteDestino.SelLength = Len(txtClienteDestino)
+        txtClienteDestino.SetFocus
+    End If
+End Sub
+
+Private Sub cbZonaOrigen_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Dim bsqCodtra As ADODB.Recordset
+        Set bsqCodtra = New ADODB.Recordset
+        queryb = "SELECT * FROM dserie WHERE tzona='" & Left(cbZonaOrigen.Text, 3) & "' group by tzona "
+        bsqCodtra.Open queryb, CN, adOpenStatic, adLockOptimistic
+        If bsqCodtra.RecordCount > 0 Then
+            txtClienteOrigen = "121000"
+            txtClienteOrigen.SelStart = 0
+            txtClienteOrigen.Enabled = True
+            txtClienteOrigen.SelLength = Len(txtClienteOrigen)
+            txtClienteOrigen.SetFocus
+        Else
+            MsgBox "Almacén no cuenta con una serie asignada!", vbInformation, "Almacen"
+             cbZonaOrigen.Enabled = True
+             cbZonaOrigen.SetFocus
+        End If
+    End If
+End Sub
+
+
+
+Private Sub flxDetalle_DblClick()
+    btnEliminar.Enabled = True
+    btnEliminarTodo.Enabled = True
+    
+End Sub
+
+Private Sub Form_Activate()
+    optTipo(0).SetFocus
+End Sub
+
+Private Sub Form_Load()
+    Move (mdiPrincipal.ScaleWidth - Width) \ 2, (mdiPrincipal.ScaleHeight - Height) \ 2
+    optTipo(0).Value = True
+    
+    mskFecha = Format(Now, "yyyy/MM/dd")
+    mskFechaTraslado = Format(Now, "yyyy/MM/dd")
+    
+    Call zonaAlmaO
+    Call zonaAlmaD
+    Call tipoTransporte
+    Call motivoTraslado
+End Sub
+Sub motivoTraslado()
+    cbMotivoTraslado.Clear
+    Dim bsqZona As ADODB.Recordset
+    Set bsqZona = New ADODB.Recordset
+    querysb = "SELECT cod,nom FROM dmotivo_traslado WHERE est='A' ORDER BY ord "
+    bsqZona.Open querysb, CN, adOpenStatic, adLockOptimistic
+    If bsqZona.RecordCount > 0 Then
+        For w = 1 To bsqZona.RecordCount
+            xCod = bsqZona!cod
+            xNom = bsqZona!nom
+            
+            cbMotivoTraslado.AddItem xCod & "|" & xNom
+            bsqZona.MoveNext
+        Next
+        
+        For w = 0 To cbMotivoTraslado.ListCount - 1
+            cbMotivoTraslado.ListIndex = w
+            If Left(cbMotivoTraslado.Text, 2) = "04" Then
+                Exit For
+            End If
+        Next
+    End If
+End Sub
+Sub tipoTransporte()
+    cbTipoTransporte.Clear
+    Dim bsqZona As ADODB.Recordset
+    Set bsqZona = New ADODB.Recordset
+    querysb = "SELECT cod,nom FROM dtipo_transporte WHERE est='A' ORDER BY cod "
+    bsqZona.Open querysb, CN, adOpenStatic, adLockOptimistic
+    If bsqZona.RecordCount > 0 Then
+        For w = 1 To bsqZona.RecordCount
+            xCod = bsqZona!cod
+            xNom = bsqZona!nom
+            
+            cbTipoTransporte.AddItem xCod & "|" & xNom
+            bsqZona.MoveNext
+        Next
+        
+        cbTipoTransporte.ListIndex = 0
+    End If
+End Sub
+Sub zonaAlmaO()
+    cbZonaOrigen.Clear
+    Dim bsqZona As ADODB.Recordset
+    Set bsqZona = New ADODB.Recordset
+    querysb = "SELECT codalm,descri FROM alma WHERE LEFT(codalm,2) NOT IN ('MA','RT') AND LEFT(codalm,2)<>'M3' AND LEFT(codalm,2)<>'AG'  ORDER BY codalm"
+    bsqZona.Open querysb, CN, adOpenStatic, adLockOptimistic
+    If bsqZona.RecordCount > 0 Then
+        For w = 1 To bsqZona.RecordCount
+            xCod = bsqZona!codalm
+            xNom = bsqZona!descri
+            
+            cbZonaOrigen.AddItem xCod & "|" & xNom
+            bsqZona.MoveNext
+        Next
+        
+        For w = 0 To cbZonaOrigen.ListCount - 1
+            cbZonaOrigen.ListIndex = w
+            If Left(cbZonaOrigen.Text, 3) = "010" Then
+                Exit For
+            End If
+        Next
+    End If
+End Sub
+
+Sub zonaAlmaD()
+    cbZonaDestino.Clear
+    Dim bsqZona As ADODB.Recordset
+    Set bsqZona = New ADODB.Recordset
+    querysb = "SELECT codalm,descri FROM alma WHERE  LEFT(codalm,2)<>'M3' AND LEFT(codalm,2)<>'AG'  ORDER BY codalm" 'LEFT(codalm,2) NOT IN ('MA','RT') AND
+    bsqZona.Open querysb, CN, adOpenStatic, adLockOptimistic
+    If bsqZona.RecordCount > 0 Then
+        For w = 1 To bsqZona.RecordCount
+            xCod = bsqZona!codalm
+            xNom = bsqZona!descri
+            
+            cbZonaDestino.AddItem xCod & "|" & xNom
+            bsqZona.MoveNext
+        Next
+        For w = 0 To cbZonaDestino.ListCount - 1
+            cbZonaDestino.ListIndex = w
+            If Left(cbZonaDestino.Text, 3) = "010" Then
+                Exit For
+            End If
+        Next
+    End If
+End Sub
+
+
+
+Private Sub mskFechaTraslado_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        cbSerie.Enabled = True
+        cbSerie.SetFocus
+    End If
+End Sub
+
+Private Sub optTipo_KeyPress(Index As Integer, KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Select Case Index
+        Case 0: txtCodtra.Text = "S440"
+            For w = 0 To cbZonaDestino.ListCount - 1
+                cbZonaDestino.ListIndex = w
+                If Left(cbZonaDestino.Text, 3) = "011" Then
+                    Exit For
+                End If
+            Next
+        Case 1: txtCodtra.Text = "S400"
+            For w = 0 To cbZonaDestino.ListCount - 1
+                cbZonaDestino.ListIndex = w
+                If Left(cbZonaDestino.Text, 3) = "010" Then
+                    Exit For
+                End If
+            Next
+        End Select
+        
+        
+        txtCodtra.Enabled = True
+        txtCodtra.SelStart = 0
+        txtCodtra.SelLength = Len(txtCodtra)
+        txtCodtra.SetFocus
+    End If
+End Sub
+
+
+
+
+Private Sub txtCantidad_GotFocus()
+    Call stockArticulo
+End Sub
+
+Private Sub txtCantidad_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        If Val(txtCantidad) <= 0 And txtUndArticulo <> "KGS" Then
+            MsgBox "Ingrese una Cantidad", vbInformation, "Cantidad"
+        ElseIf Val(txtCantidad) > Val(lbStkCantidad.Caption) Then
+            MsgBox "Cantidad supera al stock", vbInformation, "Cantidad"
+        Else
+            If txtUndArticulo = "KGS" Then
+                txtPeso.Enabled = True
+                txtPeso.SelStart = 0
+                txtPeso.SelLength = Len(txtPeso)
+                txtPeso.SetFocus
+            Else
+                txtPeso = "0"
+                txtCencos.Enabled = True
+                txtCencos.SelStart = 0
+                txtCencos.SelLength = Len(txtCencos)
+                txtCencos.SetFocus
+            End If
+            Exit Sub
+        End If
+        txtCantidad.Enabled = True
+        txtCantidad.SelStart = 0
+        txtCantidad.SelLength = Len(txtCantidad)
+        txtCantidad.SetFocus
+        
+    End If
+End Sub
+
+Private Sub txtCantidad_LostFocus()
+    frStock.Visible = False
+End Sub
+
+Private Sub txtCencos_GotFocus()
+    If sCodCencos <> "" Then
+        txtCencos = sCodCencos
+        lblNomCencos = sNomCencos
+    End If
+End Sub
+
+Private Sub txtCencos_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+'        If optTipo(0).Value = True Then
+            If Left(txtClienteDestino, 3) <> Left(txtCencos, 3) Then
+                MsgBox "Cencos es diferente al cliente destino!", vbInformation, "Cencos"
+                txtCencos.Enabled = True
+                txtCencos.SelStart = 0
+                txtCencos.SelLength = Len(txtCencos)
+                txtCencos.SetFocus
+                Exit Sub
+            End If
+'        End If
+        
+        Dim bsqCliente As ADODB.Recordset
+        Set bsqCliente = New ADODB.Recordset
+        querys = "SELECT codigo,nombre FROM ccos WHERE codigo='" & txtCencos & "' AND swac='A' ; "
+        bsqCliente.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqCliente.RecordCount > 0 Then
+            lblNomCencos.Caption = bsqCliente!nombre
+            If Left(txtCodArticulo, 2) <> "PL" Then
+                txtGalpon = "0"
+            End If
+'            Call galpones
+            
+            txtGalpon.Enabled = True
+            txtGalpon.SelStart = 0
+            txtGalpon.SelLength = Len(txtGalpon)
+            txtGalpon.SetFocus
+        Else
+            MsgBox "Cencos no Existe!", vbInformation, "Cencos"
+            txtCencos.Enabled = True
+            txtCencos.SelStart = 0
+            txtCencos.SelLength = Len(txtCencos)
+            txtCencos.SetFocus
+        End If
+    End If
+End Sub
+Sub galpones()
+    cbGalpon.Clear
+    If Left(txtCodArticulo.Text, 2) <> "PL" Then
+        cbGalpon.AddItem "0"
+    End If
+    
+    Dim bsqGalpon As ADODB.Recordset
+    Set bsqGalpon = New ADODB.Recordset
+    querys = "SELECT tcodint FROM regcencosgalpones WHERE tcencos='" & Left(txtCencos, 3) & "'  and ABS(tcodint)>0 group by ABS(tcodint)"
+    bsqGalpon.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqGalpon.RecordCount > 0 Then
+            For i = 1 To bsqGalpon.RecordCount
+                cbGalpon.AddItem bsqGalpon!tcodint
+                bsqGalpon.MoveNext
+            Next
+        End If
+    cbGalpon.ListIndex = 0
+End Sub
+
+Private Sub txtCencos_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpCencos.Show
+    End If
+End Sub
+
+Private Sub txtClienteDestino_GotFocus()
+    If sCodCliente <> "" Then
+        txtClienteDestino = sCodCliente
+'        sNomCliente
+        txtPuntoLlegada = sDirCliente
+        txtUbigeoPl = sUbiCliente
+        
+        sCodCliente = ""
+    End If
+End Sub
+
+Private Sub txtClienteDestino_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        Dim bsqCliente As ADODB.Recordset
+        Set bsqCliente = New ADODB.Recordset
+        querys = "SELECT codigo,nombre,direcc,ubigeo FROM ccte WHERE codigo='" & txtClienteDestino & "' AND ubigeo<>''; "
+        bsqCliente.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqCliente.RecordCount > 0 Then
+            txtPuntoLlegada = bsqCliente!direcc
+            txtUbigeoPl = bsqCliente!ubigeo
+    
+            mskFechaTraslado.Enabled = True
+            mskFechaTraslado.SelStart = 0
+            mskFechaTraslado.SelLength = Len(mskFechaTraslado)
+            mskFechaTraslado.SetFocus
+        Else
+            MsgBox "Cliente no Existe!", vbInformation, "Cliente Destino"
+            txtClienteDestino.Enabled = True
+            txtClienteDestino.SelStart = 0
+            txtClienteDestino.SelLength = Len(txtClienteDestino)
+            txtClienteDestino.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtClienteDestino_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        sZonaAyuda = "LAJOYA"
+        helpClientes.Show
+    End If
+End Sub
+
+Private Sub txtClienteOrigen_GotFocus()
+    If sCodCliente <> "" Then
+        txtClienteOrigen = sCodCliente
+'        sNomCliente
+        txtPuntoPartida = sDirCliente
+        txtUbigeoPp = sUbiCliente
+        
+        sCodCliente = ""
+    End If
+End Sub
+
+Private Sub txtClienteOrigen_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        Dim bsqCodtra As ADODB.Recordset
+        Set bsqCodtra = New ADODB.Recordset
+        queryb = "SELECT * FROM dserie WHERE tzona='" & Left(cbZonaOrigen.Text, 3) & "' and tprocli='" & txtClienteOrigen & "' group by tzona "
+        bsqCodtra.Open queryb, CN, adOpenStatic, adLockOptimistic
+        If bsqCodtra.RecordCount > 0 Then
+            Dim bsqCliente As ADODB.Recordset
+            Set bsqCliente = New ADODB.Recordset
+            querys = "SELECT codigo,nombre,direcc,ubigeo FROM ccte WHERE codigo='" & txtClienteOrigen & "'; "
+            bsqCliente.Open querys, CN, adOpenStatic, adLockOptimistic
+            If bsqCliente.RecordCount > 0 Then
+                txtPuntoPartida = bsqCliente!direcc
+                txtUbigeoPp = bsqCliente!ubigeo
+                Call data_serie
+                
+                If optTipo(0).Value = True Then
+                    xSerPre = "TJ01"
+                Else
+                    xSerPre = "TJ02"
+                End If
+                For w = 0 To cbSerie.ListCount - 1
+                    cbSerie.ListIndex = w
+                    If cbSerie.Text = xSerPre Then
+                        Exit For
+                    End If
+                Next
+                
+                cbZonaDestino.SetFocus
+            Else
+                MsgBox "Cliente no Existe!", vbInformation, "Cliente Origen"
+                txtClienteOrigen.Enabled = True
+                txtClienteOrigen.SelStart = 0
+                txtClienteOrigen.SelLength = Len(txtClienteOrigen)
+                txtClienteOrigen.SetFocus
+            End If
+            
+        Else
+            MsgBox "Cliente no cuenta con una serie asignada!", vbInformation, "Cliente Origen"
+             txtClienteOrigen.Enabled = True
+             txtClienteOrigen.SelStart = 0
+             txtClienteOrigen.SelLength = Len(txtClienteOrigen)
+             txtClienteOrigen.SetFocus
+        End If
+    End If
+End Sub
+Sub data_serie()
+    cbSerie.Clear
+    
+    Dim datos() As String
+    
+    Dim filas As Integer
+    Dim columnas As Integer
+    Dim i As Integer
+    Dim j As Integer
+    
+    ' Llamar a la función y obtener el array devuelto
+    datos = datosSerie(Left(cbZonaOrigen.Text, 3), txtClienteOrigen.Text, "")
+    
+    ' Leer y mostrar los datos del array
+    
+     For Fila = LBound(datos, 1) To UBound(datos, 1)
+            cbSerie.AddItem datos(Fila, 0)
+            
+     Next Fila
+
+    cbSerie.ListIndex = 0
+End Sub
+
+Private Sub txtClienteOrigen_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpClientes.Show
+    End If
+End Sub
+
+Private Sub txtCodArticulo_GotFocus()
+    If sCodArticulo <> "" Then
+        txtCodArticulo = sCodArticulo
+        txtNomArticulo = sNomArticulo
+        txtUndArticulo = sUndArticulo
+    End If
+End Sub
+
+Private Sub txtCodArticulo_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        Dim bsqArt As ADODB.Recordset
+        Set bsqArt = New ADODB.Recordset
+        querys = "SELECT codigo,descri,unidad FROM mitm WHERE codigo='" & txtCodArticulo & "' group by codigo"
+        bsqArt.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqArt.RecordCount > 0 Then
+            txtNomArticulo = bsqArt!descri
+            txtUndArticulo = bsqArt!unidad
+            
+'            Call loteArticulo
+            
+'            If cbLote.ListCount > 0 Then
+                txtLote.Enabled = True
+                txtLote.SelStart = 0
+                txtLote.SelLength = Len(txtLote.Text)
+                txtLote.SetFocus
+                Exit Sub
+'            Else
+'                MsgBox "Articulo no cuenta con lotes", vbInformation, "Articulo"
+'            End If
+        Else
+            MsgBox "Articulo no Existe!", vbInformation, "Articulo"
+        End If
+        txtCodArticulo.Enabled = True
+        txtCodArticulo.SelStart = 0
+        txtCodArticulo.SelLength = Len(txtCodArticulo)
+        txtCodArticulo.SetFocus
+        
+    End If
+End Sub
+Sub loteArticulo()
+    cbLote.Clear
+    
+    saAlma = Left(cbZonaOrigen.Text, 3)
+    saArticulo = txtCodArticulo.Text
+
+    
+    Dim bsqLoteArt As ADODB.Recordset
+    Set bsqLoteArt = New ADODB.Recordset
+    querys = "SELECT lote FROM ("
+    querys = querys & " SELECT tlote lote,'1'mov FROM imov WHERE tcodigo='" & saArticulo & "' AND talm='" & saAlma & "' AND year(tfectra)='" & vgEAno & "' GROUP BY tlote"
+    querys = querys & " Union"
+    querys = querys & " SELECT lote,'2'mov FROM mzon WHERE codigo='" & saArticulo & "' AND alma='" & saAlma & "' GROUP BY lote"
+    querys = querys & " )AS ntabla GROUP BY lote ORDER BY lote DESC"
+    bsqLoteArt.Open querys, CN, adOpenStatic, adLockOptimistic
+    If bsqLoteArt.RecordCount > 0 Then
+        For w = 1 To bsqLoteArt.RecordCount
+            cbLote.AddItem bsqLoteArt!lote
+            bsqLoteArt.MoveNext
+        Next
+        cbLote.ListIndex = 0
+    End If
+End Sub
+
+Private Sub txtCodArticulo_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        sConsAlma = Left(cbZonaOrigen.Text, 3)
+        helpArticulos.Show
+    End If
+End Sub
+
+Private Sub txtCodCliente_GotFocus()
+    If sCodCliente <> "" Then
+        txtCodCliente = sCodCliente
+        txtNomCliente = sNomCliente
+      
+        
+        sCodCliente = ""
+    End If
+End Sub
+
+Private Sub txtCodCliente_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        Dim bsqCliente As ADODB.Recordset
+        Set bsqCliente = New ADODB.Recordset
+        querys = "SELECT codigo,nombre,direcc,ubigeo FROM ccte WHERE codigo='" & txtCodCliente & "'; "
+        bsqCliente.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqCliente.RecordCount > 0 Then
+            txtNomCliente = bsqCliente!nombre
+    
+            cbTipoTransporte.Enabled = True
+            cbTipoTransporte.SetFocus
+            
+'            cbSerie.Clear
+'            cbSerie.AddItem "TPR9"
+'            cbSerie.ListIndex = 0
+        Else
+            MsgBox "Cliente SUNAT no Existe!", vbInformation, "Cliente SUNAT"
+            txtCodCliente.Enabled = True
+            txtCodCliente.SelStart = 0
+            txtCodCliente.SelLength = Len(txtCodCliente)
+            txtCodCliente.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtCodCliente_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpClientes.Show
+    End If
+End Sub
+
+Private Sub txtCodConductor_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Dim bsqTransportista As ADODB.Recordset
+        Set bsqTransportista = New ADODB.Recordset
+        querys = "SELECT dni,nombre,licencia FROM dchofer WHERE dni='" & txtCodConductor & "' AND testado='A' group by dni "
+        bsqTransportista.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqTransportista.RecordCount > 0 Then
+            txtNomConductor = bsqTransportista!nombre
+            txtLicConductor = bsqTransportista!licencia
+            
+            txtObservaciones.Enabled = True
+            txtObservaciones.SelStart = 0
+            txtObservaciones.SelLength = Len(txtObservaciones)
+            txtObservaciones.SetFocus
+        Else
+            MsgBox "Conductor invalido o inactivo!", vbInformation, "Conductor"
+            txtCodConductor.Enabled = True
+            txtCodConductor.SelStart = 0
+            txtCodConductor.SelLength = Len(txtCodConductor)
+            txtCodConductor.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtCodtra_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        Dim bsqCodtra As ADODB.Recordset
+        Set bsqCodtra = New ADODB.Recordset
+        queryb = "SELECT * FROM coal WHERE codtra='" & txtCodtra & "' group by codtra "
+        bsqCodtra.Open queryb, CN, adOpenStatic, adLockOptimistic
+        If bsqCodtra.RecordCount > 0 Then
+            cbZonaOrigen.SetFocus
+        Else
+            MsgBox "Transaccion invalida!", vbInformation, "Trasaccion"
+            txtCodtra.Enabled = True
+            txtCodtra.SelStart = 0
+            txtCodtra.SelLength = Len(txtCodtra)
+            txtCodtra.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtCodTransportista_GotFocus()
+    If sCodTransportista <> "" Then
+        txtCodTransportista = sCodTransportista
+        txtNomTransportista = sNomTransportista
+    End If
+End Sub
+
+Private Sub txtCodTransportista_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Dim bsqTransportista As ADODB.Recordset
+        Set bsqTransportista = New ADODB.Recordset
+        querys = "SELECT ruc,nombre FROM dtransportista WHERE ruc='" & txtCodTransportista & "' AND testado='A' group by ruc "
+        bsqTransportista.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqTransportista.RecordCount > 0 Then
+            txtNomTransportista = bsqTransportista!nombre
+            
+            txtPlacaP.Enabled = True
+            txtPlacaP.SelStart = 0
+            txtPlacaP.SelLength = Len(txtPlacaP)
+            txtPlacaP.SetFocus
+        Else
+            MsgBox "Transportista invalido o inactivo!", vbInformation, "Transportista"
+            txtCodTransportista.Enabled = True
+            txtCodTransportista.SelStart = 0
+            txtCodTransportista.SelLength = Len(txtCodTransportista)
+            txtCodTransportista.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtCodTransportista_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        sZonaAyuda = "LAJOYA"
+        helpTransportista.Show
+    End If
+End Sub
+Private Sub txtCodConductor_GotFocus()
+    If sCodConductor <> "" Then
+        txtCodConductor = sCodConductor
+        txtNomConductor = sNomConductor
+        txtLicConductor = sLicConductor
+    End If
+End Sub
+
+Private Sub txtCodConductor_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpConductor.Show
+    End If
+End Sub
+
+
+
+Private Sub txtCompartimiento_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        txtPrecinto.Enabled = True
+        txtPrecinto.SelStart = 0
+        txtPrecinto.SelLength = Len(txtPrecinto)
+        txtPrecinto.SetFocus
+    End If
+End Sub
+Sub agregarGrilla()
+    flxDetalle.AddItem ""
+    
+    xFila = flxDetalle.Rows - 1
+    
+    flxDetalle.TextMatrix(xFila, 1) = txtCodArticulo.Text
+    flxDetalle.TextMatrix(xFila, 2) = txtNomArticulo.Text
+    flxDetalle.TextMatrix(xFila, 3) = txtLote.Text
+    flxDetalle.TextMatrix(xFila, 4) = txtUndArticulo.Text
+    flxDetalle.TextMatrix(xFila, 5) = txtCantidad.Text
+    flxDetalle.TextMatrix(xFila, 6) = txtPeso.Text
+    flxDetalle.TextMatrix(xFila, 7) = txtCencos.Text
+    flxDetalle.TextMatrix(xFila, 8) = txtGalpon.Text
+    flxDetalle.TextMatrix(xFila, 9) = txtDetalleAdicional.Text 'Detalle Adicional
+'    flxDetalle.TextMatrix(xFila, 10) = txtPrecinto.Text
+    If Left(txtCodArticulo.Text, 2) = "PL" Then
+        xDetalleAdicional = "| Galpon: " & txtGalpon.Text & " | Lote: " & txtLote.Text & " | Cantidad: " & txtCantidad.Text
+    Else
+        xDetalleAdicional = txtDetalleAdicional.Text
+    End If
+ 
+    flxDetalle.TextMatrix(xFila, 10) = xDetalleAdicional 'Detalle Adicional NUBEFACT
+    
+End Sub
+
+
+Private Sub txtLote_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        sConsAlma = Left(cbZonaOrigen.Text, 3)
+        sConsCodigo = txtCodArticulo.Text
+        
+        helpLote.Show
+        
+    End If
+End Sub
+
+
+
+Private Sub txtMotivoTrasladoOtros_KeyPress(KeyAscii As Integer)
+    KeyAscii = Upper(KeyAscii)
+    If KeyAscii = 13 Then
+        If Left(cbMotivoTraslado.Text, 2) = "13" Then
+            If Trim(txtMotivoTrasladoOtros) = "" Then
+                MsgBox "Debe ingresar la descripción del motivo de traslado", vbInformation, "Motivo de Traslado"
+                txtMotivoTrasladoOtros.Enabled = True
+                txtMotivoTrasladoOtros.SelStart = 0
+                txtMotivoTrasladoOtros.SelLength = Len(txtMotivoTrasladoOtros)
+                txtMotivoTrasladoOtros.SetFocus
+            Else
+                txtNumeroBultos.Enabled = True
+                txtNumeroBultos.SelStart = 0
+                txtNumeroBultos.SelLength = Len(txtNumeroBultos)
+                txtNumeroBultos.SetFocus
+            End If
+        End If
+    End If
+End Sub
+
+Private Sub txtNumeroBultos_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        If Val(txtNumeroBultos) <= 0 Then
+            txtNumeroBultos = 1
+        End If
+        txtPesoBrutoTotal.Enabled = True
+        txtPesoBrutoTotal.SelStart = 0
+        txtPesoBrutoTotal.SelLength = Len(txtPesoBrutoTotal)
+        txtPesoBrutoTotal.SetFocus
+        
+    End If
+End Sub
+
+
+
+Private Sub txtNumeroPedidos_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Call BuscaPedido
+        Call calcularGrilla
+        txtCodArticulo.Enabled = True
+        txtCodArticulo.SelStart = 0
+        txtCodArticulo.SelLength = Len(txtCodArticulo)
+        txtCodArticulo.SetFocus
+    End If
+End Sub
+Sub BuscaPedido()
+    If Trim(txtNumeroPedidos) = "" Then
+        Exit Sub
+    End If
+    cadenita = ""
+    xPedidoGold = ""
+    For w = 1 To flxDetalle.Rows - 1
+        xPedidoG = IIf(Len(Trim$(flxDetalle.TextMatrix(w, 9))) = 0, "0", Trim$(flxDetalle.TextMatrix(w, 9)))
+        If Val(xPedidoG) > 0 Then
+            If Val(xPedidoGold) <> Val(xPedidoG) Then
+                xPedidoGold = xPedidoG
+                cadenita = cadenita & xPedidoG & ","
+            End If
+        End If
+    Next
+    If cadenita = "" Then
+        cadenita = ""
+        flitro = ""
+    Else
+        cantCaract = Len(cadenita)
+        flitro = " AND pedido NOT IN(" & Left(cadenita, Val(cantCaract) - 1) & ") "
+    End If
+
+    If Left(txtClienteDestino, 1) = "6" And Left(txtClienteDestino, 3) <> "650" Then
+        xCencos = Left(txtClienteDestino, 3)
+        xVariable = "left(destino,3)"
+    Else
+        xCencos = txtClienteDestino
+        xVariable = "destino"
+    End If
+    
+    xEstadoPedido = "N"
+    
+    CN.Execute "DELETE FROM tmppedido3 WHERE tuser='" & Clv & "' "
+    querys = "INSERT INTO tmppedido3 (tuser,tnumfac,tcencos,tcodigo,depart,tcantid,tesp01,tdoc)SELECT '" & Clv & "',pedido,destino,codigo,if(trim(tlote)='','00000000',tlote) lote,SUM(IF(ttipo=3,tcantEnvase,cantidad))cantidad,'1',galpondestino FROM pedidogranja USE INDEX(PRIMARY) WHERE pedido IN (" & txtNumeroPedidos & ") " & flitro & "  AND flag='" & xEstadoPedido & "' AND " & xVariable & "='" & xCencos & "' GROUP BY codigo,galpondestino,tlote;"
+    CN.Execute querys
+    querys = "INSERT INTO tmppedido3 (tuser,tnumfac,tcencos,tcodigo,depart,tcantid,tesp01,tdoc)SELECT '" & Clv & "',pedido,destino,tenvase,'00000000' lote,SUM(tcantEnvase)cantidad,'2',galpondestino FROM pedidogranja USE INDEX(PRIMARY) WHERE pedido IN (" & txtNumeroPedidos & ") " & flitro & "  AND flag='" & xEstadoPedido & "' AND " & xVariable & "='" & xCencos & "' AND (tenvase IS NULL OR TRIM(tenvase)<>'') GROUP BY tenvase,galpondestino;"
+    CN.Execute querys
+
+
+    Dim bsqPedido As ADODB.Recordset
+    Set bsqPedido = New ADODB.Recordset
+    querys = "SELECT tuser,tnumfac numpedido,tcencos cencos,tcodigo codigo,descri,lin,unidad,tcantid cantidad,tesp01 tipo,tdoc galpon,depart tlote FROM tmppedido3 AS a INNER JOIN mitm AS b ON a.tcodigo=b.codigo WHERE  tuser='" & Clv & "' ORDER BY tesp01,tcodigo,depart"
+    bsqPedido.Open querys, CN, adOpenStatic, adLockOptimistic
+    If bsqPedido.RecordCount > 0 Then
+        bsqPedido.MoveFirst
+        For i = 1 To bsqPedido.RecordCount
+'            flxventas.AddItem ""
+            'CODIGO|DESCRIPCION|ORD COMP|CENCOS|SAC|LOTE|CANT|PRECIO|PESO|IMPORTE|CTACAR|FECLIQ|MSKLIQ|LINEA|GALPON|CTAABO
+            ' 0      1          2           3   4     5          6       7      8        9                        10
+            'NUM| ARTICULO |DESCRIPCION|  LOTE|UND| CANTIDAD | PESO| CENCOS | GALPON | DETALLE ADICIONAL |DETALLE ADICIONAL  NUBEFACT
+            
+            flxDetalle.AddItem ""
+    
+            xFila = flxDetalle.Rows - 1
+            
+            flxDetalle.TextMatrix(xFila, 1) = IIf(IsNull(bsqPedido!codigo) = True, "", bsqPedido!codigo)
+            flxDetalle.TextMatrix(xFila, 2) = IIf(IsNull(bsqPedido!descri) = True, "", bsqPedido!descri)
+            flxDetalle.TextMatrix(xFila, 3) = IIf(IsNull(bsqPedido!tlote) = True, "", bsqPedido!tlote)
+            flxDetalle.TextMatrix(xFila, 4) = IIf(IsNull(bsqPedido!unidad) = True, "", bsqPedido!unidad)
+            flxDetalle.TextMatrix(xFila, 5) = IIf(IsNull(bsqPedido!cantidad) = True, "", bsqPedido!cantidad)
+            flxDetalle.TextMatrix(xFila, 6) = "0"
+            flxDetalle.TextMatrix(xFila, 7) = IIf(IsNull(bsqPedido!cencos) = True, "", bsqPedido!cencos)
+            flxDetalle.TextMatrix(xFila, 8) = IIf(IsNull(bsqPedido!galpon) = True, "", bsqPedido!galpon)
+            flxDetalle.TextMatrix(xFila, 9) = IIf(IsNull(bsqPedido!numpedido) = True, "", bsqPedido!numpedido) 'Detalle Adicional
+
+            xDetalleAdicionalNF = "| Galpon: " & flxDetalle.TextMatrix(xFila, 8) & " | Lote: " & flxDetalle.TextMatrix(xFila, 3) '& " | Cantidad: " & txtCantidad.Text
+         
+            flxDetalle.TextMatrix(xFila, 10) = xDetalleAdicionalNF 'Detalle Adicional NUBEFACT
+            
+            
+            
+            bsqPedido.MoveNext
+        Next
+    Else
+        MsgBox "NO EXISTE PEDIDO O PEDIDO NO CORRESPONDE A ESTA GRANJA O PEDIDO YA FUE USADO EN GUIA!!!", vbInformation, "PEDIDO"
+        Exit Sub
+    End If
+    CN.Execute "DELETE FROM tmppedido3 WHERE tuser='" & Clv & "';"
+
+   
+   
+End Sub
+
+Private Sub txtObservaciones_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        txtNumeroPedidos.Enabled = True
+        txtNumeroPedidos.SelStart = 0
+        txtNumeroPedidos.SelLength = Len(txtNumeroPedidos)
+        txtNumeroPedidos.SetFocus
+    End If
+End Sub
+
+Private Sub txtOk_GotFocus()
+    frOk.Visible = True
+End Sub
+
+Private Sub txtOk_KeyDown(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyAdd Or KeyCode = vbKeyO Then       'AUMENTA UNA linea
+        frOk.Visible = False
+'        If Left(txtCodArticulo, 4) = "M091" Then
+'            txtPrecinto = Val(txtPrecinto) + 1
+'        End If
+        txtCodArticulo.Enabled = True
+        txtCodArticulo.SelStart = 0
+        txtCodArticulo.SelLength = Len(txtCodArticulo)
+        txtCodArticulo.SetFocus
+        
+        txtDetalleAdicional.Text = ""
+        
+    ElseIf KeyCode = vbKeySeparator Or KeyCode = vbKeyReturn Then 'GRABA linea (ENTER)
+        Call guardarDatos
+    End If
+    
+    
+End Sub
+
+
+
+Private Sub txtOk_LostFocus()
+    frOk.Visible = False
+End Sub
+
+Private Sub txtPeso_GotFocus()
+    Call stockArticulo
+End Sub
+
+Private Sub txtPeso_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+'        If Val(txtPeso) <= 0 And txtUndArticulo = "KGS" Then
+'            MsgBox "Ingrese un Peso", vbInformation, "Peso"
+'        If Val(txtPeso) > Val(lbStkPeso.Caption) Then
+'            MsgBox "Peso supera al stock", vbInformation, "Peso"
+'        Else
+        txtPeso = Val(txtPeso)
+            txtCencos.Enabled = True
+            txtCencos.SelStart = 0
+            txtCencos.SelLength = Len(txtCencos)
+            txtCencos.SetFocus
+            Exit Sub
+'        End If
+'        txtPeso.Enabled = True
+'        txtPeso.SelStart = 0
+'        txtPeso.SelLength = Len(txtPeso)
+'        txtPeso.SetFocus
+            
+    End If
+End Sub
+
+Private Sub txtPeso_LostFocus()
+    frStock.Visible = False
+End Sub
+
+Private Sub txtPesoBrutoTotal_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        
+        txtCodTransportista.Enabled = True
+        txtCodTransportista.SelStart = 0
+        txtCodTransportista.SelLength = Len(txtCodTransportista)
+        txtCodTransportista.SetFocus
+    End If
+End Sub
+
+Private Sub txtPlacaP_GotFocus()
+    If sCodPlaca <> "" Then
+        txtPlacaP = sCodPlaca
+        txtPlacaPMarca = sCodMarca
+        txtPlacaPNtm = sCodNtm
+        txtPlacaPCv = sCodCv
+        sCodPlaca = ""
+    End If
+End Sub
+
+Private Sub txtPlacaP_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Dim bsqTransportista As ADODB.Recordset
+        Set bsqTransportista = New ADODB.Recordset
+        querys = "SELECT placa,marca,confvehicular,ntm FROM dcamion WHERE placa='" & txtPlacaP & "' AND testado='A' group by placa "
+        bsqTransportista.Open querys, CN, adOpenStatic, adLockOptimistic
+        If bsqTransportista.RecordCount > 0 Then
+            txtPlacaPMarca = bsqTransportista!marca
+            txtPlacaPNtm = bsqTransportista!ntm
+            txtPlacaPCv = bsqTransportista!confvehicular
+            
+            txtPlacaR.Enabled = True
+            txtPlacaR.SelStart = 0
+            txtPlacaR.SelLength = Len(txtPlacaR)
+            txtPlacaR.SetFocus
+        Else
+            MsgBox "Placa invalido o inactivo!", vbInformation, "Placa"
+            txtPlacaP.Enabled = True
+            txtPlacaP.SelStart = 0
+            txtPlacaP.SelLength = Len(txtPlacaP)
+            txtPlacaP.SetFocus
+        End If
+    End If
+End Sub
+
+Private Sub txtPlacaP_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        sZonaAyuda = "LAJOYA"
+        sTransportistaAyuda = txtCodTransportista
+        helpPlaca.Show
+    End If
+End Sub
+Private Sub txtPlacaR_GotFocus()
+    If sCodPlaca <> "" Then
+        txtPlacaR = sCodPlaca
+        txtPlacaRMarca = sCodMarca
+        txtPlacaRNtm = sCodNtm
+        txtPlacaRCv = sCodCv
+        sCodPlaca = ""
+    End If
+End Sub
+
+Private Sub txtPlacaR_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        If Trim(txtPlacaR) <> "" Then
+            Dim bsqTransportista As ADODB.Recordset
+            Set bsqTransportista = New ADODB.Recordset
+            querys = "SELECT placa,marca,confvehicular,ntm FROM dcamion WHERE placa='" & txtPlacaR & "' AND testado='A' group by placa "
+            bsqTransportista.Open querys, CN, adOpenStatic, adLockOptimistic
+            If bsqTransportista.RecordCount > 0 Then
+                txtPlacaRMarca = bsqTransportista!marca
+                txtPlacaRNtm = bsqTransportista!ntm
+                txtPlacaRCv = bsqTransportista!confvehicular
+                
+                txtObservaciones = "Placa Ramfla: " & txtPlacaR & "  / Marca:" & txtPlacaRMarca & " / NTM: " & txtPlacaRNtm & " / Configuración Vehicular: " & txtPlacaRCv
+            Else
+                MsgBox "Placa invalida o inactiva", vbInformation, "Placa"
+                txtPlacaR.Enabled = True
+                txtPlacaR.SelStart = 0
+                txtPlacaR.SelLength = Len(txtPlacaR)
+                txtPlacaR.SetFocus
+                Exit Sub
+            End If
+        Else
+            txtPlacaR = ""
+            txtPlacaRMarca = ""
+            txtPlacaRNtm = ""
+            txtPlacaRCv = ""
+        End If
+        txtCodConductor.Enabled = True
+        txtCodConductor.SelStart = 0
+        txtCodConductor.SelLength = Len(txtCodConductor)
+        txtCodConductor.SetFocus
+        
+    End If
+End Sub
+
+Private Sub txtPlacaR_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpPlaca.Show
+    End If
+End Sub
+Private Sub txtCodtra_GotFocus()
+    If sCodTransaccion <> "" Then
+        txtCodtra = sCodTransaccion
+    End If
+End Sub
+
+Private Sub txtCodtra_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = vbKeyF1 Then
+        helpTransaccion.Show
+    End If
+End Sub
+
+Private Sub txtDetalleAdicional_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Call agregarGrilla
+        Call calcularGrilla
+        txtOk.Enabled = True
+        txtOk.SelStart = 0
+        txtOk.SelLength = Len(txtOk)
+        txtOk.SetFocus
+    End If
+End Sub
+Sub calcularGrilla()
+    txtTotalCantidad = 0
+    txtTotalPeso = 0
+    
+    For i = 1 To flxDetalle.Rows - 1
+        pCod = flxDetalle.TextMatrix(i, 1)
+        
+        pCan = flxDetalle.TextMatrix(i, 5)
+        pPes = flxDetalle.TextMatrix(i, 6)
+        
+        If Left(pCod, 4) <> "M091" Then
+            txtTotalCantidad = Val(txtTotalCantidad) + Val(pCan)
+            txtTotalPeso = Val(txtTotalPeso) + Val(pPes)
+        End If
+        
+    Next
+    
+    txtNumeroBultos = txtTotalCantidad
+    txtPesoBrutoTotal = txtTotalPeso
+End Sub
+Function StockProducto(xAlma As Variant, xCodigo As Variant, xLote As Variant)
+'    Screen.MousePointer = vbHourglass
+    CN.Execute "DELETE FROM tmppedido5 WHERE tuser='" & Clv & "' ;"
+    
+    querys = "INSERT INTO tmppedido5(tuser,tcodigo,tprocli,tcantid,tespeci,timport)"
+    querys = querys & " SELECT '" & Clv & "',codigo,lote,SUM(tcantid)tcantid,ROUND(SUM(tpeso),2) tpeso,ROUND(SUM(tkardex),2) tkardex FROM ("
+    querys = querys & " SELECT  a.tcodigo codigo,a.tlote lote,SUM(IF(LEFT(a.tcodtra,1)='E',a.tcantid,(-1)*IF(c.lin='002' AND r.tgranel='S',IF(LEFT(a.tlote,1)='P',ROUND(a.tpeso/c.tkilo_alim),0),a.tcantid))) tcantid,ROUND(SUM(IF(LEFT(a.tcodtra,1)='E',a.tpeso,-1*a.tpeso)),2)tpeso,ROUND(SUM(IF(LEFT(a.tcodtra,1)='E',a.tkardex,-1*a.tkardex)),2)tkardex,'1' mov "
+    querys = querys & " FROM imov as a "
+    querys = querys & " INNER JOIN mitm as c use index(primary) ON a.tcodigo=c.codigo "
+    querys = querys & " LEFT JOIN regcencosagranel AS r ON LEFT(a.tcencos,3)=r.tcencos AND a.tgalpon=r.tgalpon "
+    querys = querys & " WHERE  a.talm='" & xAlma & "' AND a.tcodigo='" & xCodigo & "' AND a.tlote='" & xLote & "'  AND year(a.tfectra)='" & vgEAno & "' GROUP BY a.tcodigo "
+    querys = querys & " Union"
+    querys = querys & " SELECT codigo,lote,sum(qiniano) tcantid,sum(piniano)tpeso,sum(viniano)tkardex ,'2' mov FROM mzon WHERE  alma='" & xAlma & "' AND codigo='" & xCodigo & "' AND lote='" & xLote & "'  group by codigo )AS ntabla GROUP BY codigo;"
+    CN.Execute querys
+    
+    Dim bsq As ADODB.Recordset
+    Set bsq = New ADODB.Recordset
+    querys = "SELECT tcodigo,tprocli,tcantid,tespeci,timport FROM tmppedido5 WHERE tuser='" & Clv & "' GROUP BY tuser "
+    bsq.Open querys, CN, adOpenStatic, adLockOptimistic
+    If bsq.RecordCount > 0 Then
+        xPrecio = Round(bsq!timport / bsq!tcantid, 2)
+    Else
+        xPrecio = 0
+    End If
+    StockProducto = xPrecio
+End Function
+
