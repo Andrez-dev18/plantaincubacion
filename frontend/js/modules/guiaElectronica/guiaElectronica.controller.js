@@ -15,6 +15,14 @@ class GuiaElectronicaController {
         this.setupEventListeners();
         await this.cargarZonas();
         await this.cargarTiposTransporte();
+
+        // Enviar foco inicial al input de tipoEnvio (tipoEnvioAlmacen)
+        setTimeout(() => {
+            const initialFocus = document.getElementById('tipoEnvioAlmacen');
+            if (initialFocus) {
+                initialFocus.focus();
+            }
+        }, 150);
     }
 
     setupEventListeners() {
@@ -67,6 +75,21 @@ class GuiaElectronicaController {
                 this.debounceTimer = setTimeout(() => {
                     this.cargarDataBuscador(query);
                 }, 300);
+            });
+
+            // Navegación por teclado en el input de búsqueda del modal
+            buscarInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(this.debounceTimer);
+                    this.cargarDataBuscador(buscarInput.value);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const firstRow = document.querySelector('#tabla-body-transportistas tr');
+                    if (firstRow) {
+                        firstRow.focus();
+                    }
+                }
             });
         }
     }
@@ -209,7 +232,7 @@ class GuiaElectronicaController {
         document.addEventListener('keydown', this._handleEscapeModal);
     }
 
-    cerrarBuscadorDinamico() {
+    cerrarBuscadorDinamico(autoAdvance = false) {
         const modal = document.getElementById('modal-transportistas');
         if (!modal) return;
 
@@ -223,9 +246,18 @@ class GuiaElectronicaController {
             this._handleEscapeModal = null;
         }
 
-        // Retornar el foco al input disparador
-        const triggerInput = document.getElementById(this.activeSearchInputId);
-        if (triggerInput) triggerInput.focus();
+        const triggerInputId = this.activeSearchInputId;
+
+        if (autoAdvance) {
+            // Avanzar al siguiente input usando el navegador exclusivo
+            if (window.guiaNav) {
+                window.guiaNav.avanzarDesdeCampo(triggerInputId);
+            }
+        } else {
+            // Retornar el foco al input disparador
+            const triggerInput = document.getElementById(triggerInputId);
+            if (triggerInput) triggerInput.focus();
+        }
     }
 
     async cargarDataBuscador(query = '') {
@@ -262,10 +294,34 @@ class GuiaElectronicaController {
                 const fragment = document.createDocumentFragment();
                 items.forEach((item, index) => {
                     const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50 cursor-pointer transition-colors';
+                    tr.tabIndex = 0; // Habilitar enfoque por teclado
+                    tr.className = 'hover:bg-slate-50 cursor-pointer transition-all focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
+
                     tr.addEventListener('click', () => {
                         this.activeSearchConfig.onSelect(item);
-                        this.cerrarBuscadorDinamico();
+                        this.cerrarBuscadorDinamico(true); // Avanzar al siguiente campo
+                    });
+
+                    // Eventos de teclado en la fila
+                    tr.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            const nextRow = tr.nextElementSibling;
+                            if (nextRow) nextRow.focus();
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            const prevRow = tr.previousElementSibling;
+                            if (prevRow) {
+                                prevRow.focus();
+                            } else {
+                                const buscarInput = document.getElementById('buscar-transportista');
+                                if (buscarInput) buscarInput.focus();
+                            }
+                        } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.activeSearchConfig.onSelect(item);
+                            this.cerrarBuscadorDinamico(true); // Seleccionar y avanzar al siguiente campo
+                        }
                     });
 
                     tr.innerHTML = this.activeSearchConfig.renderRow(item, index);
