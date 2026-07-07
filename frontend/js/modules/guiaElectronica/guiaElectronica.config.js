@@ -196,6 +196,24 @@ const BUSQUEDAS_CONFIG = {
             const inputArtUnd = document.getElementById('inputArtUnd');
             if (inputArtUnd) inputArtUnd.value = item.unidad || '';
         }
+    },
+    'inputArtCencos': {
+        title: 'Buscar Centro de Costo (Cencos)',
+        iconClass: 'fa-solid fa-store',
+        placeholder: 'Escribe codigo o nombre para buscar...',
+        headers: ['N°', 'Código', 'Descripción'],
+        fetchData: (service, query) => service.getCencos(query),
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.codigo}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-medium text-slate-700">${item.descripcion || '-'}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const cencosInput = document.getElementById('inputArtCencos');
+            if (cencosInput) cencosInput.value = item.codigo;
+        }
     }
 };
 

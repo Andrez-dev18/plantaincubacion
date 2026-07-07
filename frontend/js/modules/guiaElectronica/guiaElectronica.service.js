@@ -55,6 +55,26 @@ class GuiaElectronicaService extends Service {
     getMotivosTraslado() {
         return Http.get(`${this.base}/motivos-traslado`);
     }
+
+    // ── dirección de cliente ─────────────────────────────────────────────────────
+    getDireccionCliente(codigoCliente) {
+        return Http.get(`${this.base}/clientes/direccion?codigo=${encodeURIComponent(codigoCliente)}`);
+    }
+
+    // ── cencos ───────────────────────────────────────────────────────────────────
+    getCencos(q = '') {
+        return Http.get(`${this.base}/cencos${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    }
+
+    // ── galpones ─────────────────────────────────────────────────────────────────
+    getGalpones(cencos) {
+        return Http.get(`${this.base}/galpones?cencos=${encodeURIComponent(cencos)}`);
+    }
+
+    // ── guardar guía ─────────────────────────────────────────────────────────────
+    guardarGuia(payload) {
+        return Http.post(`${this.base}/guardar`, payload);
+    }
 }
 
 window.GuiaElectronicaService = GuiaElectronicaService;

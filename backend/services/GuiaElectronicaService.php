@@ -61,4 +61,24 @@ class GuiaElectronicaService
     {
         return $this->repo->obtenerMotivosTraslado();
     }
+
+    public function obtenerDireccionCliente(string $codigoCliente): ?array
+    {
+        return $this->repo->obtenerDireccionCliente($codigoCliente);
+    }
+
+    public function listarCencos(?string $search = null): array
+    {
+        return $this->repo->obtenerCencos($search);
+    }
+
+    public function listarGalponesPorCencos(string $cencos): array
+    {
+        return $this->repo->obtenerGalponesPorCencos($cencos);
+    }
+
+    public function guardarGuia(array $cabecera, array $detalle): bool
+    {
+        return $this->repo->guardarGuia($cabecera, $detalle);
+    }
 }

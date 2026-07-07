@@ -9,6 +9,9 @@ class GuiaElectronicaController {
         this.busquedasConfig = window.GuiaElectronicaConfig || {};
         this.activeSearchConfig = null;
         this.activeSearchInputId = null;
+
+        // Arreglo en memoria para los ítems de la grilla
+        this.detalleItems = [];
     }
 
     async init() {
@@ -108,6 +111,23 @@ class GuiaElectronicaController {
         if (inputClienteOrigen) {
             inputClienteOrigen.addEventListener('change', () => {
                 this.cargarSeriesAlmacenCliente();
+                this.cargarDireccionClienteOrigen(inputClienteOrigen.value);
+            });
+        }
+
+        // Listener para cambio/edición en clienteDestino
+        const inputClienteDestino = document.getElementById('clienteDestino');
+        if (inputClienteDestino) {
+            inputClienteDestino.addEventListener('change', () => {
+                this.cargarDireccionClienteDestino(inputClienteDestino.value);
+            });
+        }
+
+        // Listener para cambio en inputArtCencos
+        const inputCencos = document.getElementById('inputArtCencos');
+        if (inputCencos) {
+            inputCencos.addEventListener('change', () => {
+                this.procesarGalponesCencos(inputCencos.value);
             });
         }
 
@@ -117,6 +137,81 @@ class GuiaElectronicaController {
             selectSerie.addEventListener('change', () => {
                 this.actualizarCamposSerie();
             });
+        }
+
+        // Atajos de teclado para la fila de ingreso (Añadir, Cambiar, Anular)
+        const actionInput = document.getElementById('sr-action-input');
+        if (actionInput) {
+            actionInput.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+
+                if (key === '+' || key === 'enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.agregarItemGrid();
+                    actionInput.value = ''; // Limpiar cajita
+                } 
+                else if (key === 'c') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    actionInput.value = ''; // Limpiar cajita
+                    const inputCodigo = document.getElementById('inputArtCodigo');
+                    if (inputCodigo) inputCodigo.focus();
+                } 
+                else if (key === 'a') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    actionInput.value = ''; // Limpiar cajita
+                    this.limpiarCamposGrid();
+                }
+            });
+
+            // Evitar que letras basura queden en la cajita
+            actionInput.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                if (!['+', 'c', 'a'].includes(val)) {
+                    e.target.value = '';
+                }
+            });
+        }
+
+        // Listener para eliminar todos los ítems de la grilla
+        const btnEliminarTodos = document.getElementById('btn-eliminar-todos');
+        if (btnEliminarTodos) {
+            btnEliminarTodos.addEventListener('click', () => {
+                window.Swal.fire({
+                    title: '¿Eliminar todos?',
+                    text: 'Se quitarán todos los ítems de la grilla.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.detalleItems = [];
+                        this.renderizarGrid();
+                        this.calcularTotales();
+                    }
+                });
+            });
+        }
+
+        // Listener para eliminar el último ítem
+        const btnEliminar = document.getElementById('btn-eliminar');
+        if (btnEliminar) {
+            btnEliminar.addEventListener('click', () => {
+                if (this.detalleItems.length > 0) {
+                    this.eliminarItemGrid(this.detalleItems.length - 1);
+                } else {
+                    window.Swal.fire('Información', 'No hay ítems para eliminar.', 'info');
+                }
+            });
+        }
+
+        // Listener para guardar los datos
+        const btnGuardar = document.getElementById('btn-guardar');
+        if (btnGuardar) {
+            btnGuardar.addEventListener('click', () => this.guardarDatos());
         }
     }
 
@@ -385,6 +480,13 @@ class GuiaElectronicaController {
                         } else if (inputId === 'clienteOrigen') {
                             this.cerrarBuscadorDinamico(true); // Avanzar
                             this.cargarSeriesAlmacenCliente();
+                            this.cargarDireccionClienteOrigen(item.codigo);
+                        } else if (inputId === 'clienteDestino') {
+                            this.cerrarBuscadorDinamico(true); // Avanzar
+                            this.cargarDireccionClienteDestino(item.codigo);
+                        } else if (inputId === 'inputArtCencos') {
+                            this.cerrarBuscadorDinamico(true); // Avanzar
+                            this.procesarGalponesCencos(item.codigo);
                         } else {
                             this.cerrarBuscadorDinamico(true); // Avanzar al siguiente campo
                         }
@@ -415,6 +517,13 @@ class GuiaElectronicaController {
                             } else if (inputId === 'clienteOrigen') {
                                 this.cerrarBuscadorDinamico(true); // Avanzar
                                 this.cargarSeriesAlmacenCliente();
+                                this.cargarDireccionClienteOrigen(item.codigo);
+                            } else if (inputId === 'clienteDestino') {
+                                this.cerrarBuscadorDinamico(true); // Avanzar
+                                this.cargarDireccionClienteDestino(item.codigo);
+                            } else if (inputId === 'inputArtCencos') {
+                                this.cerrarBuscadorDinamico(true); // Avanzar
+                                this.procesarGalponesCencos(item.codigo);
                             } else {
                                 this.cerrarBuscadorDinamico(true); // Seleccionar y avanzar al siguiente campo
                             }
@@ -603,6 +712,438 @@ class GuiaElectronicaController {
         } else {
             if (inputDescSerie) inputDescSerie.value = '';
             if (inputNumeroGuia) inputNumeroGuia.value = '0';
+        }
+    }
+
+    async cargarDireccionClienteOrigen(codigo) {
+        const puntoPartida = document.getElementById('puntoPartida');
+        if (!puntoPartida) return;
+
+        if (!codigo) {
+            puntoPartida.value = '';
+            return;
+        }
+
+        try {
+            const response = await this.guiaService.getDireccionCliente(codigo);
+            if (response && response.success && response.data) {
+                puntoPartida.value = response.data.direcc || '';
+            } else {
+                puntoPartida.value = '';
+            }
+        } catch (error) {
+            console.error("Error al obtener la dirección del cliente de origen:", error);
+            puntoPartida.value = '';
+        }
+    }
+
+    async cargarDireccionClienteDestino(codigo) {
+        const puntoLlegada = document.getElementById('puntoLlegada');
+        if (!puntoLlegada) return;
+
+        if (!codigo) {
+            puntoLlegada.value = '';
+            return;
+        }
+
+        try {
+            const response = await this.guiaService.getDireccionCliente(codigo);
+            if (response && response.success && response.data) {
+                puntoLlegada.value = response.data.direcc || '';
+            } else {
+                puntoLlegada.value = '';
+            }
+        } catch (error) {
+            console.error("Error al obtener la dirección del cliente de destino:", error);
+            puntoLlegada.value = '';
+        }
+    }
+
+    async procesarGalponesCencos(cencos) {
+        const inputGalpon = document.getElementById('inputArtGalpon');
+        const inputArtCodigo = document.getElementById('inputArtCodigo');
+
+        if (!inputGalpon) return;
+
+        const codigoArticulo = inputArtCodigo?.value || '';
+
+        // Regla especial: Si el código del Artículo actual NO empieza con "PL", forzar galpón a "0"
+        if (!codigoArticulo.toUpperCase().startsWith('PL')) {
+            inputGalpon.value = '0';
+            return;
+        }
+
+        if (!cencos) {
+            inputGalpon.value = '';
+            return;
+        }
+
+        try {
+            const response = await this.guiaService.getGalpones(cencos);
+            if (response && response.success && Array.isArray(response.data)) {
+                const galpones = response.data;
+
+                if (galpones.length === 0) {
+                    window.Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin galpones',
+                        text: 'No hay galpones registrados para el Centro de Costo (Cencos) seleccionado.'
+                    });
+                    inputGalpon.value = '';
+                } else if (galpones.length === 1) {
+                    inputGalpon.value = galpones[0].galpon || '0';
+                } else {
+                    // Mostrar selector SweetAlert
+                    const options = {};
+                    galpones.forEach(g => {
+                        options[g.galpon] = `Galpón: ${g.galpon}`;
+                    });
+
+                    window.Swal.fire({
+                        title: 'Seleccionar Galpón',
+                        text: 'Elija el galpón correspondiente:',
+                        input: 'select',
+                        inputOptions: options,
+                        inputPlaceholder: '-- Seleccione un Galpón --',
+                        showCancelButton: true,
+                        confirmButtonText: 'Seleccionar',
+                        cancelButtonText: 'Cancelar',
+                        inputValidator: (value) => {
+                            if (!value) {
+                                return 'Debe seleccionar un galpón';
+                            }
+                        },
+                        customClass: {
+                            confirmButton: 'btn-primary px-4 py-2 bg-blue-600 text-white rounded-md mr-2',
+                            cancelButton: 'btn-secondary px-4 py-2 bg-gray-250 text-gray-700 rounded-md'
+                        },
+                        buttonsStyling: false
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            inputGalpon.value = result.value;
+                        }
+                    });
+                }
+            } else {
+                console.error("Error al obtener los galpones:", response?.message);
+            }
+        } catch (error) {
+            console.error("Error en la petición de galpones:", error);
+        }
+    }
+
+    agregarItemGrid() {
+        const inputCodigo = document.getElementById('inputArtCodigo');
+        const inputDescri = document.getElementById('inputArtDescri');
+        const inputLote = document.getElementById('inputArtLote');
+        const inputUnd = document.getElementById('inputArtUnd');
+        const inputCant = document.getElementById('inputArtCant');
+        const inputPeso = document.getElementById('inputArtPeso');
+        const inputCencos = document.getElementById('inputArtCencos');
+        const inputGalpon = document.getElementById('inputArtGalpon');
+
+        if (!inputCodigo || !inputCant) return;
+
+        const codigo = inputCodigo.value.trim();
+        const descripcion = inputDescri ? inputDescri.value.trim() : '';
+        const lote = inputLote ? inputLote.value.trim() : '';
+        const unidad = inputUnd ? inputUnd.value.trim() : '';
+        const cantidadVal = parseFloat(inputCant.value);
+        const pesoVal = parseFloat(inputPeso ? inputPeso.value : 0) || 0;
+        const cencos = inputCencos ? inputCencos.value.trim() : '';
+        const galpon = inputGalpon ? inputGalpon.value.trim() : '';
+
+        if (!codigo) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Artículo requerido',
+                text: 'Debe seleccionar un artículo para agregarlo a la grilla.'
+            });
+            return;
+        }
+
+        if (isNaN(cantidadVal) || cantidadVal <= 0) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Cantidad inválida',
+                text: 'Debe ingresar una cantidad mayor a cero.'
+            });
+            return;
+        }
+
+        // Formato de detalle adicional si empieza con PL
+        let detalleAdicional = '';
+        if (codigo.toUpperCase().startsWith('PL')) {
+            detalleAdicional = `| Galpon: ${galpon} | Lote: ${lote} | Cantidad: ${cantidadVal}`;
+        }
+
+        const item = {
+            codigo,
+            descripcion,
+            lote,
+            unidad,
+            cantidad: cantidadVal,
+            peso: pesoVal,
+            cencos,
+            galpon,
+            detalleAdicional
+        };
+
+        this.detalleItems.push(item);
+
+        // Limpiar inputs
+        inputCodigo.value = '';
+        if (inputDescri) inputDescri.value = '';
+        if (inputLote) {
+            inputLote.value = '';
+            inputLote.disabled = false; // Desbloquear por si acaso
+        }
+        if (inputUnd) inputUnd.value = '';
+        if (inputCant) inputCant.value = '';
+        if (inputPeso) inputPeso.value = '';
+        if (inputCencos) inputCencos.value = '';
+        if (inputGalpon) inputGalpon.value = '';
+
+        // Enfocar primer campo
+        inputCodigo.focus();
+
+        // Renderizar y calcular
+        this.renderizarGrid();
+        this.calcularTotales();
+    }
+
+    renderizarGrid() {
+        const tbody = document.querySelector('#tablaDetalleGuia tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        this.detalleItems.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/50 transition-colors';
+            tr.innerHTML = `
+                <td class="px-3 py-2 text-center border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2 border-r border-slate-100 font-mono font-semibold text-slate-800">${item.codigo}</td>
+                <td class="px-4 py-2 border-r border-slate-100 text-slate-700">${item.descripcion}</td>
+                <td class="px-4 py-2 border-r border-slate-100 font-mono text-slate-650">${item.lote}</td>
+                <td class="px-3 py-2 text-center border-r border-slate-100 font-mono text-slate-500">${item.unidad}</td>
+                <td class="px-4 py-2 text-right border-r border-slate-100 font-mono font-semibold text-slate-800">${item.cantidad.toFixed(2)}</td>
+                <td class="px-4 py-2 text-right border-r border-slate-100 font-mono font-semibold text-slate-800">${item.peso.toFixed(2)}</td>
+                <td class="px-4 py-2 border-r border-slate-100 font-mono text-slate-600">${item.cencos}</td>
+                <td class="px-4 py-2 border-r border-slate-100 font-mono text-slate-600">${item.galpon}</td>
+                <td class="px-3 py-2 text-center">
+                    <button type="button" class="btn-eliminar-item text-rose-500 hover:text-rose-700 transition-colors">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </td>
+            `;
+
+            const btnDel = tr.querySelector('.btn-eliminar-item');
+            if (btnDel) {
+                btnDel.addEventListener('click', () => {
+                    this.eliminarItemGrid(index);
+                });
+            }
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    eliminarItemGrid(index) {
+        this.detalleItems.splice(index, 1);
+        this.renderizarGrid();
+        this.calcularTotales();
+    }
+
+    calcularTotales() {
+        let totalCantidad = 0;
+        let totalPeso = 0;
+
+        this.detalleItems.forEach(item => {
+            // REGLA ESTRICTA: NO sumar la cantidad ni el peso si el código del artículo empieza con "M091"
+            if (!item.codigo.toUpperCase().startsWith('M091')) {
+                totalCantidad += item.cantidad;
+                totalPeso += item.peso;
+            }
+        });
+
+        // Actualizar labels del footer
+        const lblTotalCantidad = document.getElementById('lblTotalCantidad');
+        if (lblTotalCantidad) {
+            lblTotalCantidad.textContent = totalCantidad.toFixed(2);
+        }
+
+        const lblTotalPeso = document.getElementById('lblTotalPeso');
+        if (lblTotalPeso) {
+            lblTotalPeso.textContent = totalPeso.toFixed(2);
+        }
+
+        // Actualizar inputs de cabecera de SUNAT
+        const numBultos = document.getElementById('numBultos');
+        if (numBultos) {
+            numBultos.value = Math.round(totalCantidad);
+        }
+
+        const pesoBrutoTotal = document.getElementById('pesoBrutoTotal');
+        if (pesoBrutoTotal) {
+            pesoBrutoTotal.value = totalPeso.toFixed(2);
+        }
+    }
+
+    limpiarCamposGrid() {
+        const inputCodigo = document.getElementById('inputArtCodigo');
+        const inputDescri = document.getElementById('inputArtDescri');
+        const inputLote = document.getElementById('inputArtLote');
+        const inputUnd = document.getElementById('inputArtUnd');
+        const inputCant = document.getElementById('inputArtCant');
+        const inputPeso = document.getElementById('inputArtPeso');
+        const inputCencos = document.getElementById('inputArtCencos');
+        const inputGalpon = document.getElementById('inputArtGalpon');
+
+        if (inputCodigo) inputCodigo.value = '';
+        if (inputDescri) inputDescri.value = '';
+        if (inputLote) {
+            inputLote.value = '';
+            inputLote.disabled = false;
+        }
+        if (inputUnd) inputUnd.value = '';
+        if (inputCant) inputCant.value = '';
+        if (inputPeso) inputPeso.value = '';
+        if (inputCencos) inputCencos.value = '';
+        if (inputGalpon) inputGalpon.value = '';
+
+        if (inputCodigo) inputCodigo.focus();
+    }
+
+    async guardarDatos() {
+        if (this.detalleItems.length === 0) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Detalle vacío',
+                text: 'Debe agregar al menos un ítem a la grilla antes de guardar.'
+            });
+            return;
+        }
+
+        // Confirmación
+        const confirm = await window.Swal.fire({
+            title: '¿Confirmar guardado?',
+            text: 'Se procederá a guardar la cabecera y el detalle en la base de datos.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        // Recolectar datos de cabecera
+        const transaccion = document.getElementById('transaccion')?.value || ''; // S440 o S400
+        const zonaOrigen = document.getElementById('zonaOrigen')?.value || '';
+        const zonaDestino = document.getElementById('zonaDestino')?.value || '';
+        const clienteRuc = document.getElementById('clienteRuc')?.value || '';
+        const serie = document.getElementById('serie')?.value || '';
+        const numeroGuia = document.getElementById('numeroGuia')?.value || '';
+        const fechaEmision = document.getElementById('fechaEmision')?.value || '';
+        const fechaTraslado = document.getElementById('fechaTraslado')?.value || '';
+        const observaciones = document.getElementById('observaciones')?.value || '';
+        const codTransportista = document.getElementById('codTransportista')?.value || '';
+        const codConductor = document.getElementById('codConductor')?.value || '';
+        const placaP = document.getElementById('placaP')?.value || '';
+        const placaR = document.getElementById('placaR')?.value || '';
+        const clienteOrigen = document.getElementById('clienteOrigen')?.value || '';
+        const clienteDestino = document.getElementById('clienteDestino')?.value || '';
+        const tipoTransporte = document.getElementById('tipoTransporte')?.value || '';
+        const motivoTraslado = document.getElementById('motivoTraslado')?.value || '';
+        
+        // Totales calculados en la grilla
+        const lblTotalCantidad = document.getElementById('lblTotalCantidad')?.textContent || '0';
+        const lblTotalPeso = document.getElementById('lblTotalPeso')?.textContent || '0';
+        const totalCantidad = parseFloat(lblTotalCantidad) || 0;
+        const totalPeso = parseFloat(lblTotalPeso) || 0;
+
+        const payload = {
+            cabecera: {
+                transaccion,
+                zonaOrigen,
+                zonaDestino,
+                clienteRuc,
+                serie,
+                numeroGuia,
+                fechaEmision,
+                fechaTraslado,
+                observaciones,
+                codTransportista,
+                codConductor,
+                placaP,
+                placaR,
+                clienteOrigen,
+                clienteDestino,
+                tipoTransporte,
+                motivoTraslado,
+                motivoTrasladoOtros: '',
+                totalCantidad,
+                totalPeso
+            },
+            detalle: this.detalleItems
+        };
+
+        try {
+            window.Swal.fire({
+                title: 'Guardando...',
+                text: 'Espere por favor',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    window.Swal.showLoading();
+                }
+            });
+
+            const response = await this.guiaService.guardarGuia(payload);
+
+            if (response && response.success) {
+                await window.Swal.fire({
+                    icon: 'success',
+                    title: '¡Guardado!',
+                    text: response.message || 'La guía ha sido guardada correctamente.'
+                });
+                
+                // Limpiar todo tras guardar exitosamente
+                this.detalleItems = [];
+                this.renderizarGrid();
+                this.calcularTotales();
+                
+                // Limpiar cabecera
+                const inputsToClear = [
+                    'clienteRuc', 'clienteNombre', 'codTransportista', 'nomTransportista',
+                    'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
+                    'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada'
+                ];
+                inputsToClear.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+
+                // Reset de series/correlativo
+                const selectSerie = document.getElementById('serie');
+                if (selectSerie) selectSerie.value = '';
+                this.actualizarCamposSerie();
+
+                // Foco al inicio
+                document.getElementById('tipoEnvioAlmacen')?.focus();
+            } else {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Error al guardar',
+                    text: response?.message || 'Ocurrió un error inesperado al guardar la guía.'
+                });
+            }
+        } catch (error) {
+            console.error("Error al guardar la guía:", error);
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error de red',
+                text: 'No se pudo conectar con el servidor para guardar la guía.'
+            });
         }
     }
 }

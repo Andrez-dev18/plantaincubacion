@@ -251,19 +251,13 @@
                                 </div>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="col-span-12">
                                 <label for="observaciones"
                                     class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Observaciones</label>
                                 <input type="text" id="observaciones"
                                     class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
-                            <div class="col-span-6">
-                                <label for="pedidosRef"
-                                    class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Pedidos
-                                    / Ref.</label>
-                                <input type="text" id="pedidosRef"
-                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
-                            </div>
+                            
                         </div>
                     </div>
 
@@ -347,7 +341,13 @@
             <div class="border-t border-slate-200/80 flex-1 flex flex-col bg-white">
 
                 <!-- Fila de Entrada Rápida de Datos -->
-                <div class="grid grid-cols-12 gap-2 bg-slate-50/50 p-2.5 border-b border-slate-200 items-end px-4">
+                <div class="grid grid-cols-12 gap-2 bg-slate-50/50 p-2.5 border-b border-slate-200 items-end px-4 relative pt-6">
+                    <div
+                        class="absolute top-1 right-4 text-[9px] font-bold text-slate-400 font-mono tracking-wide z-10">
+                        <span class="text-indigo-600">[ENTER]</span> o <span class="text-indigo-600">[+]</span> AÑADIR &nbsp;|&nbsp;
+                        <span class="text-amber-500">[C]</span> AMBIAR &nbsp;|&nbsp;
+                        <span class="text-red-500">[A]</span> NULAR
+                    </div>
                     <div class="col-span-2">
                         <label for="inputArtCodigo"
                             class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Artículo</label>
@@ -399,10 +399,11 @@
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <button type="button" id="btnAgregarItem"
-                            class="h-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold tracking-widest uppercase transition-all shadow-xs flex items-center justify-center gap-1 active:scale-[0.98]">
-                            <i class="fas fa-plus"></i>
-                        </button>
+                        <label for="sr-action-input"
+                            class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider text-center text-transparent select-none">Act</label>
+                        <input type="text" id="sr-action-input"
+                            class="w-full h-8 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-center font-bold text-indigo-600 text-xs shadow-2xs focus:bg-indigo-50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                            maxlength="1" placeholder="↵" autocomplete="off">
                     </div>
                 </div>
 
@@ -458,12 +459,12 @@
                 <div class="flex items-center gap-5 text-xs border-l border-slate-200 pl-6">
                     <div class="flex flex-col items-end">
                         <span class="font-bold text-slate-400 uppercase tracking-wider text-[9px]">Total Cant:</span>
-                        <span class="font-extrabold text-slate-800 text-sm">0.00</span>
+                        <span id="lblTotalCantidad" class="font-extrabold text-slate-800 text-sm">0.00</span>
                     </div>
                     <div class="w-px h-6 bg-slate-200"></div>
                     <div class="flex flex-col items-end">
                         <span class="font-bold text-slate-400 uppercase tracking-wider text-[9px]">Total Peso:</span>
-                        <span class="font-extrabold text-slate-800 text-sm">0.00</span>
+                        <span id="lblTotalPeso" class="font-extrabold text-slate-800 text-sm">0.00</span>
                     </div>
                 </div>
 

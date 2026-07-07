@@ -249,4 +249,116 @@ class GuiaElectronicaController
         }
         exit;
     }
+
+    /**
+     * Retorna la dirección y ubigeo de un cliente en formato JSON
+     */
+    public function getDireccionCliente()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $codigo = $_GET['codigo'] ?? '';
+            $direccion = $this->service->obtenerDireccionCliente($codigo);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $direccion
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener la dirección del cliente: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna los centros de costo (cencos) filtrados o completos en formato JSON
+     */
+    public function getCencos()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $search = $_GET['q'] ?? null;
+            $cencos = $this->service->listarCencos($search);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $cencos
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener cencos: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna los galpones asociados a un cencos en formato JSON
+     */
+    public function getGalpones()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $cencos = $_GET['cencos'] ?? '';
+            $galpones = $this->service->listarGalponesPorCencos($cencos);
+
+            echo json_encode([
+                "success" => true,
+                "data" => $galpones
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al obtener galpones: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Guarda la cabecera y el detalle de la Guía Electrónica
+     */
+    public function guardarGuia()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!$input) {
+                throw new Exception("Payload de entrada vacío o inválido.");
+            }
+
+            $cabecera = $input['cabecera'] ?? null;
+            $detalle = $input['detalle'] ?? null;
+
+            if (!$cabecera || !$detalle || !is_array($detalle)) {
+                throw new Exception("La cabecera o el detalle están incompletos.");
+            }
+
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $cabecera['tuser'] = $_SESSION['usuario'] ?? $_SESSION['username'] ?? 'SYS';
+
+            $result = $this->service->guardarGuia($cabecera, $detalle);
+
+            echo json_encode([
+                "success" => $result,
+                "message" => "Guía guardada correctamente."
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al guardar la guía: " . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
 }

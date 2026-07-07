@@ -77,4 +77,28 @@ return function ($container) {
         $controller->getMotivosTraslado();
         exit;
     }
+
+    // GET /api/guia-electronica/clientes/direccion
+    if ($method === 'GET' && $uri === '/api/guia-electronica/clientes/direccion') {
+        $controller->getDireccionCliente();
+        exit;
+    }
+
+    // GET /api/guia-electronica/cencos
+    if ($method === 'GET' && $uri === '/api/guia-electronica/cencos') {
+        $controller->getCencos();
+        exit;
+    }
+
+    // GET /api/guia-electronica/galpones
+    if ($method === 'GET' && $uri === '/api/guia-electronica/galpones') {
+        $controller->getGalpones();
+        exit;
+    }
+
+    // POST /api/guia-electronica/guardar
+    if ($method === 'POST' && $uri === '/api/guia-electronica/guardar') {
+        $controller->guardarGuia();
+        exit;
+    }
 };

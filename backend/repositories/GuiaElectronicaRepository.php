@@ -43,7 +43,7 @@ class GuiaElectronicaRepository
 
         $params = [];
         if ($search !== null && trim($search) !== '') {
-            $sql .= " WHERE ruc LIKE ? OR nombre LIKE ? OR nombrecomercial LIKE ?";
+            $sql .= " AND (ruc LIKE ? OR nombre LIKE ? OR nombrecomercial LIKE ?)";
             $term = '%' . trim($search) . '%';
             $params = [$term, $term, $term];
         }
@@ -62,7 +62,7 @@ class GuiaElectronicaRepository
 
         $params = [];
         if ($search !== null && trim($search) !== '') {
-            $sql .= " WHERE dni LIKE ? OR nombre LIKE ?";
+            $sql .= " AND (dni LIKE ? OR nombre LIKE ?)";
             $term = '%' . trim($search) . '%';
             $params = [$term, $term];
         }
@@ -223,5 +223,531 @@ class GuiaElectronicaRepository
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function obtenerDireccionCliente(string $codigoCliente): ?array
+    {
+        $sql = "SELECT direcc, ubigeo FROM ccte WHERE codigo = :codigo LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':codigo', $codigoCliente, PDO::PARAM_STR);
+        $stmt->execute();
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $res ? $res : null;
+    }
+
+    public function obtenerCencos(?string $search = null): array
+    {
+        $sql = "SELECT codigo, nombre AS descripcion 
+                FROM ccos 
+                WHERE swac = 'A'";
+        $params = [];
+        if ($search !== null && trim($search) !== '') {
+            $sql .= " AND (codigo LIKE ? OR nombre LIKE ?)";
+            $term = '%' . trim($search) . '%';
+            $params = [$term, $term];
+        }
+        $sql .= " ORDER BY codigo ASC LIMIT 100";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function obtenerGalponesPorCencos(string $cencos): array
+    {
+        $sql = "SELECT tcodint AS galpon 
+                FROM regcencosgalpones 
+                WHERE tcencos = LEFT(:cencos, 3) 
+                GROUP BY ABS(tcodint)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':cencos', $cencos, PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getNuevoRegImov(): int
+    {
+        $stmtGuia = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM guia");
+        $maxGuia = (int)$stmtGuia->fetchColumn();
+
+        $stmtImov = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM imov");
+        $maxImov = (int)$stmtImov->fetchColumn();
+
+        return max($maxGuia, $maxImov) + 1;
+    }
+
+    public function getNuevoRegPro(): int
+    {
+        $stmtCabe = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM cabe_zonas");
+        $maxCabe = (int)$stmtCabe->fetchColumn();
+
+        $stmtMovi = $this->db->query("SELECT COALESCE(MAX(treg), 0) FROM movi_zonas");
+        $maxMovi = (int)$stmtMovi->fetchColumn();
+
+        return max($maxCabe, $maxMovi) + 1;
+    }
+
+    private function calcularPrecioUnitario(string $almacen, string $codigoArticulo, string $lote, int $anio): float
+    {
+        $sql = "
+            SELECT 
+                COALESCE(SUM(tcantid), 0) AS total_cantidad,
+                COALESCE(SUM(tkardex), 0) AS total_valor
+            FROM (
+                -- 1. Movimientos (imov)
+                SELECT 
+                    SUM(IF(LEFT(a.tcodtra, 1) = 'E', a.tcantid, 
+                        -1 * IF(c.lin = '002' AND r.tgranel = 'S', 
+                            IF(LEFT(a.tlote, 1) = 'P', ROUND(a.tpeso / c.tkilo_alim), 0), 
+                            a.tcantid
+                        )
+                    )) AS tcantid,
+                    SUM(IF(LEFT(a.tcodtra, 1) = 'E', a.tkardex, -1 * a.tkardex)) AS tkardex
+                FROM imov a
+                INNER JOIN mitm c ON a.tcodigo = c.codigo
+                LEFT JOIN regcencosagranel r ON LEFT(a.tcencos, 3) = r.tcencos AND a.tgalpon = r.tgalpon
+                WHERE a.talm = :almacen1 
+                  AND a.tcodigo = :codigo1 
+                  AND a.tlote = :lote1 
+                  AND YEAR(a.tfectra) = :anio
+                GROUP BY a.tcodigo
+
+                UNION ALL
+
+                -- 2. Saldo Inicial (mzon)
+                SELECT 
+                    SUM(qiniano) AS tcantid,
+                    SUM(viniano) AS tkardex
+                FROM mzon
+                WHERE alma = :almacen2 
+                  AND codigo = :codigo2 
+                  AND lote = :lote2
+                GROUP BY codigo
+            ) AS t
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':almacen1', $almacen, PDO::PARAM_STR);
+        $stmt->bindValue(':codigo1', $codigoArticulo, PDO::PARAM_STR);
+        $stmt->bindValue(':lote1', $lote, PDO::PARAM_STR);
+        $stmt->bindValue(':anio', $anio, PDO::PARAM_INT);
+
+        $stmt->bindValue(':almacen2', $almacen, PDO::PARAM_STR);
+        $stmt->bindValue(':codigo2', $codigoArticulo, PDO::PARAM_STR);
+        $stmt->bindValue(':lote2', $lote, PDO::PARAM_STR);
+
+        $stmt->execute();
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($res && (float)$res['total_cantidad'] != 0.0) {
+            return round((float)$res['total_valor'] / (float)$res['total_cantidad'], 2);
+        }
+
+        return 0.0;
+    }
+
+    public function guardarGuia(array $cabecera, array $detalle): bool
+    {
+        $this->db->beginTransaction();
+        try {
+            $user = $cabecera['tuser'] ?? 'SYS';
+            $fechaEmision = $cabecera['fechaEmision'];
+            $fechaTraslado = $cabecera['fechaTraslado'];
+            $anio = (int)date('Y', strtotime($fechaEmision));
+
+            $transaccion = strtoupper($cabecera['transaccion']); // S440 o S400
+
+            if ($transaccion === 'S440') {
+                // ─────────────────────────────────────────────────────────────
+                // FLUJO ALMACÉN (S440)
+                // ─────────────────────────────────────────────────────────────
+                
+                // Documento 1 (Origen)
+                $registro1 = $this->getNuevoRegImov();
+
+                $sqlCab = "INSERT INTO guia (
+                    tuser, tdate, ttime, tprocli, tdoc, tserie, tnumfac, tfectra, tlib, 
+                    treg, talm, tnumreg, tcodtra, ttip_transporte, tmotivo_traslado, tdesmot_traslado,
+                    tfecrem, tglosa, tcod_transportista, tcod_conductor, tplaca, tplaca2, 
+                    tcli_origen, tcli_destino, tcanttot, tpesotot, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tprocli, '09', :tserie, :tnumfac, :tfectra, 'AL', 
+                    :treg, :talm, :tnumreg, :tcodtra, :ttip_transporte, :tmotivo_traslado, :tdesmot_traslado,
+                    :tfecrem, :tglosa, :tcod_transportista, :tcod_conductor, :tplaca, :tplaca2, 
+                    :tcli_origen, :tcli_destino, :tcanttot, :tpesotot, 'JE1', 'S'
+                )";
+
+                $stmtCab1 = $this->db->prepare($sqlCab);
+                $stmtCab1->execute([
+                    ':tuser' => $user,
+                    ':tprocli' => $cabecera['clienteRuc'],
+                    ':tserie' => $cabecera['serie'],
+                    ':tnumfac' => $cabecera['numeroGuia'],
+                    ':tfectra' => $fechaEmision,
+                    ':treg' => $registro1,
+                    ':talm' => $cabecera['zonaOrigen'],
+                    ':tnumreg' => $cabecera['numeroGuia'],
+                    ':tcodtra' => $transaccion,
+                    ':ttip_transporte' => $cabecera['tipoTransporte'],
+                    ':tmotivo_traslado' => $cabecera['motivoTraslado'],
+                    ':tdesmot_traslado' => $cabecera['motivoTrasladoOtros'],
+                    ':tfecrem' => $fechaTraslado,
+                    ':tglosa' => $cabecera['observaciones'] ?: '-',
+                    ':tcod_transportista' => $cabecera['codTransportista'],
+                    ':tcod_conductor' => $cabecera['codConductor'],
+                    ':tplaca' => $cabecera['placaP'],
+                    ':tplaca2' => $cabecera['placaR'],
+                    ':tcli_origen' => $cabecera['clienteOrigen'],
+                    ':tcli_destino' => $cabecera['clienteDestino'],
+                    ':tcanttot' => $cabecera['totalCantidad'],
+                    ':tpesotot' => $cabecera['totalPeso']
+                ]);
+
+                // Detalle Documento 1
+                $sqlDet1 = "INSERT INTO imov (
+                    tuser, tdate, ttime, tcodigo, tfectra, tcodtra, tlib, tnumreg, treg,
+                    talm, talr, tnumlot, tprocli, tdoc, tserie, tnumfac, tfecrem,
+                    tcencos, tcoscen, tgalpon, tcantid, tsacos, tsacos2, tpeso, count, tlote,
+                    tglosa, tdet_adicional, timport, tkardex, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tcodigo, :tfectra, :tcodtra, 'AL', :tnumreg, :treg,
+                    :talm, :talr, '00000000', :tprocli, '09', :tserie, :tnumfac, :tfecrem,
+                    :tcencos, :tcoscen, :tgalpon, :tcantid, :tsacos, :tsacos2, :tpeso, :count, :tlote,
+                    :tglosa, :tdet_adicional, :timport, :tkardex, 'JE1', :tgre
+                )";
+                $stmtDet1 = $this->db->prepare($sqlDet1);
+
+                foreach ($detalle as $index => $item) {
+                    $iPu = $this->calcularPrecioUnitario($cabecera['zonaOrigen'], $item['codigo'], $item['lote'], $anio);
+                    $iImporte = round($item['cantidad'] * $iPu, 2);
+                    $xGuiEle = (strpos(strtoupper($item['codigo']), 'E') === 0) ? 'N' : 'S';
+
+                    $stmtDet1->execute([
+                        ':tuser' => $user,
+                        ':tcodigo' => $item['codigo'],
+                        ':tfectra' => $fechaEmision,
+                        ':tcodtra' => $transaccion,
+                        ':tnumreg' => $cabecera['numeroGuia'],
+                        ':treg' => $registro1,
+                        ':talm' => $cabecera['zonaOrigen'],
+                        ':talr' => $cabecera['zonaDestino'],
+                        ':tprocli' => $cabecera['clienteRuc'],
+                        ':tserie' => $cabecera['serie'],
+                        ':tnumfac' => $cabecera['numeroGuia'],
+                        ':tfecrem' => $fechaTraslado,
+                        ':tcencos' => $item['cencos'],
+                        ':tcoscen' => $item['cencos'],
+                        ':tgalpon' => $item['galpon'],
+                        ':tcantid' => $item['cantidad'],
+                        ':tsacos' => $item['cantidad'],
+                        ':tsacos2' => $item['cantidad'],
+                        ':tpeso' => $item['peso'],
+                        ':count' => $index + 1,
+                        ':tlote' => $item['lote'],
+                        ':tglosa' => $item['detalleAdicional'] ?: '',
+                        ':tdet_adicional' => $item['detalleAdicional'] ?: '',
+                        ':timport' => $iImporte,
+                        ':tkardex' => $iImporte,
+                        ':tgre' => $xGuiEle
+                    ]);
+                }
+
+                // Documento 2 (Destino)
+                $registro2 = $this->getNuevoRegImov();
+                $gCodtra2 = 'E' . substr($transaccion, 1); // "ES440"
+
+                $stmtCab2 = $this->db->prepare($sqlCab);
+                $stmtCab2->execute([
+                    ':tuser' => $user,
+                    ':tprocli' => $cabecera['clienteRuc'],
+                    ':tserie' => $cabecera['serie'],
+                    ':tnumfac' => $cabecera['numeroGuia'],
+                    ':tfectra' => $fechaEmision,
+                    ':treg' => $registro2,
+                    ':talm' => $cabecera['zonaDestino'],
+                    ':tnumreg' => $cabecera['numeroGuia'],
+                    ':tcodtra' => $gCodtra2,
+                    ':ttip_transporte' => $cabecera['tipoTransporte'],
+                    ':tmotivo_traslado' => $cabecera['motivoTraslado'],
+                    ':tdesmot_traslado' => $cabecera['motivoTrasladoOtros'],
+                    ':tfecrem' => $fechaTraslado,
+                    ':tglosa' => $cabecera['observaciones'] ?: '-',
+                    ':tcod_transportista' => $cabecera['codTransportista'],
+                    ':tcod_conductor' => $cabecera['codConductor'],
+                    ':tplaca' => $cabecera['placaP'],
+                    ':tplaca2' => $cabecera['placaR'],
+                    ':tcli_origen' => $cabecera['clienteOrigen'],
+                    ':tcli_destino' => $cabecera['clienteDestino'],
+                    ':tcanttot' => $cabecera['totalCantidad'],
+                    ':tpesotot' => $cabecera['totalPeso']
+                ]);
+
+                // Detalle Documento 2 (Sin timport ni tkardex en INSERT, mark='JE1', tgre='N')
+                $sqlDet2 = "INSERT INTO imov (
+                    tuser, tdate, ttime, tcodigo, tfectra, tcodtra, tlib, tnumreg, treg,
+                    talm, talr, tnumlot, tprocli, tdoc, tserie, tnumfac, tfecrem,
+                    tcencos, tcoscen, tgalpon, tcantid, tsacos, tsacos2, tpeso, count, tlote,
+                    tglosa, tdet_adicional, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tcodigo, :tfectra, :tcodtra, 'AL', :tnumreg, :treg,
+                    :talm, :talr, '00000000', :tprocli, '09', :tserie, :tnumfac, :tfecrem,
+                    :tcencos, :tcoscen, :tgalpon, :tcantid, :tsacos, :tsacos2, :tpeso, :count, :tlote,
+                    :tglosa, :tdet_adicional, 'JE1', 'N'
+                )";
+                $stmtDet2 = $this->db->prepare($sqlDet2);
+
+                foreach ($detalle as $index => $item) {
+                    $stmtDet2->execute([
+                        ':tuser' => $user,
+                        ':tcodigo' => $item['codigo'],
+                        ':tfectra' => $fechaEmision,
+                        ':tcodtra' => $gCodtra2,
+                        ':tnumreg' => $cabecera['numeroGuia'],
+                        ':treg' => $registro2,
+                        ':talm' => $cabecera['zonaDestino'],
+                        ':talr' => $cabecera['zonaOrigen'],
+                        ':tprocli' => $cabecera['clienteRuc'],
+                        ':tserie' => $cabecera['serie'],
+                        ':tnumfac' => $cabecera['numeroGuia'],
+                        ':tfecrem' => $fechaTraslado,
+                        ':tcencos' => $item['cencos'],
+                        ':tcoscen' => $item['cencos'],
+                        ':tgalpon' => $item['galpon'],
+                        ':tcantid' => $item['cantidad'],
+                        ':tsacos' => $item['cantidad'],
+                        ':tsacos2' => $item['cantidad'],
+                        ':tpeso' => $item['peso'],
+                        ':count' => $index + 1,
+                        ':tlote' => $item['lote'],
+                        ':tglosa' => $item['detalleAdicional'] ?: '',
+                        ':tdet_adicional' => $item['detalleAdicional'] ?: ''
+                    ]);
+                }
+
+            } else {
+                // ─────────────────────────────────────────────────────────────
+                // FLUJO GRANJA (S400)
+                // ─────────────────────────────────────────────────────────────
+                $xNumTra = 1;
+                if ($cabecera['zonaOrigen'] === '010') {
+                    $xNumTra = 3;
+                }
+
+                $registroImov = $this->getNuevoRegImov();
+
+                $sqlCab = "INSERT INTO guia (
+                    tuser, tdate, ttime, tprocli, tdoc, tserie, tnumfac, tfectra, tlib, 
+                    treg, talm, tnumreg, tcodtra, ttip_transporte, tmotivo_traslado, tdesmot_traslado,
+                    tfecrem, tglosa, tcod_transportista, tcod_conductor, tplaca, tplaca2, 
+                    tcli_origen, tcli_destino, tcanttot, tpesotot, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tprocli, '09', :tserie, :tnumfac, :tfectra, 'AL', 
+                    :treg, :talm, :tnumreg, :tcodtra, :ttip_transporte, :tmotivo_traslado, :tdesmot_traslado,
+                    :tfecrem, :tglosa, :tcod_transportista, :tcod_conductor, :tplaca, :tplaca2, 
+                    :tcli_origen, :tcli_destino, :tcanttot, :tpesotot, :mark, :tgre
+                )";
+                $stmtCab = $this->db->prepare($sqlCab);
+
+                $sqlDet = "INSERT INTO imov (
+                    tuser, tdate, ttime, tcodigo, tfectra, tcodtra, tlib, tnumreg, treg,
+                    talm, talr, tnumlot, tprocli, tdoc, tserie, tnumfac, tfecrem,
+                    tcencos, tcoscen, tgalpon, tcantid, tsacos, tsacos2, tpeso, count, tlote,
+                    tglosa, tdet_adicional, timport, tkardex, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tcodigo, :tfectra, :tcodtra, 'AL', :tnumreg, :treg,
+                    :talm, :talr, '00000000', :tprocli, '09', :tserie, :tnumfac, :tfecrem,
+                    :tcencos, :tcoscen, :tgalpon, :tcantid, :tsacos, :tsacos2, :tpeso, :count, :tlote,
+                    :tglosa, :tdet_adicional, :timport, :tkardex, :mark, :tgre
+                )";
+                $stmtDet = $this->db->prepare($sqlDet);
+
+                for ($q = 1; $q <= $xNumTra; $q++) {
+                    if ($q === 1) {
+                        $gAlma = $cabecera['zonaOrigen'];
+                        $gAlmaDestino = ($xNumTra > 1) ? '10T' : $cabecera['zonaDestino'];
+                        $gCodtra = $transaccion;
+                        $mark = 'JE1';
+                        $tgre = 'S';
+                        $gFecha = $fechaEmision;
+                    } elseif ($q === 2) {
+                        $gAlma = '10T';
+                        $gAlmaDestino = '010';
+                        $gCodtra = 'E450';
+                        $mark = 'TE1';
+                        $tgre = 'N';
+                        $gFecha = $fechaEmision;
+                    } else {
+                        $gAlma = '10T';
+                        $gAlmaDestino = '010';
+                        $gCodtra = 'S450';
+                        $mark = 'TS1';
+                        $tgre = 'N';
+                        $gFecha = $fechaTraslado;
+                    }
+
+                    // Insert guia (xNumTra loop)
+                    $stmtCab->execute([
+                        ':tuser' => $user,
+                        ':tprocli' => $cabecera['clienteRuc'],
+                        ':tserie' => $cabecera['serie'],
+                        ':tnumfac' => $cabecera['numeroGuia'],
+                        ':tfectra' => $gFecha,
+                        ':treg' => $registroImov,
+                        ':talm' => $gAlma,
+                        ':tnumreg' => $cabecera['numeroGuia'],
+                        ':tcodtra' => $gCodtra,
+                        ':ttip_transporte' => $cabecera['tipoTransporte'],
+                        ':tmotivo_traslado' => $cabecera['motivoTraslado'],
+                        ':tdesmot_traslado' => $cabecera['motivoTrasladoOtros'],
+                        ':tfecrem' => $fechaTraslado,
+                        ':tglosa' => $cabecera['observaciones'] ?: '-',
+                        ':tcod_transportista' => $cabecera['codTransportista'],
+                        ':tcod_conductor' => $cabecera['codConductor'],
+                        ':tplaca' => $cabecera['placaP'],
+                        ':tplaca2' => $cabecera['placaR'],
+                        ':tcli_origen' => $cabecera['clienteOrigen'],
+                        ':tcli_destino' => $cabecera['clienteDestino'],
+                        ':tcanttot' => $cabecera['totalCantidad'],
+                        ':tpesotot' => $cabecera['totalPeso'],
+                        ':mark' => $mark,
+                        ':tgre' => $tgre
+                    ]);
+
+                    // Insert imov (xNumTra loop)
+                    foreach ($detalle as $index => $item) {
+                        $iPu = $this->calcularPrecioUnitario($gAlma, $item['codigo'], $item['lote'], $anio);
+                        $iImporte = round($item['cantidad'] * $iPu, 2);
+
+                        if ($q === 1) {
+                            $xGuiEle = (strpos(strtoupper($item['codigo']), 'E') === 0) ? 'N' : 'S';
+                        } else {
+                            $xGuiEle = 'N';
+                        }
+
+                        $stmtDet->execute([
+                            ':tuser' => $user,
+                            ':tcodigo' => $item['codigo'],
+                            ':tfectra' => $gFecha,
+                            ':tcodtra' => $gCodtra,
+                            ':tnumreg' => $cabecera['numeroGuia'],
+                            ':treg' => $registroImov,
+                            ':talm' => $gAlma,
+                            ':talr' => $gAlmaDestino,
+                            ':tprocli' => $cabecera['clienteRuc'],
+                            ':tserie' => $cabecera['serie'],
+                            ':tnumfac' => $cabecera['numeroGuia'],
+                            ':tfecrem' => $fechaTraslado,
+                            ':tcencos' => $item['cencos'],
+                            ':tcoscen' => $item['cencos'],
+                            ':tgalpon' => $item['galpon'],
+                            ':tcantid' => $item['cantidad'],
+                            ':tsacos' => $item['cantidad'],
+                            ':tsacos2' => $item['cantidad'],
+                            ':tpeso' => $item['peso'],
+                            ':count' => $index + 1,
+                            ':tlote' => $item['lote'],
+                            ':tglosa' => $item['detalleAdicional'] ?: '',
+                            ':tdet_adicional' => $item['detalleAdicional'] ?: '',
+                            ':timport' => $iImporte,
+                            ':tkardex' => $iImporte,
+                            ':mark' => $mark,
+                            ':tgre' => $xGuiEle
+                        ]);
+                    }
+                }
+
+                // Documento Granja (cabe_zonas + movi_zonas)
+                $gFechaMZ = ($xNumTra === 3) ? $fechaTraslado : $fechaEmision;
+                $registroPro = $this->getNuevoRegPro();
+
+                $sqlCabeZonas = "INSERT INTO cabe_zonas (
+                    tuser, tdate, ttime, tprocli, tdoc, tserie, tnumfac, tfectra, tlib, 
+                    treg, talm, tnumreg, tcodtra, ttip_transporte, tmotivo_traslado, tdesmot_traslado,
+                    tfecrem, tglosa, tcod_transportista, tcod_conductor, tplaca, tplaca2, 
+                    tcli_origen, tcli_destino, tcanttot, tpesotot, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tprocli, '09', :tserie, :tnumfac, :tfectra, 'AL', 
+                    :treg, :talm, :tnumreg, 'E400', :ttip_transporte, :tmotivo_traslado, :tdesmot_traslado,
+                    :tfecrem, :tglosa, :tcod_transportista, :tcod_conductor, :tplaca, :tplaca2, 
+                    :tcli_origen, :tcli_destino, :tcanttot, :tpesotot, 'JE1', 'N'
+                )";
+
+                $stmtCabeZonas = $this->db->prepare($sqlCabeZonas);
+                $stmtCabeZonas->execute([
+                    ':tuser' => $user,
+                    ':tprocli' => $cabecera['clienteRuc'],
+                    ':tserie' => $cabecera['serie'],
+                    ':tnumfac' => $cabecera['numeroGuia'],
+                    ':tfectra' => $gFechaMZ,
+                    ':treg' => $registroPro,
+                    ':talm' => $cabecera['zonaOrigen'],
+                    ':tnumreg' => $cabecera['numeroGuia'],
+                    ':ttip_transporte' => $cabecera['tipoTransporte'],
+                    ':tmotivo_traslado' => $cabecera['motivoTraslado'],
+                    ':tdesmot_traslado' => $cabecera['motivoTrasladoOtros'],
+                    ':tfecrem' => $fechaTraslado,
+                    ':tglosa' => $cabecera['observaciones'] ?: '-',
+                    ':tcod_transportista' => $cabecera['codTransportista'],
+                    ':tcod_conductor' => $cabecera['codConductor'],
+                    ':tplaca' => $cabecera['placaP'],
+                    ':tplaca2' => $cabecera['placaR'],
+                    ':tcli_origen' => $cabecera['clienteOrigen'],
+                    ':tcli_destino' => $cabecera['clienteDestino'],
+                    ':tcanttot' => $cabecera['totalCantidad'],
+                    ':tpesotot' => $cabecera['totalPeso']
+                ]);
+
+                // Detalle Granja (movi_zonas)
+                $sqlMoviZonas = "INSERT INTO movi_zonas (
+                    tuser, tdate, ttime, tcodigo, tline, tfectra, tcodtra, treg,
+                    tcencos, tcodint, tcoscen, tgalpon, tprocli, tdoc, tserie, tnumfac, tfecrem,
+                    tcantid, tsacos, tsacos2, tpeso, idmovi,
+                    tglosa, tdet_adicional, timport, mark, tgre
+                ) VALUES (
+                    :tuser, CURDATE(), CURTIME(), :tcodigo, :tline, :tfectra, 'E400', :treg,
+                    :tcencos, :tcodint, '', '', :tprocli, '09', :tserie, :tnumfac, :tfecrem,
+                    :tcantid, :tsacos, :tsacos2, :tpeso, :idmovi,
+                    :tglosa, :tdet_adicional, :timport, 'JE1', 'N'
+                )";
+                $stmtMoviZonas = $this->db->prepare($sqlMoviZonas);
+
+                $stmtLin = $this->db->prepare("SELECT lin FROM mitm WHERE codigo = :codigo LIMIT 1");
+
+                foreach ($detalle as $index => $item) {
+                    $stmtLin->execute([':codigo' => $item['codigo']]);
+                    $linRes = $stmtLin->fetchColumn();
+                    $iLineaPro = ($linRes !== false && $linRes !== null) ? $linRes : '000';
+
+                    $iPu = $this->calcularPrecioUnitario($cabecera['zonaOrigen'], $item['codigo'], $item['lote'], $anio);
+                    $iImporte = round($item['cantidad'] * $iPu, 2);
+
+                    $stmtMoviZonas->execute([
+                        ':tuser' => $user,
+                        ':tcodigo' => $item['codigo'],
+                        ':tline' => $iLineaPro,
+                        ':tfectra' => $gFechaMZ,
+                        ':treg' => $registroPro,
+                        ':tcencos' => $item['cencos'],
+                        ':tcodint' => $item['galpon'],
+                        ':tprocli' => $cabecera['clienteRuc'],
+                        ':tserie' => $cabecera['serie'],
+                        ':tnumfac' => $cabecera['numeroGuia'],
+                        ':tfecrem' => $fechaTraslado,
+                        ':tcantid' => $item['cantidad'],
+                        ':tsacos' => $item['peso'],
+                        ':tsacos2' => $item['peso'],
+                        ':tpeso' => $item['peso'],
+                        ':idmovi' => $index + 1,
+                        ':tglosa' => $item['detalleAdicional'] ?: '',
+                        ':tdet_adicional' => $item['detalleAdicional'] ?: '',
+                        ':timport' => $iImporte
+                    ]);
+                }
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 }
