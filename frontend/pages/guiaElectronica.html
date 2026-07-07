@@ -350,7 +350,7 @@
                 <!-- Fila de Entrada Rápida de Datos -->
                 <div class="grid grid-cols-12 gap-2 bg-slate-50/50 p-2.5 border-b border-slate-200 items-end px-4 relative pt-6">
                     <div
-                        class="absolute top-1 right-4 text-[9px] font-bold text-slate-400 font-mono tracking-wide z-10">
+                        class="absolute top-1 right-4 text-[10px] font-bold text-slate-400 font-mono tracking-wide z-10">
                         <span class="text-indigo-600">[ENTER]</span> o <span class="text-indigo-600">[+]</span> AÑADIR &nbsp;|&nbsp;
                         <span class="text-amber-500">[C]</span> AMBIAR &nbsp;|&nbsp;
                         <span class="text-red-500">[A]</span> NULAR
@@ -361,7 +361,7 @@
                         <input type="text" id="inputArtCodigo"
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
-                    <div class="col-span-3">
+                    <div class="col-span-2">
                         <label for="inputArtDescri"
                             class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Descripción</label>
                         <input type="text" id="inputArtDescri"
@@ -406,6 +406,12 @@
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                     </div>
                     <div class="col-span-1">
+                        <label for="inputArtObservacion"
+                            class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Obs/Comentario</label>
+                        <input type="text" id="inputArtObservacion"
+                            class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
+                    </div>
+                    <div class="col-span-1">
                         <label for="sr-action-input"
                             class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider text-center text-transparent select-none">Act</label>
                         <input type="text" id="sr-action-input"
@@ -430,7 +436,8 @@
                                 <th class="px-4 py-2.5 text-right border-r border-slate-100">PESO</th>
                                 <th class="px-4 py-2.5 border-r border-slate-100">CENCOS</th>
                                 <th class="px-4 py-2.5 border-r border-slate-100">GALPON</th>
-                                <th class="px-3 py-2.5 text-center">DEL</th>
+                                <th class="px-4 py-2.5 border-r border-slate-100">OBSERVACIÓN</th>
+                                <th class="px-3 py-2.5 text-center">ACT</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">

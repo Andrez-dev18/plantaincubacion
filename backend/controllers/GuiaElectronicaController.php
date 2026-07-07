@@ -161,7 +161,9 @@ class GuiaElectronicaController
         header('Content-Type: application/json; charset=UTF-8');
         try {
             $search = $_GET['q'] ?? null;
-            $articulos = $this->service->listarArticulos($search);
+            $almacen = $_GET['almacen'] ?? null;
+            $anio = isset($_GET['anio']) ? intval($_GET['anio']) : null;
+            $articulos = $this->service->listarArticulos($search, $almacen, $anio);
 
             echo json_encode([
                 "success" => true,

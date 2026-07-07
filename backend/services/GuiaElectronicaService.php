@@ -42,9 +42,9 @@ class GuiaElectronicaService
         return $this->repo->obtenerClientes($search);
     }
 
-    public function listarArticulos(?string $search = null): array
+    public function listarArticulos(?string $search = null, ?string $almacen = null, ?int $anio = null): array
     {
-        return $this->repo->obtenerArticulos($search);
+        return $this->repo->obtenerArticulos($search, $almacen, $anio);
     }
 
     public function listarLotes(string $almacen, string $codigoArticulo, int $anio): array

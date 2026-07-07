@@ -44,8 +44,13 @@ class GuiaElectronicaService extends Service {
     }
 
     // ── artículos ────────────────────────────────────────────────────────────────
-    getArticulos(q = '') {
-        return Http.get(`${this.base}/articulos${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    getArticulos(q = '', almacen = '', anio = '') {
+        const queryParams = [];
+        if (q) queryParams.push(`q=${encodeURIComponent(q)}`);
+        if (almacen) queryParams.push(`almacen=${encodeURIComponent(almacen)}`);
+        if (anio) queryParams.push(`anio=${encodeURIComponent(anio)}`);
+        const queryStr = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+        return Http.get(`${this.base}/articulos${queryStr}`);
     }
 
     // ── lotes ──────────────────────────────────────────────────────────────────

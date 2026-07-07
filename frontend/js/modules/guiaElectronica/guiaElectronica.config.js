@@ -216,7 +216,25 @@ const BUSQUEDAS_CONFIG = {
         iconClass: 'fa-solid fa-cart-shopping',
         placeholder: 'Escribe codigo o nombre para buscar...',
         headers: ['N°', 'Codigo', 'Nombre', 'UNIDAD'],
-        fetchData: (service, query) => service.getArticulos(query),
+        fetchData: (service, query) => {
+            const almacen = document.getElementById('zonaOrigen')?.value || '';
+            const anio = new Date().getFullYear();
+
+            if (!almacen) {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Seleccione Almacén',
+                    text: 'Debe seleccionar una Zona de Origen antes de buscar el artículo.'
+                });
+                const modal = document.getElementById('modal-transportistas');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                return [];
+            }
+            return service.getArticulos(query, almacen, anio);
+        },
         renderRow: (item, index) => {
             return `
                 <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>

@@ -12,6 +12,7 @@ class GuiaElectronicaController {
 
         // Arreglo en memoria para los ítems de la grilla
         this.detalleItems = [];
+        this.stockMaximoPermitido = 0;
     }
 
     async init() {
@@ -291,6 +292,73 @@ class GuiaElectronicaController {
         const btnGuardar = document.getElementById('btn-guardar');
         if (btnGuardar) {
             btnGuardar.addEventListener('click', () => this.guardarDatos());
+        }
+
+        // Listener para validar cantidad máxima en inputArtCant
+        const inputArtCant = document.getElementById('inputArtCant');
+        if (inputArtCant) {
+            const validarCantidadExcedida = () => {
+                let valor = parseFloat(inputArtCant.value) || 0;
+
+                // Si la unidad no es KGS en almacén que inicia con M, no permitimos decimales
+                const isKgs = (document.getElementById('inputArtUnd')?.value || '').toUpperCase() === 'KGS';
+                const almacen = document.getElementById('zonaOrigen')?.value || '';
+                const isAlmPref = almacen.startsWith('M');
+                const permiteDecimales = isAlmPref && isKgs;
+
+                if (!permiteDecimales && !Number.isInteger(valor)) {
+                    valor = Math.floor(valor);
+                    inputArtCant.value = valor || '';
+                }
+
+                if (valor > this.stockMaximoPermitido) {
+                    window.Swal.fire({
+                        icon: 'error',
+                        title: 'Cantidad Excedida',
+                        text: `La cantidad supera el stock disponible (Máximo: ${this.stockMaximoPermitido})`
+                    });
+                    inputArtCant.value = '';
+                }
+            };
+            inputArtCant.addEventListener('input', validarCantidadExcedida);
+            inputArtCant.addEventListener('change', validarCantidadExcedida);
+
+            inputArtCant.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const inputUnd = document.getElementById('inputArtUnd');
+                    const undVal = inputUnd ? inputUnd.value.toUpperCase() : '';
+                    if (undVal === 'KGS') {
+                        document.getElementById('inputArtPeso').focus();
+                    } else {
+                        document.getElementById('inputArtCencos').focus();
+                    }
+                }
+            });
+        }
+
+        // Keydown listener para inputArtLote (Enter para abrir modal de lotes)
+        const inputLote = document.getElementById('inputArtLote');
+        if (inputLote) {
+            inputLote.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const inputCodigo = document.getElementById('inputArtCodigo');
+                    const codigoArticulo = inputCodigo ? inputCodigo.value.trim() : '';
+                    if (!codigoArticulo) {
+                        window.Swal.fire({
+                            icon: 'warning',
+                            title: 'Artículo Requerido',
+                            text: 'Por favor, ingrese o seleccione un código de artículo antes de buscar el lote.'
+                        });
+                        if (inputCodigo) inputCodigo.focus();
+                        return;
+                    }
+                    this.procesarLotesArticulo(codigoArticulo);
+                }
+            });
         }
     }
 
@@ -575,7 +643,8 @@ class GuiaElectronicaController {
                         this.activeSearchConfig.onSelect(item);
                         if (inputId === 'inputArtCodigo') {
                             this.cerrarBuscadorDinamico(false); // Cerrar sin avanzar
-                            this.procesarLotesArticulo(item.codigo);
+                            const inputLote = document.getElementById('inputArtLote');
+                            if (inputLote) inputLote.focus();
                         } else if (inputId === 'clienteOrigen') {
                             this.cerrarBuscadorDinamico(true); // Avanzar
                             this.cargarSeriesAlmacenCliente();
@@ -612,7 +681,8 @@ class GuiaElectronicaController {
                             this.activeSearchConfig.onSelect(item);
                             if (inputId === 'inputArtCodigo') {
                                 this.cerrarBuscadorDinamico(false); // Cerrar sin avanzar
-                                this.procesarLotesArticulo(item.codigo);
+                                const inputLote = document.getElementById('inputArtLote');
+                                if (inputLote) inputLote.focus();
                             } else if (inputId === 'clienteOrigen') {
                                 this.cerrarBuscadorDinamico(true); // Avanzar
                                 this.cargarSeriesAlmacenCliente();
@@ -675,6 +745,15 @@ class GuiaElectronicaController {
             return;
         }
 
+        const getStockLimit = (lote) => {
+            const isKgs = (lote.unidad || document.getElementById('inputArtUnd')?.value || '').toUpperCase() === 'KGS';
+            const isAlmPref = almacen.startsWith('M');
+            if (isAlmPref && isKgs) {
+                return parseFloat(lote.stock_peso) || 0;
+            }
+            return Math.floor(parseFloat(lote.stock_cantidad)) || 0;
+        };
+
         try {
             const response = await this.guiaService.getLotes(almacen, codigoArticulo, anio);
             if (response && response.success && Array.isArray(response.data)) {
@@ -688,49 +767,81 @@ class GuiaElectronicaController {
                     });
                     inputLote.value = '';
                     inputLote.disabled = true;
-                }
-                else if (lotes.length === 1) {
-                    inputLote.disabled = false;
-                    inputLote.value = lotes[0].lote || '';
-                    if (inputCant) {
-                        inputCant.focus();
-                        inputCant.select();
-                    }
+                    this.stockMaximoPermitido = 0;
                 }
                 else {
                     inputLote.disabled = false;
 
-                    const options = {};
-                    lotes.forEach(l => {
-                        options[l.lote] = `Lote: ${l.lote} (Stock: ${l.stock_cantidad} | Peso: ${l.stock_peso})`;
+                    let tableRowsHtml = '';
+                    lotes.forEach((l, index) => {
+                        const stockLim = getStockLimit(l);
+                        tableRowsHtml += `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100 text-xs">
+                                <td class="px-3 py-2 text-center text-slate-500 font-mono">${index + 1}</td>
+                                <td class="px-3 py-2 text-slate-700 font-mono">${codigoArticulo}</td>
+                                <td class="px-3 py-2 font-bold text-slate-800 font-mono">${l.lote}</td>
+                                <td class="px-3 py-2 text-right text-slate-700 font-mono">${Math.floor(parseFloat(l.stock_cantidad))}</td>
+                                <td class="px-3 py-2 text-right text-slate-700 font-mono">${parseFloat(l.stock_peso).toFixed(2)}</td>
+                                <td class="px-3 py-2 text-center">
+                                    <button type="button" 
+                                        class="btn-seleccionar-lote px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-[10px] transition-colors"
+                                        data-lote="${l.lote}" 
+                                        data-stock="${stockLim}">
+                                        Seleccionar
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
                     });
+
+                    const htmlContent = `
+                        <div class="overflow-x-auto w-full mt-3">
+                            <table class="w-full text-left border-collapse border border-slate-200">
+                                <thead class="bg-blue-700  text-[11px] uppercase font-bold text-white border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-3 py-2 text-center">N°</th>
+                                        <th class="px-3 py-2">Código</th>
+                                        <th class="px-3 py-2">Lote</th>
+                                        <th class="px-3 py-2 text-right">Cantidad</th>
+                                        <th class="px-3 py-2 text-right">Peso</th>
+                                        <th class="px-3 py-2 text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-150">
+                                    ${tableRowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
 
                     window.Swal.fire({
                         title: 'Seleccionar Lote',
-                        text: 'Múltiples lotes disponibles. Elija uno:',
-                        input: 'select',
-                        inputOptions: options,
-                        inputPlaceholder: '-- Seleccione un Lote --',
+                        html: htmlContent,
                         showCancelButton: true,
-                        confirmButtonText: 'Seleccionar',
-                        cancelButtonText: 'Cancelar',
-                        inputValidator: (value) => {
-                            if (!value) {
-                                return 'Debe seleccionar un lote';
-                            }
-                        },
+                        showConfirmButton: false,
+                        cancelButtonText: 'Cerrar',
+                        returnFocus: false,
                         customClass: {
-                            confirmButton: 'btn-primary px-4 py-2 bg-blue-600 text-white rounded-md mr-2',
-                            cancelButton: 'btn-secondary px-4 py-2 bg-gray-250 text-gray-700 rounded-md'
+                            cancelButton: 'px-4 py-2 bg-slate-200 text-slate-700 rounded-md font-bold text-xs'
                         },
-                        buttonsStyling: false
-                    }).then((result) => {
-                        if (result.isConfirmed && result.value) {
-                            inputLote.value = result.value;
-                            if (inputCant) {
-                                inputCant.focus();
-                                inputCant.select();
-                            }
+                        didOpen: (modalElement) => {
+                            const buttons = modalElement.querySelectorAll('.btn-seleccionar-lote');
+                            buttons.forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                    const loteVal = e.currentTarget.getAttribute('data-lote');
+                                    const stockVal = parseFloat(e.currentTarget.getAttribute('data-stock')) || 0;
+
+                                    inputLote.value = loteVal;
+                                    this.stockMaximoPermitido = stockVal;
+
+                                    window.Swal.close();
+
+                                    if (inputCant) {
+                                        inputCant.focus();
+                                        inputCant.select();
+                                    }
+                                });
+                            });
                         }
                     });
                 }
@@ -940,6 +1051,7 @@ class GuiaElectronicaController {
         const inputPeso = document.getElementById('inputArtPeso');
         const inputCencos = document.getElementById('inputArtCencos');
         const inputGalpon = document.getElementById('inputArtGalpon');
+        const inputObservacion = document.getElementById('inputArtObservacion');
 
         if (!inputCodigo || !inputCant) return;
 
@@ -951,6 +1063,7 @@ class GuiaElectronicaController {
         const pesoVal = parseFloat(inputPeso ? inputPeso.value : 0) || 0;
         const cencos = inputCencos ? inputCencos.value.trim() : '';
         const galpon = inputGalpon ? inputGalpon.value.trim() : '';
+        const observacion = inputObservacion ? inputObservacion.value.trim() : '';
 
         if (!codigo) {
             window.Swal.fire({
@@ -970,6 +1083,21 @@ class GuiaElectronicaController {
             return;
         }
 
+        // Validación estricta de peso según unidad
+        let finalPesoVal = pesoVal;
+        if (unidad.toUpperCase() === 'KGS') {
+            if (isNaN(pesoVal) || pesoVal <= 0) {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Peso Requerido',
+                    text: 'El peso es obligatorio y debe ser mayor a 0 para la unidad KGS'
+                });
+                return;
+            }
+        } else {
+            finalPesoVal = 0;
+        }
+
         // Formato de detalle adicional si empieza con PL
         let detalleAdicional = '';
         if (codigo.toUpperCase().startsWith('PL')) {
@@ -982,10 +1110,11 @@ class GuiaElectronicaController {
             lote,
             unidad,
             cantidad: cantidadVal,
-            peso: pesoVal,
+            peso: finalPesoVal,
             cencos,
             galpon,
-            detalleAdicional
+            detalleAdicional,
+            observacion
         };
 
         this.detalleItems.push(item);
@@ -1002,6 +1131,7 @@ class GuiaElectronicaController {
         if (inputPeso) inputPeso.value = '';
         if (inputCencos) inputCencos.value = '';
         if (inputGalpon) inputGalpon.value = '';
+        if (inputObservacion) inputObservacion.value = '';
 
         // Enfocar primer campo
         inputCodigo.focus();
@@ -1030,12 +1160,23 @@ class GuiaElectronicaController {
                 <td class="px-4 py-2 text-right border-r border-slate-100 font-mono font-semibold text-slate-800">${item.peso.toFixed(2)}</td>
                 <td class="px-4 py-2 border-r border-slate-100 font-mono text-slate-600">${item.cencos}</td>
                 <td class="px-4 py-2 border-r border-slate-100 font-mono text-slate-600">${item.galpon}</td>
-                <td class="px-3 py-2 text-center">
-                    <button type="button" class="btn-eliminar-item text-rose-500 hover:text-rose-700 transition-colors">
+                <td class="px-4 py-2 border-r border-slate-100 text-slate-600 truncate max-w-[120px]" title="${item.observacion || ''}">${item.observacion || ''}</td>
+                <td class="px-3 py-2 text-center flex justify-center gap-3">
+                    <button type="button" class="btn-editar-item text-amber-500 hover:text-amber-700 transition-colors" title="Editar">
+                        <i class="fas fa-edit text-xs"></i>
+                    </button>
+                    <button type="button" class="btn-eliminar-item text-rose-500 hover:text-rose-700 transition-colors" title="Eliminar">
                         <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                 </td>
             `;
+
+            const btnEdit = tr.querySelector('.btn-editar-item');
+            if (btnEdit) {
+                btnEdit.addEventListener('click', () => {
+                    this.editarItemGrid(index);
+                });
+            }
 
             const btnDel = tr.querySelector('.btn-eliminar-item');
             if (btnDel) {
@@ -1052,6 +1193,46 @@ class GuiaElectronicaController {
         this.detalleItems.splice(index, 1);
         this.renderizarGrid();
         this.calcularTotales();
+    }
+
+    editarItemGrid(index) {
+        const item = this.detalleItems[index];
+        if (!item) return;
+
+        const inputCodigo = document.getElementById('inputArtCodigo');
+        const inputDescri = document.getElementById('inputArtDescri');
+        const inputLote = document.getElementById('inputArtLote');
+        const inputUnd = document.getElementById('inputArtUnd');
+        const inputCant = document.getElementById('inputArtCant');
+        const inputPeso = document.getElementById('inputArtPeso');
+        const inputCencos = document.getElementById('inputArtCencos');
+        const inputGalpon = document.getElementById('inputArtGalpon');
+        const inputObservacion = document.getElementById('inputArtObservacion');
+
+        if (inputCodigo) inputCodigo.value = item.codigo;
+        if (inputDescri) inputDescri.value = item.descripcion;
+        if (inputLote) {
+            inputLote.value = item.lote;
+            inputLote.disabled = false;
+        }
+        if (inputUnd) inputUnd.value = item.unidad;
+        if (inputCant) {
+            inputCant.value = item.cantidad;
+            this.stockMaximoPermitido = 999999999;
+        }
+        if (inputPeso) inputPeso.value = item.peso || '';
+        if (inputCencos) inputCencos.value = item.cencos;
+        if (inputGalpon) inputGalpon.value = item.galpon;
+        if (inputObservacion) inputObservacion.value = item.observacion || '';
+
+        this.detalleItems.splice(index, 1);
+        this.renderizarGrid();
+        this.calcularTotales();
+
+        if (inputCant) {
+            inputCant.focus();
+            inputCant.select();
+        }
     }
 
     calcularTotales() {
@@ -1090,6 +1271,7 @@ class GuiaElectronicaController {
     }
 
     limpiarCamposGrid() {
+        this.stockMaximoPermitido = 0;
         const inputCodigo = document.getElementById('inputArtCodigo');
         const inputDescri = document.getElementById('inputArtDescri');
         const inputLote = document.getElementById('inputArtLote');
@@ -1098,6 +1280,7 @@ class GuiaElectronicaController {
         const inputPeso = document.getElementById('inputArtPeso');
         const inputCencos = document.getElementById('inputArtCencos');
         const inputGalpon = document.getElementById('inputArtGalpon');
+        const inputObservacion = document.getElementById('inputArtObservacion');
 
         if (inputCodigo) inputCodigo.value = '';
         if (inputDescri) inputDescri.value = '';
@@ -1110,6 +1293,7 @@ class GuiaElectronicaController {
         if (inputPeso) inputPeso.value = '';
         if (inputCencos) inputCencos.value = '';
         if (inputGalpon) inputGalpon.value = '';
+        if (inputObservacion) inputObservacion.value = '';
 
         if (inputCodigo) inputCodigo.focus();
     }

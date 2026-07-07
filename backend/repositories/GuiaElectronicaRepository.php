@@ -125,23 +125,85 @@ class GuiaElectronicaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function obtenerArticulos(?string $search = null): array
+    public function obtenerArticulos(?string $search = null, ?string $almacen = null, ?int $anio = null): array
     {
-        $sql = "SELECT codigo, descri, unidad 
-                FROM mitm 
-                WHERE estado = 'A'";
+        // Si no se especifica almacén o año, hacemos la consulta simple sin filtro de stock
+        if (empty($almacen) || empty($anio)) {
+            $sql = "SELECT codigo, descri, unidad 
+                    FROM mitm 
+                    WHERE estado = 'A'";
+            $params = [];
+            if ($search !== null && trim($search) !== '') {
+                $sql .= " AND (codigo LIKE ? OR descri LIKE ?)";
+                $term = '%' . trim($search) . '%';
+                $params = [$term, $term];
+            }
+            $sql .= " ORDER BY descri ASC LIMIT 100";
 
-        $params = [];
-        if ($search !== null && trim($search) !== '') {
-            $sql .= " AND (codigo LIKE ? OR descri LIKE ?)";
-            $term = '%' . trim($search) . '%';
-            $params = [$term, $term];
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        $sql .= " ORDER BY descri ASC LIMIT 100";
+        // Si se especifica almacén y año, filtramos por stock real (Kardex) aplicando reglas estrictas
+        $sql = "SELECT c.codigo, c.descri, c.unidad 
+                FROM mitm c
+                INNER JOIN (
+                    SELECT 
+                        k.codigo,
+                        SUM(k.stock_cantidad) AS tot_cantidad,
+                        SUM(k.stock_peso) AS tot_peso
+                    FROM (
+                        SELECT 
+                            tcodigo AS codigo, 
+                            SUM(IF(LEFT(tcodtra, 1) = 'E', tcantid, -1 * tcantid)) AS stock_cantidad, 
+                            SUM(IF(LEFT(tcodtra, 1) = 'E', tpeso, -1 * tpeso)) AS stock_peso
+                        FROM imov
+                        WHERE talm = :almacen1 AND YEAR(tfectra) = :anio1
+                        GROUP BY tcodigo
+
+                        UNION ALL
+
+                        SELECT 
+                            codigo, 
+                            SUM(qiniano) AS stock_cantidad, 
+                            SUM(piniano) AS stock_peso
+                        FROM mzon
+                        WHERE alma = :almacen2
+                        GROUP BY codigo
+                    ) AS k
+                    GROUP BY k.codigo
+                ) AS stock_res ON c.codigo = stock_res.codigo
+                WHERE c.estado = 'A'
+                  AND (
+                      (LEFT(:almacen3, 1) = 'M' AND c.unidad = 'KGS' AND stock_res.tot_peso > 0)
+                      OR 
+                      ( (LEFT(:almacen4, 1) != 'M' OR c.unidad != 'KGS') AND stock_res.tot_cantidad > 0 )
+                  )";
+
+        if ($search !== null && trim($search) !== '') {
+            $sql .= " AND (c.codigo LIKE :search1 OR c.descri LIKE :search2)";
+        }
+
+        $sql .= " ORDER BY c.descri ASC LIMIT 100";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+
+        // Bindings para el cálculo de saldos y reglas de validación
+        $stmt->bindValue(':almacen1', $almacen, PDO::PARAM_STR);
+        $stmt->bindValue(':anio1', $anio, PDO::PARAM_INT);
+        $stmt->bindValue(':almacen2', $almacen, PDO::PARAM_STR);
+        $stmt->bindValue(':almacen3', $almacen, PDO::PARAM_STR);
+        $stmt->bindValue(':almacen4', $almacen, PDO::PARAM_STR);
+
+        // Bindings para el buscador si el usuario digitó algo
+        if ($search !== null && trim($search) !== '') {
+            $term = '%' . trim($search) . '%';
+            $stmt->bindValue(':search1', $term, PDO::PARAM_STR);
+            $stmt->bindValue(':search2', $term, PDO::PARAM_STR);
+        }
+
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -190,19 +252,19 @@ class GuiaElectronicaRepository
         ";
 
         $stmt = $this->db->prepare($sql);
-        
+
         $stmt->bindValue(':codigo1', $codigoArticulo, PDO::PARAM_STR);
         $stmt->bindValue(':almacen1', $almacen, PDO::PARAM_STR);
         $stmt->bindValue(':anio', $anio, PDO::PARAM_INT);
-        
+
         $stmt->bindValue(':codigo2', $codigoArticulo, PDO::PARAM_STR);
         $stmt->bindValue(':almacen2', $almacen, PDO::PARAM_STR);
-        
+
         $stmt->bindValue(':almacen3', $almacen, PDO::PARAM_STR);
         $stmt->bindValue(':almacen4', $almacen, PDO::PARAM_STR);
-        
+
         $stmt->execute();
-        
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -371,7 +433,7 @@ class GuiaElectronicaRepository
                 // ─────────────────────────────────────────────────────────────
                 // FLUJO ALMACÉN (S440)
                 // ─────────────────────────────────────────────────────────────
-                
+
                 // Documento 1 (Origen)
                 $registro1 = $this->getNuevoRegImov();
 
@@ -533,7 +595,6 @@ class GuiaElectronicaRepository
                         ':tdet_adicional' => $item['detalleAdicional'] ?: ''
                     ]);
                 }
-
             } else {
                 // ─────────────────────────────────────────────────────────────
                 // FLUJO GRANJA (S400)
