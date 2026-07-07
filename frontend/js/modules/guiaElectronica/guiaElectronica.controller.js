@@ -21,7 +21,32 @@ class GuiaElectronicaController {
         await this.cargarTiposTransporte();
         await this.cargarMotivosTraslado();
 
-        // Enviar foco inicial al input de tipoEnvio (tipoEnvioAlmacen)
+        // Tiempo Real (Medianoche): Actualizar fechaEmision si cambia el día del sistema (cada 10 segundos)
+        const getHoy = () => {
+            const hoy = new Date();
+            const y = hoy.getFullYear();
+            const m = String(hoy.getMonth() + 1).padStart(2, '0');
+            const d = String(hoy.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+        let fechaActual = getHoy();
+        setInterval(() => {
+            const hoy = getHoy();
+            if (hoy !== fechaActual) {
+                fechaActual = hoy;
+                const inputFechaEmision = document.getElementById('fechaEmision');
+                if (inputFechaEmision) {
+                    inputFechaEmision.value = hoy;
+                }
+            }
+        }, 10000);
+
+        // Enviar foco inicial al input de tipoEnvio (tipoEnvioAlmacen) y setear valores por defecto
+        const inputClienteRuc = document.getElementById('clienteRuc');
+        const inputClienteNombre = document.getElementById('clienteNombre');
+        if (inputClienteRuc) inputClienteRuc.value = '20419158462';
+        if (inputClienteNombre) inputClienteNombre.value = 'GRANJA RINCONADA DEL SUR S.A.';
+
         setTimeout(() => {
             const initialFocus = document.getElementById('tipoEnvioAlmacen');
             if (initialFocus) {
@@ -102,7 +127,15 @@ class GuiaElectronicaController {
         const selectOrigen = document.getElementById('zonaOrigen');
         if (selectOrigen) {
             selectOrigen.addEventListener('change', () => {
-                this.cargarSeriesAlmacenCliente();
+                if (selectOrigen.value === '010') {
+                    const inputClienteOrigen = document.getElementById('clienteOrigen');
+                    if (inputClienteOrigen) {
+                        inputClienteOrigen.value = '121000';
+                        inputClienteOrigen.dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    this.cargarSeriesAlmacenCliente();
+                }
             });
         }
 
@@ -208,6 +241,42 @@ class GuiaElectronicaController {
             });
         }
 
+        // Mostrar/Ocultar Motivo y Auto-completar Cliente RUC/DNI en tiempo real
+        const selectMotivo = document.getElementById('motivoTraslado');
+        const contenedorMotivoOtros = document.getElementById('contenedorMotivoOtros');
+        const inputMotivoOtros = document.getElementById('motivoTrasladoOtros');
+        if (selectMotivo) {
+            selectMotivo.addEventListener('change', () => {
+                const motivoVal = selectMotivo.value;
+
+                if (motivoVal === '13') {
+                    if (contenedorMotivoOtros) {
+                        contenedorMotivoOtros.style.display = 'block';
+                    }
+                } else {
+                    if (contenedorMotivoOtros) {
+                        contenedorMotivoOtros.style.display = 'none';
+                    }
+                    if (inputMotivoOtros) {
+                        inputMotivoOtros.value = '';
+                    }
+                }
+
+                // Lógica de auto-completado de Cliente
+                const motivosExcluidos = ['01', '14', '18', '09', '13'];
+                const inputClienteRuc = document.getElementById('clienteRuc');
+                const inputClienteNombre = document.getElementById('clienteNombre');
+
+                if (motivoVal && !motivosExcluidos.includes(motivoVal)) {
+                    if (inputClienteRuc) inputClienteRuc.value = '20419158462';
+                    if (inputClienteNombre) inputClienteNombre.value = 'GRANJA RINCONADA DEL SUR S.A.';
+                } else if (motivosExcluidos.includes(motivoVal)) {
+                    if (inputClienteRuc) inputClienteRuc.value = '';
+                    if (inputClienteNombre) inputClienteNombre.value = '';
+                }
+            });
+        }
+
         // Listener para guardar los datos
         const btnGuardar = document.getElementById('btn-guardar');
         if (btnGuardar) {
@@ -226,6 +295,12 @@ class GuiaElectronicaController {
                 inputTransaccion.value = 'S440';
             } else if (radioGranja.checked) {
                 inputTransaccion.value = 'S400';
+                // Regla Granja: si se marca "Granja", auto-asignar a zonaDestino el valor que tenga seleccionado zonaOrigen
+                const selectOrigen = document.getElementById('zonaOrigen');
+                const selectDestino = document.getElementById('zonaDestino');
+                if (selectOrigen && selectDestino) {
+                    selectDestino.value = selectOrigen.value;
+                }
             }
         };
 
@@ -1025,6 +1100,88 @@ class GuiaElectronicaController {
             return;
         }
 
+        // Recolectar valores de los campos obligatorios de cabecera
+        const valSerie = document.getElementById('serie')?.value?.trim() || '';
+        const valClienteRuc = document.getElementById('clienteRuc')?.value?.trim() || '';
+        const valMotivoTraslado = document.getElementById('motivoTraslado')?.value?.trim() || '';
+        const valCodTransportista = document.getElementById('codTransportista')?.value?.trim() || '';
+        const valCodConductor = document.getElementById('codConductor')?.value?.trim() || '';
+        const valPlacaP = document.getElementById('placaP')?.value?.trim() || '';
+        const valPuntoPartida = document.getElementById('puntoPartida')?.value?.trim() || '';
+        const valPuntoLlegada = document.getElementById('puntoLlegada')?.value?.trim() || '';
+        const valTipoTransporte = document.getElementById('tipoTransporte')?.value?.trim() || '';
+
+        // Validación de campos obligatorios
+        if (!valSerie || !valClienteRuc || !valMotivoTraslado || !valCodTransportista || !valCodConductor || !valPlacaP || !valPuntoPartida || !valPuntoLlegada || !valTipoTransporte) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Campos Incompletos',
+                text: 'Por favor, complete todos los campos obligatorios de la cabecera (Serie, Cliente, Motivo, Datos de Transporte y Direcciones).'
+            });
+            return;
+        }
+
+        // Obtener valores para las demás validaciones
+        const fechaEmisionVal = document.getElementById('fechaEmision')?.value || '';
+        const fechaTrasladoVal = document.getElementById('fechaTraslado')?.value || '';
+        const tipoTransporteVal = valTipoTransporte;
+        const motivoTrasladoVal = valMotivoTraslado;
+        const motivoTrasladoOtrosVal = document.getElementById('motivoTrasladoOtros')?.value || '';
+        const clienteRucVal = valClienteRuc;
+
+        // Validaciones de Guardado (usar Swal.fire y hacer return si fallan)
+        // 1. Fechas: Validar que fechaTraslado NO sea menor a fechaEmision.
+        if (fechaTrasladoVal && fechaEmisionVal && fechaTrasladoVal < fechaEmisionVal) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Fecha inválida',
+                text: 'La fecha de inicio de traslado no puede ser menor a la fecha de emisión.'
+            });
+            return;
+        }
+
+        // 2. Tipo Transporte: Si tipoTransporte es '02' (Privado), detener y mostrar alerta
+        if (tipoTransporteVal === '02') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Transporte privado no permitido',
+                text: 'No se permite registrar transporte privado.'
+            });
+            return;
+        }
+
+        // 3. Obligatoriedad Motivo '13': Si motivoTraslado es '13', validar que motivoTrasladoOtros no esté vacío.
+        if (motivoTrasladoVal === '13' && !motivoTrasladoOtrosVal.trim()) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Especificar Motivo',
+                text: 'El campo "Especificar Motivo" es obligatorio cuando el motivo de traslado es "Otros".'
+            });
+            return;
+        }
+
+        // 4. Lógica de Cliente (Granja Rinconada = '20419158462')
+        // - Si el motivo es '18' o '09': El clienteRuc NO puede ser '20419158462'.
+        if ((motivoTrasladoVal === '18' || motivoTrasladoVal === '09') && clienteRucVal === '20419158462') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Cliente no permitido',
+                text: 'Para este motivo de traslado, el cliente no puede ser Granja Rinconada.'
+            });
+            return;
+        }
+
+        // - Si el motivo NO es '01', '14', '18', '09' ni '13': El clienteRuc DEBE ser obligatoriamente '20419158462'.
+        const motivosExcluidos = ['01', '14', '18', '09', '13'];
+        if (!motivosExcluidos.includes(motivoTrasladoVal) && clienteRucVal !== '20419158462') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Cliente incorrecto',
+                text: 'Para el motivo de traslado seleccionado, el cliente debe ser obligatoriamente Granja Rinconada.'
+            });
+            return;
+        }
+
         // Confirmación
         const confirm = await window.Swal.fire({
             title: '¿Confirmar guardado?',
@@ -1041,20 +1198,21 @@ class GuiaElectronicaController {
         const transaccion = document.getElementById('transaccion')?.value || ''; // S440 o S400
         const zonaOrigen = document.getElementById('zonaOrigen')?.value || '';
         const zonaDestino = document.getElementById('zonaDestino')?.value || '';
-        const clienteRuc = document.getElementById('clienteRuc')?.value || '';
-        const serie = document.getElementById('serie')?.value || '';
+        const clienteRuc = clienteRucVal;
+        const serie = valSerie;
         const numeroGuia = document.getElementById('numeroGuia')?.value || '';
-        const fechaEmision = document.getElementById('fechaEmision')?.value || '';
-        const fechaTraslado = document.getElementById('fechaTraslado')?.value || '';
+        const fechaEmision = fechaEmisionVal;
+        const fechaTraslado = fechaTrasladoVal;
         const observaciones = document.getElementById('observaciones')?.value || '';
-        const codTransportista = document.getElementById('codTransportista')?.value || '';
-        const codConductor = document.getElementById('codConductor')?.value || '';
-        const placaP = document.getElementById('placaP')?.value || '';
+        const codTransportista = valCodTransportista;
+        const codConductor = valCodConductor;
+        const placaP = valPlacaP;
         const placaR = document.getElementById('placaR')?.value || '';
         const clienteOrigen = document.getElementById('clienteOrigen')?.value || '';
         const clienteDestino = document.getElementById('clienteDestino')?.value || '';
-        const tipoTransporte = document.getElementById('tipoTransporte')?.value || '';
-        const motivoTraslado = document.getElementById('motivoTraslado')?.value || '';
+        const tipoTransporte = tipoTransporteVal;
+        const motivoTraslado = motivoTrasladoVal;
+        const motivoTrasladoOtros = motivoTrasladoOtrosVal;
         
         // Totales calculados en la grilla
         const lblTotalCantidad = document.getElementById('lblTotalCantidad')?.textContent || '0';
@@ -1081,7 +1239,7 @@ class GuiaElectronicaController {
                 clienteDestino,
                 tipoTransporte,
                 motivoTraslado,
-                motivoTrasladoOtros: '',
+                motivoTrasladoOtros,
                 totalCantidad,
                 totalPeso
             },
@@ -1127,6 +1285,13 @@ class GuiaElectronicaController {
                 const selectSerie = document.getElementById('serie');
                 if (selectSerie) selectSerie.value = '';
                 this.actualizarCamposSerie();
+
+                // Limpiar motivo traslado
+                const selectMotivo = document.getElementById('motivoTraslado');
+                if (selectMotivo) {
+                    selectMotivo.value = '';
+                    selectMotivo.dispatchEvent(new Event('change'));
+                }
 
                 // Foco al inicio
                 document.getElementById('tipoEnvioAlmacen')?.focus();
