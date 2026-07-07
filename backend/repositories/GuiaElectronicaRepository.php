@@ -55,16 +55,22 @@ class GuiaElectronicaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function obtenerConductores(?string $search = null): array
+    public function obtenerConductores(?string $search = null, ?string $rucTransportista = null, bool $mostrarTodos = false): array
     {
         $sql = "SELECT dni, nombre, licencia, testado 
                 FROM dchofer WHERE testado = 'A'";
 
         $params = [];
+        if ($rucTransportista !== null && trim($rucTransportista) !== '' && !$mostrarTodos) {
+            $sql .= " AND tcod_transportista = ?";
+            $params[] = trim($rucTransportista);
+        }
+
         if ($search !== null && trim($search) !== '') {
             $sql .= " AND (dni LIKE ? OR nombre LIKE ?)";
             $term = '%' . trim($search) . '%';
-            $params = [$term, $term];
+            $params[] = $term;
+            $params[] = $term;
         }
 
         $sql .= " ORDER BY nombre ASC LIMIT 100";
@@ -74,17 +80,23 @@ class GuiaElectronicaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function obtenerCamiones(?string $search = null): array
+    public function obtenerCamiones(?string $search = null, ?string $rucTransportista = null): array
     {
         $sql = "SELECT placa, marca, cinscripcion, confvehicular, ntm, soat, fechaisoat, testado 
                 FROM dcamion 
                 WHERE testado = 'A'";
 
         $params = [];
+        if ($rucTransportista !== null && trim($rucTransportista) !== '') {
+            $sql .= " AND tcod_transportista = ?";
+            $params[] = trim($rucTransportista);
+        }
+
         if ($search !== null && trim($search) !== '') {
             $sql .= " AND (placa LIKE ? OR marca LIKE ?)";
             $term = '%' . trim($search) . '%';
-            $params = [$term, $term];
+            $params[] = $term;
+            $params[] = $term;
         }
 
         $sql .= " ORDER BY placa ASC LIMIT 100";

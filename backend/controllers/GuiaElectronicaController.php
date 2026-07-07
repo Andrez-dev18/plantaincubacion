@@ -85,7 +85,9 @@ class GuiaElectronicaController
         header('Content-Type: application/json; charset=UTF-8');
         try {
             $search = $_GET['q'] ?? null;
-            $conductores = $this->service->listarConductores($search);
+            $rucTransportista = $_GET['rucTransportista'] ?? null;
+            $mostrarTodos = isset($_GET['mostrarTodos']) && ($_GET['mostrarTodos'] === 'true' || $_GET['mostrarTodos'] == 1);
+            $conductores = $this->service->listarConductores($search, $rucTransportista, $mostrarTodos);
 
             echo json_encode([
                 "success" => true,
@@ -110,7 +112,8 @@ class GuiaElectronicaController
         header('Content-Type: application/json; charset=UTF-8');
         try {
             $search = $_GET['q'] ?? null;
-            $camiones = $this->service->listarCamiones($search);
+            $rucTransportista = $_GET['rucTransportista'] ?? null;
+            $camiones = $this->service->listarCamiones($search, $rucTransportista);
 
             echo json_encode([
                 "success" => true,

@@ -20,13 +20,22 @@ class GuiaElectronicaService extends Service {
     }
 
     // ── Conductores ─────────────────────────────────────────────────────────────
-    getConductores(q = '') {
-        return Http.get(`${this.base}/conductores${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    getConductores(q = '', rucTransportista = '', mostrarTodos = false) {
+        const queryParams = [];
+        if (q) queryParams.push(`q=${encodeURIComponent(q)}`);
+        if (rucTransportista) queryParams.push(`rucTransportista=${encodeURIComponent(rucTransportista)}`);
+        if (mostrarTodos) queryParams.push(`mostrarTodos=true`);
+        const queryStr = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+        return Http.get(`${this.base}/conductores${queryStr}`);
     }
 
     // ── Camiones ────────────────────────────────────────────────────────────────
-    getCamiones(q = '') {
-        return Http.get(`${this.base}/camiones${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    getCamiones(q = '', rucTransportista = '') {
+        const queryParams = [];
+        if (q) queryParams.push(`q=${encodeURIComponent(q)}`);
+        if (rucTransportista) queryParams.push(`rucTransportista=${encodeURIComponent(rucTransportista)}`);
+        const queryStr = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+        return Http.get(`${this.base}/camiones${queryStr}`);
     }
 
     // ── clientes ────────────────────────────────────────────────────────────────

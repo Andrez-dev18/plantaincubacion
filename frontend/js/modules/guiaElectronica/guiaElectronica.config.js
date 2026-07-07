@@ -39,7 +39,12 @@ const BUSQUEDAS_CONFIG = {
         iconClass: 'fa-solid fa-id-card',
         placeholder: 'Escriba Código, Nombre o Licencia para buscar...',
         headers: ['N°', 'DNI', 'Nombre Conductor', 'Licencia', 'Estado'],
-        fetchData: (service, query) => service.getConductores(query),
+        fetchData: (service, query) => {
+            const transportista = document.getElementById('codTransportista')?.value || '';
+            const chkMostrarTodos = document.getElementById('chk-mostrar-todos-conductores');
+            const mostrarTodos = chkMostrarTodos ? chkMostrarTodos.checked : false;
+            return service.getConductores(query, transportista, mostrarTodos);
+        },
         renderRow: (item, index) => {
             const estado = (item.testado || item.estado || 'A').toUpperCase();
             const isActivo = (estado === 'A' || estado === 'ACTIVO');
@@ -74,7 +79,23 @@ const BUSQUEDAS_CONFIG = {
         iconClass: 'fa-solid fa-truck-pickup',
         placeholder: 'Escriba Placa o Marca para buscar...',
         headers: ['N°', 'Placa', 'Marca', 'C. Inscripción', 'Conf. Vehicular', 'SOAT', 'F. Venc. SOAT'],
-        fetchData: (service, query) => service.getCamiones(query),
+        fetchData: (service, query) => {
+            const transportista = document.getElementById('codTransportista')?.value || '';
+            if (!transportista.trim()) {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Transportista Requerido',
+                    text: 'Debe seleccionar un transportista antes de buscar la placa.'
+                });
+                const modal = document.getElementById('modal-transportistas');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                return { success: true, data: [] };
+            }
+            return service.getCamiones(query, transportista);
+        },
         renderRow: (item, index) => {
             return `
                 <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
@@ -96,7 +117,23 @@ const BUSQUEDAS_CONFIG = {
         iconClass: 'fa-solid fa-trailer',
         placeholder: 'Escriba Placa o Marca para buscar...',
         headers: ['N°', 'Placa', 'Marca', 'C. Inscripción', 'Conf. Vehicular', 'SOAT', 'F. Venc. SOAT'],
-        fetchData: (service, query) => service.getCamiones(query),
+        fetchData: (service, query) => {
+            const transportista = document.getElementById('codTransportista')?.value || '';
+            if (!transportista.trim()) {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Transportista Requerido',
+                    text: 'Debe seleccionar un transportista antes de buscar la placa.'
+                });
+                const modal = document.getElementById('modal-transportistas');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                return { success: true, data: [] };
+            }
+            return service.getCamiones(query, transportista);
+        },
         renderRow: (item, index) => {
             return `
                 <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>

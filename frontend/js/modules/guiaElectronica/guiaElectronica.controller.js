@@ -123,6 +123,16 @@ class GuiaElectronicaController {
             });
         }
 
+        // Checkbox para mostrar todos los choferes sin relación al transportista
+        const chkMostrarTodosConductores = document.getElementById('chk-mostrar-todos-conductores');
+        if (chkMostrarTodosConductores) {
+            chkMostrarTodosConductores.addEventListener('change', () => {
+                const buscarInput = document.getElementById('buscar-transportista');
+                const query = buscarInput ? buscarInput.value : '';
+                this.cargarDataBuscador(query);
+            });
+        }
+
         // Listener para cambio en zonaOrigen (almacén de origen)
         const selectOrigen = document.getElementById('zonaOrigen');
         if (selectOrigen) {
@@ -426,6 +436,20 @@ class GuiaElectronicaController {
 
         const modal = document.getElementById('modal-transportistas');
         if (!modal) return;
+
+        // Mostrar u ocultar checkbox de excepción de choferes
+        const containerFiltro = document.getElementById('contenedor-filtro-conductores');
+        const chkMostrarTodos = document.getElementById('chk-mostrar-todos-conductores');
+        if (containerFiltro) {
+            if (inputId === 'codConductor') {
+                containerFiltro.style.display = 'flex';
+                if (chkMostrarTodos) {
+                    chkMostrarTodos.checked = false;
+                }
+            } else {
+                containerFiltro.style.display = 'none';
+            }
+        }
 
         // Actualizar título de cabecera e icono
         const titleEl = modal.querySelector('.modal-header h3');

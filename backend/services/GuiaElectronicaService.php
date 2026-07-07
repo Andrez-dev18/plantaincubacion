@@ -28,13 +28,13 @@ class GuiaElectronicaService
         return $this->repo->obtenerTransportistas($search);
     }
 
-    public function listarConductores(?string $search = null): array{
-        return $this->repo->obtenerConductores($search);
+    public function listarConductores(?string $search = null, ?string $rucTransportista = null, bool $mostrarTodos = false): array{
+        return $this->repo->obtenerConductores($search, $rucTransportista, $mostrarTodos);
     }
 
-    public function listarCamiones(?string $search = null): array
+    public function listarCamiones(?string $search = null, ?string $rucTransportista = null): array
     {
-        return $this->repo->obtenerCamiones($search);
+        return $this->repo->obtenerCamiones($search, $rucTransportista);
     }
 
     public function listarClientes(?string $search = null): array
