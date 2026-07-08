@@ -73,7 +73,7 @@ class GuiaElectronicaController {
             form.addEventListener('submit', (e) => e.preventDefault());
         }
 
-        // Configurar los triggers dinámicos de búsqueda
+        // Configurar los triggers dinámicos de búsqueda (F1 para abrir modal, Enter para buscar/autocompletar rápido)
         Object.keys(this.busquedasConfig).forEach(inputId => {
             const inputElement = document.getElementById(inputId);
             if (inputElement) {
@@ -81,6 +81,13 @@ class GuiaElectronicaController {
                     if (e.key === 'F1') {
                         e.preventDefault();
                         this.abrirBuscadorDinamico(inputId);
+                    } else if (e.key === 'Enter') {
+                        const query = inputElement.value.trim();
+                        if (query !== '') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            this.buscarYAutocompletar(inputId, query);
+                        }
                     }
                 });
             }
@@ -631,6 +638,90 @@ class GuiaElectronicaController {
             // Retornar el foco al input disparador
             const triggerInput = document.getElementById(triggerInputId);
             if (triggerInput) triggerInput.focus();
+        }
+    }
+
+    async buscarYAutocompletar(inputId, query) {
+        const config = this.busquedasConfig[inputId];
+        if (!config) return;
+
+        this.activeSearchInputId = inputId;
+        this.activeSearchConfig = config;
+
+        try {
+            // Obtener los datos usando la función fetchData de la configuración
+            const results = await config.fetchData(this.guiaService, query);
+            
+            let data = [];
+            if (results && results.success && Array.isArray(results.data)) {
+                data = results.data;
+            } else if (Array.isArray(results)) {
+                data = results;
+            }
+
+            // Filtrar localmente si el resultado contiene múltiples registros para hallar coincidencia exacta
+            if (data.length > 1 && query) {
+                const queryUpper = query.trim().toUpperCase();
+                
+                // 1. Intentar coincidencia exacta en código, placa o lote
+                const exactMatches = data.filter(item => {
+                    const code = (item.codigo || item.placa || item.lote || '').toString().toUpperCase();
+                    const name = (item.nombre || item.descri || item.descripcion || item.marca || '').toString().toUpperCase();
+                    return code === queryUpper || name === queryUpper;
+                });
+
+                if (exactMatches.length === 1) {
+                    data = exactMatches;
+                } else {
+                    // 2. Intentar coincidencia parcial
+                    const partialMatches = data.filter(item => {
+                        const code = (item.codigo || item.placa || item.lote || '').toString().toUpperCase();
+                        const name = (item.nombre || item.descri || item.descripcion || item.marca || '').toString().toUpperCase();
+                        return code.includes(queryUpper) || name.includes(queryUpper);
+                    });
+                    if (partialMatches.length === 1) {
+                        data = partialMatches;
+                    }
+                }
+            }
+
+            if (data.length === 1) {
+                // Exactamente 1 resultado: autocompletar directamente sin modal
+                const item = data[0];
+                config.onSelect(item);
+
+                // Ejecutar lógica adicional según el input
+                if (inputId === 'clienteOrigen') {
+                    this.cargarSeriesAlmacenCliente();
+                    this.cargarDireccionClienteOrigen(item.codigo);
+                } else if (inputId === 'clienteDestino') {
+                    this.cargarDireccionClienteDestino(item.codigo);
+                } else if (inputId === 'inputArtCencos') {
+                    this.procesarGalponesCencos(item.codigo);
+                }
+
+                // Avanzar al siguiente input
+                if (window.guiaNav) {
+                    if (inputId === 'inputArtCodigo') {
+                        const inputLote = document.getElementById('inputArtLote');
+                        if (inputLote) inputLote.focus();
+                    } else {
+                        window.guiaNav.avanzarDesdeCampo(inputId);
+                    }
+                }
+            } else {
+                // 0 o más de 1 resultados: abrir modal y filtrar
+                this.abrirBuscadorDinamico(inputId);
+                const buscarInput = document.getElementById('buscar-transportista');
+                if (buscarInput && !config.hideSearch) {
+                    buscarInput.value = query;
+                    this.cargarDataBuscador(query);
+                }
+            }
+        } catch (error) {
+            console.error("Error en autocompletado rápido:", error);
+            // Ante cualquier error, abrir el modal por defecto
+            this.abrirBuscadorDinamico(inputId);
         }
     }
 
