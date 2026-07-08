@@ -31,11 +31,21 @@ class GuiaElectronicaController {
             return `${y}-${m}-${d}`;
         };
         let fechaActual = getHoy();
+
+        // Inicializar fechas con la fecha de hoy
+        const inputFechaEmision = document.getElementById('fechaEmision');
+        const inputFechaTraslado = document.getElementById('fechaTraslado');
+        if (inputFechaEmision) {
+            inputFechaEmision.value = fechaActual;
+        }
+        if (inputFechaTraslado) {
+            inputFechaTraslado.value = fechaActual;
+        }
+
         setInterval(() => {
             const hoy = getHoy();
             if (hoy !== fechaActual) {
                 fechaActual = hoy;
-                const inputFechaEmision = document.getElementById('fechaEmision');
                 if (inputFechaEmision) {
                     inputFechaEmision.value = hoy;
                 }

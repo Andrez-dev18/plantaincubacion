@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Guías de Remisión Electrónicas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '.dark-mode']
+        }
+    </script>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dark-theme.css">
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+
+    <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-style.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
+
+    <style>
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+        }
+
+        .card-shadow {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-hover-scale:hover {
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-down {
+            animation: slideDown 0.35s ease;
+        }
+
+        #filterContent {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            opacity: 0;
+        }
+
+        #filterContent.show {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .table-scroll {
+            max-height: calc(100vh - 220px);
+            min-height: 420px;
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
+            background-color: var(--card);
+        }
+
+        .table-scroll table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1200px;
+            width: 100%;
+        }
+
+        .table-scroll th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #2563eb; /* Azul 600 */
+            color: #ffffff;    /* Texto blanco */
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .table-scroll th,
+        .table-scroll td {
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .action-btn {
+            border: none;
+            border-radius: 0.45rem;
+            width: 32px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.12s ease, opacity 0.15s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .action-view {
+            background: #2563eb;
+        }
+
+        .action-pdf {
+            background: #ea580c; /* Rojo/Naranja */
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.6);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            display: flex;
+        }
+
+        .modal-content {
+            width: min(1100px, 95vw);
+            max-height: 90vh;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.85rem;
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.35);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.97);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: color-mix(in srgb, var(--primary) 12%, var(--card));
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow: auto;
+        }
+
+        .modal-footer {
+            padding: 0.8rem 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .loading-overlay {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            font-weight: 700;
+            color: var(--muted-foreground);
+            padding: 1rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <!-- CONTENEDOR OPTIMIZADO PARA IFRAME (Aprovecha todo el espacio disponible) -->
+    <div class="w-full p-3">
+        
+        <!-- SECCIÓN DE FILTROS COLAPSABLE -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <div class="flex items-center justify-between mb-4 border-gray-100 pb-3">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-blue-600"></i>
+                    Filtros de Búsqueda
+                </h2>
+                <button id="btnToggleFiltros" class="text-gray-500 hover:text-blue-600 transition">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+                <div class="flex items-center gap-3">
+                    <button id="btnLimpiarFiltros" class="text-blue-600 hover:text-blue-700 font-semibold">
+                        <i class="fas fa-eraser mr-1"></i>
+                        Limpiar filtros
+                    </button>
+                </div>
+            </div>
+
+            <div id="filterContent" class="show">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <!-- Búsqueda general -->
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-search text-blue-600 mr-1"></i>
+                            Búsqueda general
+                        </label>
+                        <input id="searchInput" type="text" placeholder="RUC o Razón Social..."
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition">
+                    </div>
+
+                    <!-- Almacén Origen -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-warehouse text-blue-600 mr-1"></i>
+                            Almacén Origen
+                        </label>
+                        <select id="filterAlmacenOrigen"
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition">
+                            <option value="">Todos los almacenes</option>
+                        </select>
+                    </div>
+
+                    <!-- Desde -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                        <input id="filterFechaDesde" type="date"
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition">
+                    </div>
+
+                    <!-- Hasta -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                        <input id="filterFechaHasta" type="date"
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition">
+                    </div>
+
+                    <!-- Serie -->
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Serie</label>
+                        <input id="filterSerie" type="text" placeholder="TBP5" maxlength="4"
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition uppercase font-mono text-center">
+                    </div>
+
+                    <!-- Número -->
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                        <input id="filterNumero" type="text" placeholder="2859" maxlength="8"
+                            class="w-full px-3 h-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs transition font-mono text-center">
+                    </div>
+
+                    <!-- Botón Aplicar Filtros -->
+                    <div class="md:col-span-1">
+                        <button id="btnAplicarFiltros" type="button"
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold h-9 rounded-lg shadow btn-hover-scale flex items-center justify-center gap-1.5 text-xs transition">
+                            <i class="fas fa-filter"></i>
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANEL DE LISTADO (PREPARADO PARA DATATABLES) -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-table-list text-blue-600"></i>
+                    Listado de Guías de Remisión
+                </h2>
+                <div id="loadingMessage" class="loading-overlay py-0 text-xs">
+                    <i class="fas fa-spinner fa-spin mr-1.5"></i>
+                    Cargando listado...
+                </div>
+            </div>
+
+            <!-- TABLA PRINCIPAL DE GUÍAS -->
+            <div class="table-scroll">
+                <table class="min-w-full" id="tablaListaGuias">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-center w-12 font-semibold">N°</th>
+                            <th class="px-4 py-3 text-left font-semibold">Fecha</th>
+                            <th class="px-4 py-3 text-center font-semibold">Doc</th>
+                            <th class="px-4 py-3 text-center font-semibold">Serie</th>
+                            <th class="px-4 py-3 text-center font-semibold">Número</th>
+                            <th class="px-4 py-3 text-left font-semibold">Cliente</th>
+                            <th class="px-4 py-3 text-left font-semibold">Razón Social</th>
+                            <th class="px-4 py-3 text-left font-semibold">Origen</th>
+                            <th class="px-4 py-3 text-right font-semibold">Bultos</th>
+                            <th class="px-4 py-3 text-right font-semibold">Peso Total</th>
+                            <th class="px-4 py-3 text-center font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyGuias" class="divide-y divide-slate-100 bg-white">
+                        <tr>
+                            <td colspan="11" class="text-center py-8 text-slate-500">
+                                No hay datos para mostrar
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL DETALLE DE GUÍA (NATIVO CON TARJETAS Y TABLA DETALLADA) -->
+    <div id="modalDetalleGuia" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-6xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 border-b border-slate-200 bg-slate-50/50">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-file-invoice text-blue-600"></i>
+                    Detalle de la Guía
+                </h3>
+                <button id="btnCerrarModalTop" type="button" class="text-slate-400 hover:text-slate-650 transition text-2xl font-bold leading-none">&times;</button>
+            </div>
+            
+            <!-- Body -->
+            <div class="overflow-y-auto p-5 flex-1">
+                <!-- Sección Cabecera (Cards) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                    <!-- Tarjeta 1: DOCUMENTO -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                            <i class="fas fa-file-lines text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Documento</label>
+                            <span id="lblDetalleDoc" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 2: FECHA -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 flex-shrink-0">
+                            <i class="fas fa-calendar-days text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Fecha</label>
+                            <span id="lblDetalleFecha" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 3: ALMACÉN -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 flex-shrink-0">
+                            <i class="fas fa-warehouse text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Almacén</label>
+                            <span id="lblDetalleAlmacen" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 4: CLIENTE -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                            <i class="fas fa-user text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Cliente</label>
+                            <span id="lblDetalleCliente" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 5: BULTOS -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0">
+                            <i class="fas fa-box text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Bultos</label>
+                            <span id="lblDetalleBultos" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                    <!-- Tarjeta 6: PESO TOTAL -->
+                    <div class="border border-slate-200 rounded-lg p-3 flex items-center gap-3 bg-white shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
+                            <i class="fas fa-weight-scale text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-[10px] text-slate-450 uppercase font-semibold tracking-wider">Peso Total</label>
+                            <span id="lblDetallePeso" class="block text-xs text-slate-800 font-bold truncate">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección Extra de Traslado, Transporte y Direcciones -->
+                <div class="bg-slate-50 p-3 rounded-lg mb-4 text-xs border border-slate-200">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                        <div><span class="font-bold text-slate-500 uppercase">Motivo:</span> <span id="lblDetalleMotivo" class="text-slate-800 font-medium"></span></div>
+                        <div><span class="font-bold text-slate-500 uppercase">Modalidad:</span> <span id="lblDetalleModalidad" class="text-slate-800 font-medium"></span></div>
+                        <div><span class="font-bold text-slate-500 uppercase">Tipo Transporte:</span> <span id="lblDetalleTipoTransp" class="text-slate-800 font-medium"></span></div>
+                        <div><span class="font-bold text-slate-500 uppercase">Transportista:</span> <span id="lblDetalleTransportista" class="text-slate-800 font-medium"></span></div>
+                        <div><span class="font-bold text-slate-500 uppercase">Vehículo:</span> <span id="lblDetalleVehiculo" class="text-slate-800 font-medium"></span></div>
+                        <div><span class="font-bold text-slate-500 uppercase">Conductor:</span> <span id="lblDetalleConductor" class="text-slate-800 font-medium"></span></div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 pt-2 border-t border-slate-200">
+                        <div class="truncate"><span class="font-bold text-slate-500 uppercase">P. Partida:</span> <span id="lblDetallePartida" class="text-slate-800 font-medium"></span></div>
+                        <div class="truncate"><span class="font-bold text-slate-500 uppercase">P. Llegada:</span> <span id="lblDetalleLlegada" class="text-slate-800 font-medium"></span></div>
+                    </div>
+                </div>
+
+                <!-- Sección Detalle (Tabla) -->
+                <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+                    <table class="w-full text-sm text-left border-collapse bg-white">
+                        <thead class="bg-blue-600 text-white text-xs uppercase">
+                            <tr>
+                                <th class="px-4 py-3 text-center w-12 font-semibold border-r border-blue-500">N°</th>
+                                <th class="px-4 py-3 font-semibold border-r border-blue-500">Código</th>
+                                <th class="px-4 py-3 font-semibold border-r border-blue-500">Descripción</th>
+                                <th class="px-4 py-3 text-center font-semibold border-r border-blue-500">Lote</th>
+                                <th class="px-4 py-3 text-right font-semibold border-r border-blue-500">Cant.</th>
+                                <th class="px-4 py-3 text-right font-semibold border-r border-blue-500">Peso</th>
+                                <th class="px-4 py-3 text-center font-semibold border-r border-blue-500">Cencos</th>
+                                <th class="px-4 py-3 text-center font-semibold border-r border-blue-500">Galpón</th>
+                                <th class="px-4 py-3 font-semibold">Obs.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDetalleGuia" class="divide-y divide-slate-100 text-slate-650 font-mono text-xs">
+                            <!-- Items dinámicos -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-4 border-t border-slate-200 flex justify-end bg-slate-50">
+                <button id="btnCerrarModalBottom" type="button" class="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-1.5 px-4 rounded-lg text-xs shadow-sm transition-all cursor-pointer">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS CORE DE LA APLICACIÓN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/core/Store.js"></script>
+    <script src="../js/core/Component.js"></script>
+    <script src="../js/config/config.js"></script>
+    <script src="../js/modules/auth/auth.service.js"></script>
+    <script src="../js/shared/utils/swal-helpers.js"></script>
+    <script src="../js/shared/utils/theme-sync.js"></script>
+
+    <!-- CONTROLADORES Y SERVICIOS LOCALES DEL MÓDULO -->
+    <script src="../js/modules/listaGuiaElectronica/listaGuiaElectronica.service.js"></script>
+    <script src="../js/modules/listaGuiaElectronica/listaGuiaElectronica.controller.js"></script>
+
+    <script>
+        if (typeof AppStore === 'undefined') {
+            window.AppStore = new Store({
+                user: null,
+                isAuthenticated: false,
+                loading: false
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authService = new AuthService();
+            const sesion = await authService.validarSesion();
+
+            if (!sesion?.success) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Inicializamos el controlador del listado
+            window.listaGuiaElectronicaCtrl = new ListaGuiaElectronicaController();
+            await window.listaGuiaElectronicaCtrl.init();
+        });
+    </script>
+</body>
+
+</html>
