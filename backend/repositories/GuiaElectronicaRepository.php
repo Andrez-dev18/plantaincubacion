@@ -301,7 +301,7 @@ class GuiaElectronicaRepository
 
     public function obtenerDireccionCliente(string $codigoCliente): ?array
     {
-        $sql = "SELECT direcc, ubigeo FROM ccte WHERE codigo = :codigo LIMIT 1";
+        $sql = "SELECT nombre, direcc, ubigeo FROM ccte WHERE codigo = :codigo LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':codigo', $codigoCliente, PDO::PARAM_STR);
         $stmt->execute();

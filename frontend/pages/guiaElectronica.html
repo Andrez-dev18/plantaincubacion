@@ -63,12 +63,12 @@
                         <label class="block text-[10px] font-bold text-slate-550 uppercase mb-1 tracking-wider">Envío
                             a</label>
                         <div
-                            class="flex items-center w-full h-9 bg-slate-200/60 p-0.5 rounded-lg border border-slate-200">
+                            class="flex items-center w-full h-9 bg-slate-200/60 p-0.5 rounded-lg border border-slate-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200">
                             <label class="flex-1 h-full" for="tipoEnvioAlmacen">
                                 <input type="radio" name="tipoEnvio" id="tipoEnvioAlmacen" value="ALMACEN" checked
                                     class="sr-only peer">
                                 <span
-                                    class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs">
+                                    class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs peer-focus:ring-2 peer-focus:ring-blue-500">
                                     Almacén
                                 </span>
                             </label>
@@ -76,7 +76,7 @@
                                 <input type="radio" name="tipoEnvio" id="tipoEnvioGranja" value="GRANJA"
                                     class="sr-only peer">
                                 <span
-                                    class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs">
+                                    class="flex items-center justify-center h-full text-xs font-bold text-slate-600 rounded-md cursor-pointer transition-all duration-200 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-xs peer-focus:ring-2 peer-focus:ring-blue-500">
                                     Granja
                                 </span>
                             </label>
@@ -106,6 +106,7 @@
                             Origen</label>
                         <input type="text" id="clienteOrigen"
                             class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                        <div id="nombreClienteOrigen" class="text-[10px] text-blue-600 font-semibold mt-1 truncate" title=""></div>
                     </div>
 
                     <div class="xl:col-span-2">
@@ -124,6 +125,7 @@
                             Destino</label>
                         <input type="text" id="clienteDestino"
                             class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                        <div id="nombreClienteDestino" class="text-[10px] text-blue-600 font-semibold mt-1 truncate" title=""></div>
                     </div>
                 </div>
 

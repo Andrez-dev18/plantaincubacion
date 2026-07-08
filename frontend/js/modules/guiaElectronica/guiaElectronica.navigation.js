@@ -10,6 +10,65 @@ class GuiaElectronicaNavigation {
 
     init() {
         this.form.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+        // Seguimiento del último campo enfocado
+        this.ultimoCampoFocalizado = null;
+        this.form.addEventListener('focusin', (e) => {
+            const target = e.target;
+            const campos = this.obtenerCampos();
+            if (campos.includes(target)) {
+                this.ultimoCampoFocalizado = target;
+            }
+        });
+
+        // Restaurar el foco cuando la ventana vuelve a tener el foco principal (ej. desde devtools)
+        window.addEventListener('focus', () => {
+            setTimeout(() => {
+                const active = document.activeElement;
+                if ((!active || active === document.body || active.tagName === 'HTML') && this.ultimoCampoFocalizado) {
+                    this.ultimoCampoFocalizado.focus();
+                    if (typeof this.ultimoCampoFocalizado.select === 'function' && 
+                        (this.ultimoCampoFocalizado.type === 'text' || this.ultimoCampoFocalizado.type === 'number')) {
+                        this.ultimoCampoFocalizado.select();
+                    }
+                }
+            }, 50);
+        });
+
+        // Restaurar el foco cuando se hace click en el fondo o zonas no interactivas de la página
+        document.addEventListener('click', (e) => {
+            // Si el buscador/modal dinámico está abierto o hay SweetAlert, no interferir
+            const modal = document.getElementById('modal-transportistas');
+            if ((modal && modal.style.display === 'flex') || document.querySelector('.swal2-container')) {
+                return;
+            }
+
+            setTimeout(() => {
+                const active = document.activeElement;
+                if ((!active || active === document.body || active.tagName === 'HTML') && this.ultimoCampoFocalizado) {
+                    // Evitar re-enfocar si el click fue sobre un elemento interactivo (botones, enlaces, etc.)
+                    if (this.esElementoInteractivo(e.target)) {
+                        return;
+                    }
+                    this.ultimoCampoFocalizado.focus();
+                    if (typeof this.ultimoCampoFocalizado.select === 'function' && 
+                        (this.ultimoCampoFocalizado.type === 'text' || this.ultimoCampoFocalizado.type === 'number')) {
+                        this.ultimoCampoFocalizado.select();
+                    }
+                }
+            }, 50);
+        });
+    }
+
+    // Helper para verificar si un elemento es interactivo y no debe ser interrumpido
+    esElementoInteractivo(el) {
+        if (!el) return false;
+        const tagName = el.tagName.toLowerCase();
+        if (['input', 'select', 'textarea', 'button', 'a'].includes(tagName)) return true;
+        if (el.tabIndex >= 0) return true;
+        if (el.closest('button') || el.closest('a') || el.closest('tr') || el.closest('label')) return true;
+        if (el.closest('.swal2-container') || el.closest('#modal-transportistas')) return true;
+        return false;
     }
 
     // Retorna todos los campos focalizables y visibles de este formulario en orden de tabulación
@@ -90,14 +149,8 @@ class GuiaElectronicaNavigation {
             return;
         }
 
-        // 3. ENTER -> Avanzar (evitando choques en inputs que abren modales)
+        // 3. ENTER -> Avanzar
         if (e.key === 'Enter') {
-            const hasModalConfig = window.GuiaElectronicaConfig && window.GuiaElectronicaConfig[target.id];
-            if (hasModalConfig) {
-                // Dejar que el listener del controlador abra el modal dinámico sin interferir
-                return;
-            }
-
             e.preventDefault();
             this.avanzarSiguiente(campos, index);
         }

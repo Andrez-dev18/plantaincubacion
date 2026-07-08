@@ -77,7 +77,7 @@ class GuiaElectronicaController {
             const inputElement = document.getElementById(inputId);
             if (inputElement) {
                 inputElement.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'F1') {
                         e.preventDefault();
                         this.abrirBuscadorDinamico(inputId);
                     }
@@ -937,10 +937,15 @@ class GuiaElectronicaController {
 
     async cargarDireccionClienteOrigen(codigo) {
         const puntoPartida = document.getElementById('puntoPartida');
+        const nombreClienteOrigen = document.getElementById('nombreClienteOrigen');
         if (!puntoPartida) return;
 
         if (!codigo) {
             puntoPartida.value = '';
+            if (nombreClienteOrigen) {
+                nombreClienteOrigen.textContent = '';
+                nombreClienteOrigen.title = '';
+            }
             return;
         }
 
@@ -948,21 +953,38 @@ class GuiaElectronicaController {
             const response = await this.guiaService.getDireccionCliente(codigo);
             if (response && response.success && response.data) {
                 puntoPartida.value = response.data.direcc || '';
+                if (nombreClienteOrigen) {
+                    nombreClienteOrigen.textContent = response.data.nombre || '';
+                    nombreClienteOrigen.title = response.data.nombre || '';
+                }
             } else {
                 puntoPartida.value = '';
+                if (nombreClienteOrigen) {
+                    nombreClienteOrigen.textContent = '';
+                    nombreClienteOrigen.title = '';
+                }
             }
         } catch (error) {
             console.error("Error al obtener la dirección del cliente de origen:", error);
             puntoPartida.value = '';
+            if (nombreClienteOrigen) {
+                nombreClienteOrigen.textContent = '';
+                nombreClienteOrigen.title = '';
+            }
         }
     }
 
     async cargarDireccionClienteDestino(codigo) {
         const puntoLlegada = document.getElementById('puntoLlegada');
+        const nombreClienteDestino = document.getElementById('nombreClienteDestino');
         if (!puntoLlegada) return;
 
         if (!codigo) {
             puntoLlegada.value = '';
+            if (nombreClienteDestino) {
+                nombreClienteDestino.textContent = '';
+                nombreClienteDestino.title = '';
+            }
             return;
         }
 
@@ -970,12 +992,24 @@ class GuiaElectronicaController {
             const response = await this.guiaService.getDireccionCliente(codigo);
             if (response && response.success && response.data) {
                 puntoLlegada.value = response.data.direcc || '';
+                if (nombreClienteDestino) {
+                    nombreClienteDestino.textContent = response.data.nombre || '';
+                    nombreClienteDestino.title = response.data.nombre || '';
+                }
             } else {
                 puntoLlegada.value = '';
+                if (nombreClienteDestino) {
+                    nombreClienteDestino.textContent = '';
+                    nombreClienteDestino.title = '';
+                }
             }
         } catch (error) {
             console.error("Error al obtener la dirección del cliente de destino:", error);
             puntoLlegada.value = '';
+            if (nombreClienteDestino) {
+                nombreClienteDestino.textContent = '';
+                nombreClienteDestino.title = '';
+            }
         }
     }
 

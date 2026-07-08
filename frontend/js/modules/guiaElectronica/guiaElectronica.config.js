@@ -167,6 +167,11 @@ const BUSQUEDAS_CONFIG = {
         onSelect: (item) => {
             const clienteOrigen = document.getElementById('clienteOrigen');
             if (clienteOrigen) clienteOrigen.value = item.codigo;
+            const nombreEl = document.getElementById('nombreClienteOrigen');
+            if (nombreEl) {
+                nombreEl.textContent = item.nombre || '';
+                nombreEl.title = item.nombre || '';
+            }
         }
     },
     'clienteDestino': {
@@ -186,6 +191,11 @@ const BUSQUEDAS_CONFIG = {
         onSelect: (item) => {
             const clienteDestino = document.getElementById('clienteDestino');
             if (clienteDestino) clienteDestino.value = item.codigo;
+            const nombreEl = document.getElementById('nombreClienteDestino');
+            if (nombreEl) {
+                nombreEl.textContent = item.nombre || '';
+                nombreEl.title = item.nombre || '';
+            }
         }
 
     },
