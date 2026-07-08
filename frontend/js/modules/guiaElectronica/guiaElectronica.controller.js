@@ -13,6 +13,7 @@ class GuiaElectronicaController {
         // Arreglo en memoria para los ítems de la grilla
         this.detalleItems = [];
         this.stockMaximoPermitido = 0;
+        window.guiaController = this;
     }
 
     async init() {
@@ -382,29 +383,6 @@ class GuiaElectronicaController {
             });
         }
 
-        // Keydown listener para inputArtLote (Enter para abrir modal de lotes)
-        const inputLote = document.getElementById('inputArtLote');
-        if (inputLote) {
-            inputLote.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const inputCodigo = document.getElementById('inputArtCodigo');
-                    const codigoArticulo = inputCodigo ? inputCodigo.value.trim() : '';
-                    if (!codigoArticulo) {
-                        window.Swal.fire({
-                            icon: 'warning',
-                            title: 'Artículo Requerido',
-                            text: 'Por favor, ingrese o seleccione un código de artículo antes de buscar el lote.'
-                        }).then(() => {
-                            if (inputCodigo) inputCodigo.focus();
-                        });
-                        return;
-                    }
-                    this.procesarLotesArticulo(codigoArticulo);
-                }
-            });
-        }
     }
 
     setupEventTipoEnvio() {
@@ -573,10 +551,18 @@ class GuiaElectronicaController {
             iconEl.className = config.iconClass;
         }
 
-        // Actualizar placeholder del input
+        // Actualizar placeholder del input y mostrar/ocultar buscador según configuración
         const buscarInput = document.getElementById('buscar-transportista');
+        const containerBuscador = buscarInput ? buscarInput.parentElement.parentElement : null;
+        if (containerBuscador) {
+            if (config.hideSearch) {
+                containerBuscador.style.display = 'none';
+            } else {
+                containerBuscador.style.display = 'block';
+            }
+        }
         if (buscarInput) {
-            buscarInput.placeholder = config.placeholder;
+            buscarInput.placeholder = config.placeholder || '';
             buscarInput.value = '';
         }
 
@@ -605,7 +591,7 @@ class GuiaElectronicaController {
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
         this.modalAbriendo = true;
-        if (buscarInput) buscarInput.focus();
+        if (buscarInput && !config.hideSearch) buscarInput.focus();
         this.modalAbriendo = false;
 
         // Cargar datos iniciales
@@ -719,8 +705,11 @@ class GuiaElectronicaController {
                             if (prevRow) {
                                 prevRow.focus();
                             } else {
-                                const buscarInput = document.getElementById('buscar-transportista');
-                                if (buscarInput) buscarInput.focus();
+                                const config = this.activeSearchConfig;
+                                if (config && !config.hideSearch) {
+                                    const buscarInput = document.getElementById('buscar-transportista');
+                                    if (buscarInput) buscarInput.focus();
+                                }
                             }
                         } else if (e.key === 'Enter') {
                             e.preventDefault();
@@ -751,6 +740,14 @@ class GuiaElectronicaController {
                 });
 
                 tbody.appendChild(fragment);
+
+                // Si el buscador está oculto, enfocar la primera fila automáticamente después de renderizar
+                if (this.activeSearchConfig && this.activeSearchConfig.hideSearch) {
+                    setTimeout(() => {
+                        const firstRow = tbody.querySelector('tr');
+                        if (firstRow) firstRow.focus();
+                    }, 50);
+                }
             } else {
                 tbody.innerHTML = `
                     <tr>
@@ -1309,6 +1306,11 @@ class GuiaElectronicaController {
         if (inputGalpon) inputGalpon.value = item.galpon;
         if (inputObservacion) inputObservacion.value = item.observacion || '';
 
+        const lblStockCant = document.getElementById('lblStockCantLote');
+        const lblStockPeso = document.getElementById('lblStockPesoLote');
+        if (lblStockCant) lblStockCant.textContent = '';
+        if (lblStockPeso) lblStockPeso.textContent = '';
+
         this.detalleItems.splice(index, 1);
         this.renderizarGrid();
         this.calcularTotales();
@@ -1378,6 +1380,11 @@ class GuiaElectronicaController {
         if (inputCencos) inputCencos.value = '';
         if (inputGalpon) inputGalpon.value = '';
         if (inputObservacion) inputObservacion.value = '';
+
+        const lblStockCant = document.getElementById('lblStockCantLote');
+        const lblStockPeso = document.getElementById('lblStockPesoLote');
+        if (lblStockCant) lblStockCant.textContent = '';
+        if (lblStockPeso) lblStockPeso.textContent = '';
 
         if (inputCodigo) inputCodigo.focus();
     }

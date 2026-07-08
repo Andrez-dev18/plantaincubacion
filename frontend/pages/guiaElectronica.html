@@ -384,14 +384,20 @@
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs font-mono shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label for="inputArtCant"
-                            class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Cant</label>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <label for="inputArtCant"
+                                class="text-[10px] font-bold text-indigo-900 uppercase tracking-wider">Cant</label>
+                            <span id="lblStockCantLote" class="text-[9px] text-blue-600 font-semibold truncate" title=""></span>
+                        </div>
                         <input type="number" id="inputArtCant"
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right font-bold text-indigo-600 shadow-2xs">
                     </div>
                     <div class="col-span-1">
-                        <label for="inputArtPeso"
-                            class="block text-[10px] font-bold text-indigo-900 uppercase mb-1 tracking-wider">Peso</label>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <label for="inputArtPeso"
+                                class="text-[10px] font-bold text-indigo-900 uppercase tracking-wider">Peso</label>
+                            <span id="lblStockPesoLote" class="text-[9px] text-blue-600 font-semibold truncate" title=""></span>
+                        </div>
                         <input type="number" step="0.01" id="inputArtPeso"
                             class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right shadow-2xs">
                     </div>

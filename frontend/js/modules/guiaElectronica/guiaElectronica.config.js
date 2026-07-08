@@ -268,6 +268,155 @@ const BUSQUEDAS_CONFIG = {
             if (inputArtDescri) inputArtDescri.value = item.descri;
             const inputArtUnd = document.getElementById('inputArtUnd');
             if (inputArtUnd) inputArtUnd.value = item.unidad || '';
+
+            // Lógica para autocompletar lote si es único
+            const inputLote = document.getElementById('inputArtLote');
+            if (inputLote) {
+                // Limpiar lote previo
+                inputLote.value = '';
+                if (window.guiaController) {
+                    window.guiaController.stockMaximoPermitido = 0;
+                }
+
+                const almacen = document.getElementById('zonaOrigen')?.value || '';
+                const fechaVal = document.getElementById('fechaEmision')?.value;
+                const anio = fechaVal ? new Date(fechaVal).getFullYear() : new Date().getFullYear();
+
+                if (almacen && item.codigo) {
+                    const service = new window.GuiaElectronicaService();
+                    service.getLotes(almacen, item.codigo, anio).then(response => {
+                        if (response && response.success && Array.isArray(response.data)) {
+                            const lotes = response.data;
+                            if (lotes.length === 1) {
+                                // Auto-completar lote
+                                const loteUnico = lotes[0];
+                                inputLote.value = loteUnico.lote;
+
+                                // Guardar stock máximo
+                                const isKgs = (loteUnico.unidad || item.unidad || '').toUpperCase() === 'KGS';
+                                const isAlmPref = almacen.startsWith('M');
+                                let stockLimit = 0;
+                                if (isAlmPref && isKgs) {
+                                    stockLimit = parseFloat(loteUnico.stock_peso) || 0;
+                                } else {
+                                    stockLimit = Math.floor(parseFloat(loteUnico.stock_cantidad)) || 0;
+                                }
+                                if (window.guiaController) {
+                                    window.guiaController.stockMaximoPermitido = stockLimit;
+                                }
+
+                                // Actualizar leyendas de stock
+                                const lblStockCant = document.getElementById('lblStockCantLote');
+                                const lblStockPeso = document.getElementById('lblStockPesoLote');
+                                if (lblStockCant) {
+                                    const cantVal = Math.floor(parseFloat(loteUnico.stock_cantidad)) || 0;
+                                    lblStockCant.textContent = `Stock: ${cantVal}`;
+                                    lblStockCant.title = `Stock Disponible: ${cantVal}`;
+                                }
+                                if (lblStockPeso) {
+                                    const pesoVal = parseFloat(loteUnico.stock_peso).toFixed(2) || '0.00';
+                                    lblStockPeso.textContent = `Peso: ${pesoVal}`;
+                                    lblStockPeso.title = `Peso Disponible: ${pesoVal}`;
+                                }
+                            } else {
+                                const lblStockCant = document.getElementById('lblStockCantLote');
+                                const lblStockPeso = document.getElementById('lblStockPesoLote');
+                                if (lblStockCant) lblStockCant.textContent = '';
+                                if (lblStockPeso) lblStockPeso.textContent = '';
+                            }
+                        }
+                    }).catch(err => {
+                        console.error("Error al autocompletar lote:", err);
+                    });
+                }
+            }
+        }
+    },
+    'inputArtLote': {
+        title: 'Seleccionar Lote',
+        iconClass: 'fa-solid fa-boxes-stacked',
+        placeholder: '',
+        hideSearch: true,
+        headers: ['N°', 'Lote', 'Stock Cant.', 'Stock Peso'],
+        fetchData: (service, query) => {
+            const inputCodigo = document.getElementById('inputArtCodigo');
+            const codigoArticulo = inputCodigo ? inputCodigo.value.trim() : '';
+            if (!codigoArticulo) {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Artículo Requerido',
+                    text: 'Por favor, ingrese o seleccione un código de artículo antes de buscar el lote.'
+                }).then(() => {
+                    if (inputCodigo) inputCodigo.focus();
+                });
+                const modal = document.getElementById('modal-transportistas');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                return { success: true, data: [] };
+            }
+
+            const almacen = document.getElementById('zonaOrigen')?.value || '';
+            const fechaVal = document.getElementById('fechaEmision')?.value;
+            const anio = fechaVal ? new Date(fechaVal).getFullYear() : new Date().getFullYear();
+
+            if (!almacen) {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Almacén de origen requerido',
+                    text: 'Por favor, seleccione una Zona de Origen antes de elegir el artículo.'
+                });
+                const modal = document.getElementById('modal-transportistas');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                return { success: true, data: [] };
+            }
+
+            return service.getLotes(almacen, codigoArticulo, anio);
+        },
+        renderRow: (item, index) => {
+            return `
+                <td class="px-4 py-2.5 text-center w-12 border-r border-slate-100 font-mono text-slate-400">${index + 1}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 font-semibold text-slate-800 font-mono">${item.lote}</td>
+                <td class="px-4 py-2.5 border-r border-slate-100 text-right text-slate-700 font-mono">${Math.floor(parseFloat(item.stock_cantidad))}</td>
+                <td class="px-4 py-2.5 text-right font-mono text-slate-700">${parseFloat(item.stock_peso).toFixed(2)}</td>
+            `;
+        },
+        onSelect: (item) => {
+            const inputLote = document.getElementById('inputArtLote');
+            if (inputLote) inputLote.value = item.lote;
+
+            const almacen = document.getElementById('zonaOrigen')?.value || '';
+            const isKgs = (item.unidad || document.getElementById('inputArtUnd')?.value || '').toUpperCase() === 'KGS';
+            const isAlmPref = almacen.startsWith('M');
+            
+            let stockLimit = 0;
+            if (isAlmPref && isKgs) {
+                stockLimit = parseFloat(item.stock_peso) || 0;
+            } else {
+                stockLimit = Math.floor(parseFloat(item.stock_cantidad)) || 0;
+            }
+
+            if (window.guiaController) {
+                window.guiaController.stockMaximoPermitido = stockLimit;
+            }
+
+            // Actualizar leyendas de stock
+            const lblStockCant = document.getElementById('lblStockCantLote');
+            const lblStockPeso = document.getElementById('lblStockPesoLote');
+            if (lblStockCant) {
+                const cantVal = Math.floor(parseFloat(item.stock_cantidad)) || 0;
+                lblStockCant.textContent = `Stock: ${cantVal}`;
+                lblStockCant.title = `Stock Disponible: ${cantVal}`;
+            }
+            if (lblStockPeso) {
+                const pesoVal = parseFloat(item.stock_peso).toFixed(2) || '0.00';
+                lblStockPeso.textContent = `Peso: ${pesoVal}`;
+                lblStockPeso.title = `Peso Disponible: ${pesoVal}`;
+            }
         }
     },
     'inputArtCencos': {
