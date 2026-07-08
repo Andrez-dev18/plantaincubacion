@@ -11,6 +11,31 @@ class GuiaElectronicaNavigation {
     init() {
         this.form.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
+        // Escuchar la tecla Escape a nivel de documento para retroceder de forma robusta
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Si hay un buscador/modal dinámico abierto o Swal, dejar que ellos manejen Escape
+                const modal = document.getElementById('modal-transportistas');
+                if ((modal && modal.style.display === 'flex') || document.querySelector('.swal2-container')) {
+                    return;
+                }
+
+                const campos = this.obtenerCampos();
+                let currentEl = document.activeElement;
+                
+                // Si el activeElement no es un campo válido, usar el último campo focalizado en memoria
+                if (!currentEl || !campos.includes(currentEl)) {
+                    currentEl = this.ultimoCampoFocalizado;
+                }
+
+                const index = campos.indexOf(currentEl);
+                if (index !== -1) {
+                    e.preventDefault();
+                    this.retrocederAnterior(campos, index);
+                }
+            }
+        });
+
         // Seguimiento del último campo enfocado
         this.ultimoCampoFocalizado = null;
         this.form.addEventListener('focusin', (e) => {
@@ -143,8 +168,8 @@ class GuiaElectronicaNavigation {
             return;
         }
 
-        // Solo procesar Enter, Escape y Espacio
-        if (e.key !== 'Enter' && e.key !== 'Escape' && e.key !== ' ') return;
+        // Solo procesar Enter y Espacio (Escape se maneja a nivel de documento)
+        if (e.key !== 'Enter' && e.key !== ' ') return;
 
         const target = e.target;
         const campos = this.obtenerCampos();
@@ -152,14 +177,7 @@ class GuiaElectronicaNavigation {
 
         if (index === -1) return;
 
-        // 1. ESCAPE -> Retroceder
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            this.retrocederAnterior(campos, index);
-            return;
-        }
-
-        // 2. ESPACIO -> Avanzar (solo si el campo no es de texto libre)
+        // 1. ESPACIO -> Avanzar (solo si el campo no es de texto libre)
         if (e.key === ' ') {
             if (!this.permiteEspacio(target)) {
                 e.preventDefault();
@@ -168,7 +186,7 @@ class GuiaElectronicaNavigation {
             return;
         }
 
-        // 3. ENTER -> Avanzar
+        // 2. ENTER -> Avanzar
         if (e.key === 'Enter') {
             e.preventDefault();
             this.avanzarSiguiente(campos, index);
