@@ -83,6 +83,20 @@ class GuiaElectronicaNavigation {
         return Array.from(fields).filter(el => {
             if (el.disabled || el.readOnly || el.tabIndex < 0) return false;
             
+            // Si es un radio button, solo permitir el que esté seleccionado (checked)
+            if (el.type === 'radio') {
+                if (!el.checked) {
+                    const name = el.name;
+                    if (name) {
+                        const form = el.form || document;
+                        const checkedRadio = form.querySelector(`input[type="radio"][name="${name}"]:checked`);
+                        if (checkedRadio) return false;
+                        const allRadios = Array.from(form.querySelectorAll(`input[type="radio"][name="${name}"]`));
+                        if (allRadios.indexOf(el) !== 0) return false;
+                    }
+                }
+            }
+            
             // Verificar visibilidad
             const style = window.getComputedStyle(el);
             if (style.display === 'none' || style.visibility === 'hidden') return false;
