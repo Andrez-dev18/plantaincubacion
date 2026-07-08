@@ -298,6 +298,40 @@ class GuiaElectronicaController {
             });
         }
 
+        // Validación de placas no duplicadas (P y S)
+        const placaP = document.getElementById('placaP');
+        const placaR = document.getElementById('placaR');
+        if (placaP && placaR) {
+            let alertando = false;
+            const validarPlacasDiferentes = (inputEditado) => {
+                if (alertando || this.modalAbriendo) return;
+                const valP = placaP.value.trim().toUpperCase();
+                const valR = placaR.value.trim().toUpperCase();
+                if (valP !== '' && valR !== '' && valP === valR) {
+                    alertando = true;
+                    inputEditado.blur(); // Quitar el foco inmediatamente
+                    setTimeout(() => {
+                        window.Swal.fire({
+                            icon: 'error',
+                            title: 'Placas Idénticas',
+                            text: 'La placa principal (P) y la placa secundaria (S) no pueden ser las mismas.',
+                            confirmButtonText: 'Corregir',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
+                        }).then(() => {
+                            setTimeout(() => {
+                                inputEditado.focus();
+                                inputEditado.select();
+                                alertando = false;
+                            }, 50);
+                        });
+                    }, 50);
+                }
+            };
+            placaP.addEventListener('blur', () => validarPlacasDiferentes(placaP));
+            placaR.addEventListener('blur', () => validarPlacasDiferentes(placaR));
+        }
+
         // Listener para guardar los datos
         const btnGuardar = document.getElementById('btn-guardar');
         if (btnGuardar) {
@@ -569,7 +603,9 @@ class GuiaElectronicaController {
         // Mostrar modal
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
+        this.modalAbriendo = true;
         if (buscarInput) buscarInput.focus();
+        this.modalAbriendo = false;
 
         // Cargar datos iniciales
         this.cargarDataBuscador('');

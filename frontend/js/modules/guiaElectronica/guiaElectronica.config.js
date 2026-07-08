@@ -109,7 +109,11 @@ const BUSQUEDAS_CONFIG = {
         },
         onSelect: (item) => {
             const placaInput = document.getElementById('placaP');
-            if (placaInput) placaInput.value = item.placa;
+            if (placaInput) {
+                placaInput.value = item.placa;
+                placaInput.dispatchEvent(new Event('change'));
+                placaInput.dispatchEvent(new Event('blur'));
+            }
         }
     },
     'placaR': {
@@ -147,7 +151,11 @@ const BUSQUEDAS_CONFIG = {
         },
         onSelect: (item) => {
             const placaInput = document.getElementById('placaR');
-            if (placaInput) placaInput.value = item.placa;
+            if (placaInput) {
+                placaInput.value = item.placa;
+                placaInput.dispatchEvent(new Event('change'));
+                placaInput.dispatchEvent(new Event('blur'));
+            }
         }
     },
     'clienteOrigen': {

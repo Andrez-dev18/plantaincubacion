@@ -85,6 +85,9 @@ class GuiaElectronicaNavigation {
             const style = window.getComputedStyle(el);
             if (style.display === 'none' || style.visibility === 'hidden') return false;
             
+            // Verificar si el elemento o alguno de sus padres está oculto
+            if (el.offsetParent === null && style.position !== 'fixed') return false;
+            
             return true;
         });
     }
@@ -157,6 +160,19 @@ class GuiaElectronicaNavigation {
     }
 
     avanzarSiguiente(campos, index) {
+        const current = campos[index];
+        if (current && (current.id === 'placaP' || current.id === 'placaR')) {
+            const placaP = document.getElementById('placaP');
+            const placaR = document.getElementById('placaR');
+            if (placaP && placaR) {
+                const valP = placaP.value.trim().toUpperCase();
+                const valR = placaR.value.trim().toUpperCase();
+                if (valP !== '' && valR !== '' && valP === valR) {
+                    current.blur();
+                    return;
+                }
+            }
+        }
         if (index < campos.length - 1) {
             const next = campos[index + 1];
             next.focus();
@@ -177,6 +193,19 @@ class GuiaElectronicaNavigation {
     }
 
     retrocederAnterior(campos, index) {
+        const current = campos[index];
+        if (current && (current.id === 'placaP' || current.id === 'placaR')) {
+            const placaP = document.getElementById('placaP');
+            const placaR = document.getElementById('placaR');
+            if (placaP && placaR) {
+                const valP = placaP.value.trim().toUpperCase();
+                const valR = placaR.value.trim().toUpperCase();
+                if (valP !== '' && valR !== '' && valP === valR) {
+                    current.blur();
+                    return;
+                }
+            }
+        }
         if (index > 0) {
             const prev = campos[index - 1];
             prev.focus();
