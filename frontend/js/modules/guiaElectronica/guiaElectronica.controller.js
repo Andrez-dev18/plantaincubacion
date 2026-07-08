@@ -396,8 +396,9 @@ class GuiaElectronicaController {
                             icon: 'warning',
                             title: 'Artículo Requerido',
                             text: 'Por favor, ingrese o seleccione un código de artículo antes de buscar el lote.'
+                        }).then(() => {
+                            if (inputCodigo) inputCodigo.focus();
                         });
-                        if (inputCodigo) inputCodigo.focus();
                         return;
                     }
                     this.procesarLotesArticulo(codigoArticulo);
@@ -871,6 +872,9 @@ class GuiaElectronicaController {
                             cancelButton: 'px-4 py-2 bg-slate-200 text-slate-700 rounded-md font-bold text-xs'
                         },
                         didOpen: (modalElement) => {
+                            const firstBtn = modalElement.querySelector('.btn-seleccionar-lote');
+                            if (firstBtn) firstBtn.focus();
+                            
                             const buttons = modalElement.querySelectorAll('.btn-seleccionar-lote');
                             buttons.forEach(btn => {
                                 btn.addEventListener('click', (e) => {

@@ -24,6 +24,10 @@ class GuiaElectronicaNavigation {
         // Restaurar el foco cuando la ventana vuelve a tener el foco principal (ej. desde devtools)
         window.addEventListener('focus', () => {
             setTimeout(() => {
+                const modal = document.getElementById('modal-transportistas');
+                if ((modal && modal.style.display === 'flex') || document.querySelector('.swal2-container')) {
+                    return;
+                }
                 const active = document.activeElement;
                 if ((!active || active === document.body || active.tagName === 'HTML') && this.ultimoCampoFocalizado) {
                     this.ultimoCampoFocalizado.focus();
@@ -37,13 +41,11 @@ class GuiaElectronicaNavigation {
 
         // Restaurar el foco cuando se hace click en el fondo o zonas no interactivas de la página
         document.addEventListener('click', (e) => {
-            // Si el buscador/modal dinámico está abierto o hay SweetAlert, no interferir
-            const modal = document.getElementById('modal-transportistas');
-            if ((modal && modal.style.display === 'flex') || document.querySelector('.swal2-container')) {
-                return;
-            }
-
             setTimeout(() => {
+                const modal = document.getElementById('modal-transportistas');
+                if ((modal && modal.style.display === 'flex') || document.querySelector('.swal2-container')) {
+                    return;
+                }
                 const active = document.activeElement;
                 if ((!active || active === document.body || active.tagName === 'HTML') && this.ultimoCampoFocalizado) {
                     // Evitar re-enfocar si el click fue sobre un elemento interactivo (botones, enlaces, etc.)
@@ -238,6 +240,28 @@ class GuiaElectronicaNavigation {
 // Iniciar e inyectar el listener de Enter en los selects nativos para confirmar la opción y avanzar
 document.addEventListener('DOMContentLoaded', () => {
     window.guiaNav = new GuiaElectronicaNavigation('#formGuiaRemision');
+    
+    // Interceptar SweetAlert2 para restaurar el foco al input anterior al cerrarse
+    if (window.Swal) {
+        const originalFire = window.Swal.fire;
+        window.Swal.fire = function (...args) {
+            return originalFire.apply(this, args).then((result) => {
+                if (window.guiaNav && window.guiaNav.ultimoCampoFocalizado) {
+                    const elementToFocus = window.guiaNav.ultimoCampoFocalizado;
+                    if (typeof elementToFocus.focus === 'function' && document.body.contains(elementToFocus)) {
+                        setTimeout(() => {
+                            elementToFocus.focus();
+                            if (typeof elementToFocus.select === 'function' && 
+                                (elementToFocus.type === 'text' || elementToFocus.type === 'number')) {
+                                elementToFocus.select();
+                            }
+                        }, 150); // Dar suficiente tiempo para que finalice la animación de cierre de SweetAlert2
+                    }
+                }
+                return result;
+            });
+        };
+    }
     
     // Escuchar Enter en todos los selectores nativos para proceder al siguiente campo
     document.querySelectorAll('#formGuiaRemision select').forEach(sel => {
