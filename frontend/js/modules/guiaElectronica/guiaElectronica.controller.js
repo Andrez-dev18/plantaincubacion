@@ -1347,12 +1347,12 @@ class GuiaElectronicaController {
         // Actualizar inputs de cabecera de SUNAT
         const numBultos = document.getElementById('numBultos');
         if (numBultos) {
-            numBultos.value = Math.round(totalCantidad);
+            numBultos.value = totalCantidad > 0 ? Math.round(totalCantidad) : '';
         }
 
         const pesoBrutoTotal = document.getElementById('pesoBrutoTotal');
         if (pesoBrutoTotal) {
-            pesoBrutoTotal.value = totalPeso.toFixed(2);
+            pesoBrutoTotal.value = totalPeso > 0 ? totalPeso.toFixed(2) : '';
         }
     }
 
@@ -1571,13 +1571,27 @@ class GuiaElectronicaController {
                 
                 // Limpiar cabecera
                 const inputsToClear = [
-                    'clienteRuc', 'clienteNombre', 'codTransportista', 'nomTransportista',
+                    'codTransportista', 'nomTransportista',
                     'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
-                    'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada'
+                    'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada',
+                    'tipoTransporte', 'zonaOrigen', 'zonaDestino'
                 ];
                 inputsToClear.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
+                });
+
+                // Limpiar etiquetas/leyendas
+                const labelsToClear = [
+                    'nombreClienteOrigen', 'nombreClienteDestino',
+                    'lblStockCantLote', 'lblStockPesoLote'
+                ];
+                labelsToClear.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = '';
+                        el.title = '';
+                    }
                 });
 
                 // Reset de series/correlativo

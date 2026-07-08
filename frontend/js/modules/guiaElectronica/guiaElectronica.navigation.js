@@ -264,6 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const elementToFocus = window.guiaNav.ultimoCampoFocalizado;
                     if (typeof elementToFocus.focus === 'function' && document.body.contains(elementToFocus)) {
                         setTimeout(() => {
+                            // Si ya hay otra alerta de SweetAlert2 abierta en este momento, no robar el foco
+                            if (document.querySelector('.swal2-container')) {
+                                return;
+                            }
                             elementToFocus.focus();
                             if (typeof elementToFocus.select === 'function' && 
                                 (elementToFocus.type === 'text' || elementToFocus.type === 'number')) {
