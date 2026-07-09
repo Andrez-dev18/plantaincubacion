@@ -1,11 +1,11 @@
 /**
- * SearchableSelect - Componente para convertir <select> en campos con búsqueda
+ * SearchableSelect - Componente puro en Tailwind CSS para convertir <select> en campos con búsqueda
  *
  * Características:
- * - Campo de búsqueda integrado al desplegar
- * - Filtrado en tiempo real escribiendo
- * - Al seleccionar o presionar Enter, pasa al siguiente campo
- * - Navegación con teclado (flechas arriba/abajo, Enter, Esc)
+ * - Hereda las clases Tailwind de estilo, bordes, altura y focus del select original.
+ * - Barra de búsqueda integrada flotante de Tailwind.
+ * - Navegación con teclado (Flechas Arriba/Abajo, Enter, Esc, Tab).
+ * - Posicionamiento viewport-fixed inmune a recortes de contenedores con scroll.
  */
 class SearchableSelect {
     constructor(selectElement, options = {}) {
@@ -21,59 +21,92 @@ class SearchableSelect {
         this.isOpen = false;
         this.selectedIndex = -1;
         this.filteredOptions = [];
+        this.allOptions = [];
 
         this.init();
     }
 
     init() {
-        // Ocultar el select original
+        // Ocultar select original
         this.originalSelect.style.display = 'none';
 
-        // Crear contenedor principal
+        // Contenedor relativo
         this.container = document.createElement('div');
-        this.container.className = 'searchable-select';
+        this.container.className = 'searchable-select relative w-full';
         this.originalSelect.parentNode.insertBefore(this.container, this.originalSelect);
 
-        // Crear campo de visualización
+        // Display field (copiar clases del select original para conservar la estética exacta)
         this.displayField = document.createElement('div');
-        this.displayField.className = 'searchable-select-display input-field cursor-pointer';
-        this.displayField.tabIndex = 0;
-        this.updateDisplayText();
+        const originalClasses = Array.from(this.originalSelect.classList).join(' ');
+        
+        // Quitar clases de padding lateral nativo del select si las tuviera, y poner flex
+        this.displayField.className = `${originalClasses} searchable-select-display flex items-center justify-between cursor-pointer select-none focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200`;
+        this.displayField.tabIndex = this.originalSelect.tabIndex >= 0 ? this.originalSelect.tabIndex : 0;
+        
+        // Contenido del display (texto + chevron)
+        this.displayField.innerHTML = `
+            <span class="truncate pr-2 text-left"></span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0 transition-transform duration-200"></i>
+        `;
+        this.container.appendChild(this.displayField);
 
-        // Crear dropdown (se agregará al body para evitar problemas de z-index)
+        // Dropdown (floating overlay)
         this.dropdown = document.createElement('div');
-        this.dropdown.className = 'searchable-select-dropdown';
+        this.dropdown.className = 'searchable-select-dropdown fixed bg-white border border-slate-200/80 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] z-[999999] p-1.5 flex flex-col gap-1.5 transition-all duration-150 ease-out transform scale-95 opacity-0 pointer-events-none';
         this.dropdown.style.display = 'none';
-        this.dropdown.style.position = 'fixed';
 
-        // Crear campo de búsqueda
+        // Campo de búsqueda
         this.searchInput = document.createElement('input');
         this.searchInput.type = 'text';
-        this.searchInput.className = 'searchable-select-search';
+        this.searchInput.className = 'w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-150 placeholder:text-slate-400';
         this.searchInput.placeholder = this.options.placeholder;
+        this.searchInput.autocomplete = 'off';
 
-        // Crear lista de opciones
+        // Lista de opciones
         this.optionsList = document.createElement('div');
-        this.optionsList.className = 'searchable-select-options';
+        this.optionsList.className = 'flex-1 overflow-y-auto max-h-48 space-y-0.5 pr-0.5 custom-scrollbar';
+        
+        // Agregar scrollbar personalizado en head si no existe
+        const styleId = 'searchable-select-scrollbar-styles';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                    height: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 9999px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+            `;
+            document.head.appendChild(style);
+        }
 
-        // Ensamblar
         this.dropdown.appendChild(this.searchInput);
         this.dropdown.appendChild(this.optionsList);
-        this.container.appendChild(this.displayField);
-        document.body.appendChild(this.dropdown); // Agregar dropdown al body
+        document.body.appendChild(this.dropdown);
 
-        // Event listeners
         this.attachEvents();
-
-        // Cargar opciones iniciales
         this.loadOptions();
+        this.updateDisplayText();
     }
 
     attachEvents() {
-        // Click en el campo de visualización
-        this.displayField.addEventListener('click', () => this.toggle());
+        // Toggle click
+        this.displayField.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.toggle();
+        });
 
-        // Enter en el campo de visualización
+        // Enter/Space abre
         this.displayField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -104,18 +137,25 @@ class SearchableSelect {
                     this.close();
                     this.displayField.focus();
                     break;
+                case 'Tab':
+                    this.close();
+                    break;
             }
         });
 
         // Click fuera para cerrar
-        document.addEventListener('click', (e) => {
+        this.clickOutsideHandler = (e) => {
             if (!this.container.contains(e.target) && !this.dropdown.contains(e.target)) {
                 this.close();
             }
-        });
+        };
+        document.addEventListener('click', this.clickOutsideHandler);
 
         // Observar cambios en el select original (por si se actualiza dinámicamente)
-        this.observer = new MutationObserver(() => this.loadOptions());
+        this.observer = new MutationObserver(() => {
+            this.loadOptions();
+            this.updateDisplayText();
+        });
         this.observer.observe(this.originalSelect, { childList: true, subtree: true });
     }
 
@@ -123,6 +163,7 @@ class SearchableSelect {
         this.allOptions = Array.from(this.originalSelect.options).map(opt => ({
             value: opt.value,
             text: opt.textContent.trim(),
+            display: opt.getAttribute('data-display')?.trim() || opt.textContent.trim(),
             element: opt
         }));
         this.filterOptions();
@@ -132,13 +173,12 @@ class SearchableSelect {
         const searchTerm = this.searchInput.value.toLowerCase();
 
         this.filteredOptions = this.allOptions.filter(opt => {
-            // No filtrar la opción vacía/placeholder si no hay búsqueda
             if (!searchTerm && opt.value === '') return true;
-            // Filtrar opción vacía cuando hay búsqueda
             if (opt.value === '') return false;
 
             return opt.text.toLowerCase().includes(searchTerm) ||
-                   opt.value.toLowerCase().includes(searchTerm);
+                   opt.value.toLowerCase().includes(searchTerm) ||
+                   opt.display.toLowerCase().includes(searchTerm);
         });
 
         this.renderOptions();
@@ -150,30 +190,40 @@ class SearchableSelect {
 
         if (this.filteredOptions.length === 0) {
             const noResults = document.createElement('div');
-            noResults.className = 'searchable-select-option-item no-results';
+            noResults.className = 'px-3 py-2 text-xs text-slate-400 italic text-center select-none';
             noResults.textContent = this.options.noResults;
             this.optionsList.appendChild(noResults);
             return;
         }
 
+        const currentValue = this.originalSelect.value;
+
         this.filteredOptions.forEach((opt, index) => {
             const optionDiv = document.createElement('div');
-            optionDiv.className = 'searchable-select-option-item';
-            optionDiv.textContent = opt.text;
+            
+            // Estilos base de las opciones
+            let optionClasses = 'px-2.5 py-1.5 text-xs rounded-md cursor-pointer transition-colors duration-150 select-none ';
+            
+            if (opt.value === '') {
+                // Opción placeholder
+                optionClasses += 'text-slate-400 font-medium italic hover:bg-slate-50';
+            } else if (opt.value === currentValue) {
+                // Opción seleccionada
+                optionClasses += 'bg-indigo-600 text-white font-semibold';
+            } else {
+                // Opción normal
+                optionClasses += 'text-slate-700 hover:bg-indigo-550/10 hover:text-indigo-700';
+            }
+
+            optionDiv.className = optionClasses;
+            optionDiv.textContent = opt.display;
             optionDiv.dataset.value = opt.value;
             optionDiv.dataset.index = index;
 
-            // Marcar si está seleccionado actualmente
-            if (opt.value === this.originalSelect.value) {
-                optionDiv.classList.add('selected');
-            }
-
-            // Click en opción
             optionDiv.addEventListener('click', () => {
                 this.selectOption(opt);
             });
 
-            // Hover
             optionDiv.addEventListener('mouseenter', () => {
                 this.selectedIndex = index;
                 this.highlightOption();
@@ -188,7 +238,6 @@ class SearchableSelect {
 
         this.selectedIndex += direction;
 
-        // Circular
         if (this.selectedIndex < 0) {
             this.selectedIndex = this.filteredOptions.length - 1;
         } else if (this.selectedIndex >= this.filteredOptions.length) {
@@ -200,14 +249,30 @@ class SearchableSelect {
     }
 
     highlightOption() {
-        const items = this.optionsList.querySelectorAll('.searchable-select-option-item');
-        items.forEach((item, index) => {
-            item.classList.toggle('highlighted', index === this.selectedIndex);
+        const items = this.optionsList.children;
+        Array.from(items).forEach((item, index) => {
+            if (item.classList.contains('no-results')) return;
+            const isHighlighted = index === this.selectedIndex;
+            
+            if (isHighlighted) {
+                if (item.dataset.value === this.originalSelect.value) {
+                    item.className = 'px-2.5 py-1.5 text-xs rounded-md cursor-pointer transition-colors duration-150 select-none bg-indigo-700 text-white font-semibold';
+                } else {
+                    item.className = 'px-2.5 py-1.5 text-xs rounded-md cursor-pointer transition-colors duration-150 select-none bg-indigo-50 text-indigo-700 font-medium';
+                }
+            } else {
+                if (item.dataset.value === this.originalSelect.value) {
+                    item.className = 'px-2.5 py-1.5 text-xs rounded-md cursor-pointer transition-colors duration-150 select-none bg-indigo-600 text-white font-semibold';
+                } else {
+                    item.className = 'px-2.5 py-1.5 text-xs rounded-md cursor-pointer transition-colors duration-150 select-none text-slate-700 hover:bg-indigo-50 hover:text-indigo-700';
+                }
+            }
         });
     }
 
     scrollToHighlighted() {
-        const highlighted = this.optionsList.querySelector('.highlighted');
+        const items = this.optionsList.children;
+        const highlighted = items[this.selectedIndex];
         if (highlighted) {
             highlighted.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
@@ -217,83 +282,70 @@ class SearchableSelect {
         if (this.selectedIndex >= 0 && this.filteredOptions[this.selectedIndex]) {
             this.selectOption(this.filteredOptions[this.selectedIndex]);
         } else if (this.filteredOptions.length === 1) {
-            // Si solo hay una opción filtrada, seleccionarla
             this.selectOption(this.filteredOptions[0]);
         }
     }
 
     selectOption(option) {
-        // Actualizar el select original
         this.originalSelect.value = option.value;
 
         // Disparar evento change en el select original
         const event = new Event('change', { bubbles: true });
         this.originalSelect.dispatchEvent(event);
 
-        // Actualizar visualización
         this.updateDisplayText();
-
-        // Cerrar dropdown
         this.close();
 
-        // Mover al siguiente campo si está habilitado
+        // Si se selecciona la transacción S003, enfocar directamente Serie (tserie) y detener navegación automática
+        if (this.originalSelect.id === 'tcodtra' && option.value === 'S003') {
+            setTimeout(() => {
+                const tserie = document.getElementById('tserie');
+                if (tserie) {
+                    tserie.focus();
+                    if (typeof tserie.select === 'function') tserie.select();
+                }
+            }, 50);
+            return;
+        }
+
+        this.displayField.focus();
+
         if (this.options.moveToNextOnSelect) {
             this.moveToNextField();
         }
     }
 
     updateDisplayText() {
-        const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
+        const selectedIndex = this.originalSelect.selectedIndex;
+        const selectedOption = selectedIndex >= 0 ? this.originalSelect.options[selectedIndex] : null;
+        
         const displayText = selectedOption
-            ? (selectedOption.dataset.display?.trim() || selectedOption.textContent.trim())
+            ? (selectedOption.getAttribute('data-display')?.trim() || selectedOption.textContent.trim())
             : '';
 
-        if (displayText && this.originalSelect.value !== '') {
-            this.displayField.textContent = displayText;
-            this.displayField.classList.remove('placeholder');
-        } else {
-            this.displayField.textContent = this.originalSelect.querySelector('option[value=""]')?.textContent || 'Seleccionar...';
-            this.displayField.classList.add('placeholder');
+        const span = this.displayField.querySelector('span');
+        if (span) {
+            if (displayText && this.originalSelect.value !== '') {
+                span.textContent = displayText;
+                span.classList.remove('text-slate-400', 'italic');
+                span.classList.add('text-slate-700');
+            } else {
+                const placeholderText = this.originalSelect.querySelector('option[value=""]')?.textContent || 'Seleccionar...';
+                span.textContent = placeholderText;
+                span.classList.remove('text-slate-700');
+                span.classList.add('text-slate-400', 'italic');
+            }
         }
     }
 
     moveToNextField() {
-        // Si hay un FormNavigation activo en el formulario, usarlo
         const form = this.originalSelect.form;
         if (form && form.formNavigationInstance) {
+            // Evitar interferir si hay una redirección manual de foco en curso (ej: autocompletado S003)
+            if (window.movAlmCtrl?._inS003Autocomplete) {
+                return;
+            }
             form.formNavigationInstance.moveToNextField(this.displayField);
-            return;
-        }
-
-        // Fallback: lógica propia
-        // Obtener todos los campos focalizables del formulario
-        const formElement = this.originalSelect.form || document;
-        const focusable = Array.from(formElement.querySelectorAll(
-            'input:not([readonly]):not([disabled]):not([type="hidden"]), ' +
-            'select:not([disabled]), ' +
-            'textarea:not([disabled]), ' +
-            '.searchable-select-display'
-        )).filter(el => {
-            // Filtrar elementos visibles
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden';
-        });
-
-        const currentIndex = focusable.indexOf(this.displayField);
-        if (currentIndex >= 0 && currentIndex < focusable.length - 1) {
-            const nextField = focusable[currentIndex + 1];
-            setTimeout(() => {
-                nextField.focus();
-                // Si el siguiente es otro searchable select, abrirlo automáticamente
-                if (nextField.classList.contains('searchable-select-display')) {
-                    nextField.click();
-                }
-                // Si es un input, seleccionar el contenido
-                if (nextField.tagName === 'INPUT' &&
-                    (nextField.type === 'text' || nextField.type === 'number')) {
-                    nextField.select();
-                }
-            }, 100);
         }
     }
 
@@ -302,14 +354,21 @@ class SearchableSelect {
 
         this.isOpen = true;
         this.container.classList.add('open');
+        
+        // Rotar chevron
+        const chevron = this.displayField.querySelector('i');
+        if (chevron) chevron.classList.add('rotate-180');
 
         // Calcular posición del dropdown basándose en el displayField
-        const rect = this.displayField.getBoundingClientRect();
-        this.dropdown.style.top = `${rect.bottom + 4}px`; // 4px de margen
-        this.dropdown.style.left = `${rect.left}px`;
-        this.dropdown.style.width = `${Math.max(rect.width, 350)}px`; // Mínimo 350px
+        this.dropdown.style.display = 'flex';
+        this.updateDropdownPosition();
 
-        this.dropdown.style.display = 'block';
+        // Mostrar con transición
+        setTimeout(() => {
+            this.dropdown.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+            this.dropdown.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
         this.searchInput.value = '';
         this.filterOptions();
 
@@ -328,7 +387,6 @@ class SearchableSelect {
             }
         }
 
-        // Actualizar posición al hacer scroll
         this._updatePositionOnScroll = () => this.updateDropdownPosition();
         window.addEventListener('scroll', this._updatePositionOnScroll, true);
         window.addEventListener('resize', this._updatePositionOnScroll);
@@ -339,15 +397,25 @@ class SearchableSelect {
         const rect = this.displayField.getBoundingClientRect();
         this.dropdown.style.top = `${rect.bottom + 4}px`;
         this.dropdown.style.left = `${rect.left}px`;
+        this.dropdown.style.width = `${Math.max(rect.width, 240)}px`;
     }
 
     close() {
+        if (!this.isOpen) return;
         this.isOpen = false;
         this.container.classList.remove('open');
-        this.dropdown.style.display = 'none';
-        this.searchInput.value = '';
 
-        // Remover listeners de posición
+        // Rotar chevron de vuelta
+        const chevron = this.displayField.querySelector('i');
+        if (chevron) chevron.classList.remove('rotate-180');
+
+        this.dropdown.classList.remove('scale-100', 'opacity-100');
+        this.dropdown.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+        
+        setTimeout(() => {
+            if (!this.isOpen) this.dropdown.style.display = 'none';
+        }, 150);
+
         if (this._updatePositionOnScroll) {
             window.removeEventListener('scroll', this._updatePositionOnScroll, true);
             window.removeEventListener('resize', this._updatePositionOnScroll);
@@ -364,19 +432,18 @@ class SearchableSelect {
 
     destroy() {
         this.observer.disconnect();
+        document.removeEventListener('click', this.clickOutsideHandler);
         this.container.remove();
-        this.dropdown.remove(); // Remover dropdown del body
+        this.dropdown.remove();
         this.originalSelect.style.display = '';
     }
 }
 
-// Función helper para inicializar todos los selects en un contenedor
 function initSearchableSelects(container = document, options = {}) {
     const selects = container.querySelectorAll('select:not([data-no-search])');
     const instances = [];
 
     selects.forEach(select => {
-        // Evitar inicializar dos veces
         if (select.searchableSelectInstance) return;
 
         const instance = new SearchableSelect(select, options);
@@ -387,7 +454,6 @@ function initSearchableSelects(container = document, options = {}) {
     return instances;
 }
 
-// Exportar para uso global
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { SearchableSelect, initSearchableSelects };
 }

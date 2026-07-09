@@ -773,22 +773,6 @@
     </div>
 
     <script>
-        // Stub de SearchableSelect para evitar errores en el controlador
-        class SearchableSelect {
-            constructor(selectElement, options = {}) {
-                this.originalSelect = selectElement;
-                this.displayField = document.createElement('div');
-                this.searchInput = document.createElement('input');
-                selectElement.searchableSelectInstance = this;
-            }
-            loadOptions() {}
-            filterOptions() {}
-            open() {}
-            close() {}
-            updateDisplayText() {}
-        }
-        function initSearchableSelects() {}
-
         // Prevenir submit accidental del formulario (ej: Enter en campos de fecha en algunos navegadores)
         document.getElementById('form-movimiento').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -940,6 +924,7 @@
     <script src="../js/core/Service.js"></script>
     <script src="../js/core/Store.js"></script>
     <script src="../js/core/Component.js"></script>
+    <script src="../js/components/SearchableSelect.js"></script>
     <script src="../js/utils/FormNavigation.js"></script>
     <script src="../js/modules/movimiento-almacen/movimiento-almacen.service.js"></script>
     <script src="../js/modules/movimiento-almacen/movimiento-almacen.controller.js"></script>

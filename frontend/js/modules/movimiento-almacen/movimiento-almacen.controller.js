@@ -196,7 +196,11 @@ class MovimientoAlmacenController extends Component {
         setTimeout(() => {
             const primerCampo = document.getElementById('talm');
             if (primerCampo) {
-                primerCampo.focus();
+                if (primerCampo.searchableSelectInstance?.displayField) {
+                    primerCampo.searchableSelectInstance.displayField.focus();
+                } else {
+                    primerCampo.focus();
+                }
             }
         }, 300);
     }
@@ -694,6 +698,8 @@ class MovimientoAlmacenController extends Component {
 
             // [NUEVO] Autocompletado especial para la transacción S003
             if (val === 'S003') {
+                this._inS003Autocomplete = true;
+
                 // 1. Autocompletar Cliente/Proveedor con Granja Rinconada del Sur S.A. (RUC 20419158462)
                 const tprocli = document.getElementById('tprocli');
                 if (tprocli) {
@@ -748,7 +754,8 @@ class MovimientoAlmacenController extends Component {
                         tserie.focus();
                         if (typeof tserie.select === 'function') tserie.select();
                     }
-                }, 100);
+                    this._inS003Autocomplete = false;
+                }, 150);
             }
         });
 
@@ -886,16 +893,6 @@ class MovimientoAlmacenController extends Component {
             };
 
             await this._seleccionarProducto(data);
-
-            // Solo restablecemos el valor al instante si es la instancia de SearchableSelect real,
-            // para evitar limpiar la selección visible en el select nativo de Tailwind.
-            // El select nativo se reiniciará automáticamente al agregar el ítem mediante _limpiarCamposGrid().
-            if (e.target.searchableSelectInstance && typeof e.target.searchableSelectInstance.destroy === 'function') {
-                setTimeout(() => {
-                    e.target.value = '';
-                    e.target.searchableSelectInstance.loadOptions();
-                }, 100);
-            }
         });
 
         document.getElementById('grid-tlote')?.addEventListener('change', async e => {
@@ -3392,9 +3389,13 @@ class MovimientoAlmacenController extends Component {
         setTimeout(() => {
             const primerCampo = document.getElementById('talm');
             if (primerCampo) {
-                primerCampo.focus();
-                if (primerCampo.select && typeof primerCampo.select === 'function') {
-                    primerCampo.select();
+                if (primerCampo.searchableSelectInstance?.displayField) {
+                    primerCampo.searchableSelectInstance.displayField.focus();
+                } else {
+                    primerCampo.focus();
+                    if (primerCampo.select && typeof primerCampo.select === 'function') {
+                        primerCampo.select();
+                    }
                 }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
