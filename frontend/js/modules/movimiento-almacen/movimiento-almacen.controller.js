@@ -353,7 +353,10 @@ class MovimientoAlmacenController extends Component {
                     // Mostrar solo el código cuando se selecciona
                     gridCencos.addEventListener('change', function () {
                         if (this.value && this.searchableSelectInstance?.displayField) {
-                            this.searchableSelectInstance.displayField.textContent = this.value;
+                            const span = this.searchableSelectInstance.displayField.querySelector('span');
+                            if (span) {
+                                span.textContent = this.value;
+                            }
                         }
                     });
 
@@ -3455,10 +3458,10 @@ class MovimientoAlmacenController extends Component {
         });
     }
 
-    _limpiarCamposGrid() {
+     _limpiarCamposGrid() {
         ['grid-tcodigo', 'grid-tcantid', 'grid-tpreuni',
             'grid-tpeso', 'grid-tnumlot', 'grid-tlote',
-            'grid-tcencos', 'grid-tctabal', 'grid-timport', 'grid-costoabc-display'].forEach(id => {
+            'grid-tctabal', 'grid-timport', 'grid-costoabc-display'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -3480,11 +3483,10 @@ class MovimientoAlmacenController extends Component {
             this._refrescarComboBuscable(selectLote, { recargarOpciones: true });
         }
 
-        // Resetear el select de cencos
+        // Mantener el select de cencos seleccionado (solo cerrar si está abierto)
         const selectCencos = document.getElementById('grid-tcencos');
         if (selectCencos) {
-            selectCencos.value = '';
-            this._refrescarComboBuscable(selectCencos, { recargarOpciones: true });
+            this._refrescarComboBuscable(selectCencos, { recargarOpciones: false });
         }
 
         const ref = document.getElementById('grid-stock-ref');
@@ -3558,7 +3560,10 @@ class MovimientoAlmacenController extends Component {
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption && this.searchableSelectInstance.displayField) {
                     // Mostrar solo el código en el campo de display
-                    this.searchableSelectInstance.displayField.textContent = this.value;
+                    const span = this.searchableSelectInstance.displayField.querySelector('span');
+                    if (span) {
+                        span.textContent = this.value;
+                    }
                 }
             }
         });
