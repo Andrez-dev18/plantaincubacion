@@ -192,9 +192,9 @@ class MovimientoAlmacenController extends Component {
             autoOpenSearchableSelect: true
         });
 
-        // Enfocar el primer campo al cargar
+        // Enfocar el primer campo al cargar (Almacén Origen)
         setTimeout(() => {
-            const primerCampo = document.getElementById('tfectra');
+            const primerCampo = document.getElementById('talm');
             if (primerCampo) {
                 primerCampo.focus();
             }
@@ -692,9 +692,45 @@ class MovimientoAlmacenController extends Component {
             }
         });
 
-        // Validación de fecha al salir del campo
+        // Validación de fecha al salir del campo (tanto con tabulador como con click de ratón en otro lado)
         document.getElementById('tfectra').addEventListener('blur', async e => {
-            await this._validarFecha(e.target.value);
+            const fecha = e.target.value;
+            if (!fecha) return;
+
+            const esValida = await this._validarFecha(fecha);
+            if (!esValida) {
+                mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌');
+                setTimeout(() => {
+                    document.getElementById('tfectra').focus();
+                }, 100);
+            }
+        });
+
+        // Enter en fecha: validar y prevenir avance si es incorrecto o fuera de año
+        document.getElementById('tfectra').addEventListener('keydown', async e => {
+            if (e.key === 'Enter') {
+                const fecha = e.target.value;
+                if (!fecha) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    mostrarModal('Fecha Requerida', 'Debe ingresar una fecha para continuar.', '⚠️');
+                    return;
+                }
+
+                // Prevenir avance automático preventivamente
+                e.preventDefault();
+                e.stopPropagation();
+
+                const esValida = await this._validarFecha(fecha);
+                if (!esValida) {
+                    mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌');
+                    setTimeout(() => e.target.focus(), 100);
+                } else {
+                    if (this.formNavigation) {
+                        this.formNavigation.moveToNextField(e.target);
+                    }
+                }
+            }
         });
 
         document.getElementById('tfectra').addEventListener('change', async () => {
@@ -1095,6 +1131,37 @@ class MovimientoAlmacenController extends Component {
             });
         }
 
+        // [NUEVO] Comportamiento de navegación y apertura por Enter en selects nativos
+        document.querySelectorAll('#form-movimiento select').forEach(select => {
+            select.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    if (select.value === '') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (typeof select.showPicker === 'function') {
+                            try {
+                                select.showPicker();
+                            } catch (err) {
+                                console.warn('showPicker no disponible:', err);
+                            }
+                        }
+                    }
+                }
+            });
+
+            select.addEventListener('change', e => {
+                if (e.isTrusted && select.value !== '') {
+                    if (select.id !== 'grid-buscar-producto') {
+                        setTimeout(() => {
+                            if (this.formNavigation) {
+                                this.formNavigation.moveToNextField(select);
+                            }
+                        }, 50);
+                    }
+                }
+            });
+        });
+
         this._toggleRangoCodigoReporte();
     }
 
@@ -1386,7 +1453,7 @@ class MovimientoAlmacenController extends Component {
     // ── Validación de fecha ───────────────────────────────────────────────────
 
     async _validarFecha(fecha) {
-        if (!fecha) return;
+        if (!fecha) return false;
         try {
             const res = await this.service.verificarFecha(fecha);
             const { valida, mensaje } = res.data;
@@ -1396,9 +1463,11 @@ class MovimientoAlmacenController extends Component {
                 msgEl.style.display = 'block';
                 document.getElementById('tfectra').value = '';
                 document.getElementById('btn-grabar').disabled = true;
+                return false;
             } else {
                 msgEl.style.display = 'none';
                 document.getElementById('btn-grabar').disabled = false;
+                return true;
             }
         } catch (e) {
             console.warn('No se pudo verificar fecha (asumiendo válida):', e.message);
@@ -1406,6 +1475,7 @@ class MovimientoAlmacenController extends Component {
             if (msgEl) msgEl.style.display = 'none';
             const btnGrabar = document.getElementById('btn-grabar');
             if (btnGrabar) btnGrabar.disabled = false;
+            return true;
         }
     }
 
@@ -3256,10 +3326,12 @@ class MovimientoAlmacenController extends Component {
             });
 
         setTimeout(() => {
-            const primerCampo = document.getElementById('tfectra');
+            const primerCampo = document.getElementById('talm');
             if (primerCampo) {
                 primerCampo.focus();
-                primerCampo.select();
+                if (primerCampo.select && typeof primerCampo.select === 'function') {
+                    primerCampo.select();
+                }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }, 100);
