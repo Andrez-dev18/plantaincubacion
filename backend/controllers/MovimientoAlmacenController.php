@@ -93,18 +93,19 @@ class MovimientoAlmacenController
     {
         $termino = $_GET['q'] ?? '';
         $alma    = trim((string)($_GET['alma'] ?? ''));
+        $codtra  = trim((string)($_GET['codtra'] ?? ''));
         // Si no hay termino de búsqueda, devolver todos los productos (limitado a 200)
         if (empty($termino)) {
-            $this->json($this->service->getProductos(200, 0, $alma));
+            $this->json($this->service->getProductos(200, 0, $alma, $codtra));
         } else {
-            $this->json($this->service->buscarProductos($termino, 200, 0, $alma));
+            $this->json($this->service->buscarProductos($termino, 200, 0, $alma, $codtra));
         }
     }
 
     public function getLotes(): void
     {
         $alma = trim((string)($_GET['alma'] ?? ''));
-        $codigo = trim((string)($_GET['codigo'] ?? ''));
+        $codigo = (string)($_GET['codigo'] ?? '');
         $fecha = trim((string)($_GET['fecha'] ?? ''));
         $this->json($this->service->getLotes($alma, $codigo, $fecha));
     }

@@ -103,14 +103,14 @@ class MovimientoAlmacenService {
     public function getTiposDocumento(): array   { return $this->repo->getTiposDocumento(); }
     public function getCentrosCosto(): array     { return $this->repo->getCentrosCosto(); }
     public function getClientesProveedores(string $termino = ''): array { return $this->repo->getClientesProveedores($termino); }
-    public function getProductos(int $limit = 200, int $offset = 0, string $alma = ''): array {
-        return $this->repo->getProductos($limit, $offset, $alma);
+    public function getProductos(int $limit = 200, int $offset = 0, string $alma = '', string $codtra = ''): array {
+        return $this->repo->getProductos($limit, $offset, $alma, $codtra);
     }
     public function getLotes(string $alma = '', string $codigo = '', string $fecha = ''): array {
         return $this->repo->getLotes($alma, $codigo, $fecha);
     }
-    public function buscarProductos(string $t, int $limit = 200, int $offset = 0, string $alma = ''): array {
-        return $this->repo->buscarProductos($t, $limit, $offset, $alma);
+    public function buscarProductos(string $t, int $limit = 200, int $offset = 0, string $alma = '', string $codtra = ''): array {
+        return $this->repo->buscarProductos($t, $limit, $offset, $alma, $codtra);
     }
     public function getTipoCambioPorFecha(string $fecha): ?array { return $this->repo->getTipoCambioPorFecha($fecha); }
     public function getClientePorCodigo(string $codigo): ?array  { return $this->repo->getClientePorCodigo($codigo); }

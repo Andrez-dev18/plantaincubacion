@@ -507,7 +507,8 @@ class MovimientoAlmacenController extends Component {
                 q: termino,
                 limit: this._productosPageSize,
                 offset: this._productosOffset,
-                alma: document.getElementById('talm')?.value || ''
+                alma: document.getElementById('talm')?.value || '',
+                codtra: document.getElementById('tcodtra')?.value || ''
             });
 
             const rows = Array.isArray(res.data) ? res.data : [];
@@ -604,7 +605,7 @@ class MovimientoAlmacenController extends Component {
             const esSalida = codtra.charAt(0).toUpperCase() === 'S';
             this._lotes = esSalida
                 ? lotesUnicos.filter(l => parseFloat(l.cantidad || 0) > 0)
-                : lotesUnicos.filter(l => !sinMovimiento(l));
+                : lotesUnicos;
 
             sel.innerHTML = '<option value="">🔎 Buscar lote...</option>' +
                 this._lotes.map(l => {

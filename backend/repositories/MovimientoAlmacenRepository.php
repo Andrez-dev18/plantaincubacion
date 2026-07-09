@@ -152,31 +152,39 @@ class MovimientoAlmacenRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getProductos(int $limit = 200, int $offset = 0, string $alma = ''): array
+    public function getProductos(int $limit = 200, int $offset = 0, string $alma = '', string $codtra = ''): array
     {
         $limit = max(1, min(500, (int)$limit));
         $offset = max(0, (int)$offset);
 
+        $codtra = trim($codtra);
+        $esSalida = ($codtra !== '' && strtoupper(substr($codtra, 0, 1)) === 'S');
+
         if ($alma !== '') {
-            $stmt = $this->db->prepare(
-                "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
-                        m.peso AS tpeso, m.cuenta AS tcuenta,
-                        COALESCE(z.qstock, 0) AS tstock
-                 FROM (
-                     SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
-                            MIN(peso) AS peso, MIN(cuenta) AS cuenta
-                     FROM mitm
-                     WHERE alma IN ('010','018')
-                     GROUP BY codigo
-                 ) AS m
-                 LEFT JOIN (
-                     SELECT codigo, alma, SUM(qstock) AS qstock
-                     FROM mzon
-                     GROUP BY codigo, alma
-                 ) z ON z.codigo = m.codigo AND z.alma = ?
-                 ORDER BY m.descri
-                 LIMIT {$limit} OFFSET {$offset}"
-            );
+            $sql = "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
+                           m.peso AS tpeso, m.cuenta AS tcuenta,
+                           COALESCE(z.qstock, 0) AS tstock
+                    FROM (
+                        SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
+                               MIN(peso) AS peso, MIN(cuenta) AS cuenta
+                        FROM mitm
+                        WHERE alma IN ('010','018')
+                        GROUP BY codigo
+                    ) AS m
+                    LEFT JOIN (
+                        SELECT TRIM(REPLACE(codigo, CHAR(9), '')) AS codigo, alma, SUM(qstock) AS qstock
+                        FROM mzon
+                        GROUP BY TRIM(REPLACE(codigo, CHAR(9), '')), alma
+                    ) z ON z.codigo = TRIM(REPLACE(m.codigo, CHAR(9), '')) AND z.alma = ? ";
+
+            if ($esSalida) {
+                $sql .= " WHERE COALESCE(z.qstock, 0) > 0 ";
+            }
+
+            $sql .= " ORDER BY m.descri
+                      LIMIT {$limit} OFFSET {$offset}";
+
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$alma]);
         } else {
             $stmt = $this->db->prepare(
@@ -193,33 +201,41 @@ class MovimientoAlmacenRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function buscarProductos(string $termino, int $limit = 200, int $offset = 0, string $alma = ''): array
+    public function buscarProductos(string $termino, int $limit = 200, int $offset = 0, string $alma = '', string $codtra = ''): array
     {
         $limit = max(1, min(500, (int)$limit));
         $offset = max(0, (int)$offset);
         $like = "%{$termino}%";
 
+        $codtra = trim($codtra);
+        $esSalida = ($codtra !== '' && strtoupper(substr($codtra, 0, 1)) === 'S');
+
         if ($alma !== '') {
-            $stmt = $this->db->prepare(
-                "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
-                        m.peso AS tpeso, m.cuenta AS tcuenta,
-                        COALESCE(z.qstock, 0) AS tstock
-                 FROM (
-                     SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
-                            MIN(peso) AS peso, MIN(cuenta) AS cuenta
-                     FROM mitm
-                     WHERE (codigo LIKE ? OR descri LIKE ?)
-                       AND alma IN ('010','018')
-                     GROUP BY codigo
-                 ) AS m
-                 LEFT JOIN (
-                     SELECT codigo, alma, SUM(qstock) AS qstock
-                     FROM mzon
-                     GROUP BY codigo, alma
-                 ) z ON z.codigo = m.codigo AND z.alma = ?
-                 ORDER BY m.codigo
-                 LIMIT {$limit} OFFSET {$offset}"
-            );
+            $sql = "SELECT m.codigo AS tcodigo, m.descri AS tdescri, m.unidad AS tunidad,
+                           m.peso AS tpeso, m.cuenta AS tcuenta,
+                           COALESCE(z.qstock, 0) AS tstock
+                    FROM (
+                        SELECT codigo, MIN(descri) AS descri, MIN(unidad) AS unidad,
+                               MIN(peso) AS peso, MIN(cuenta) AS cuenta
+                        FROM mitm
+                        WHERE (codigo LIKE ? OR descri LIKE ?)
+                          AND alma IN ('010','018')
+                        GROUP BY codigo
+                    ) AS m
+                    LEFT JOIN (
+                        SELECT TRIM(REPLACE(codigo, CHAR(9), '')) AS codigo, alma, SUM(qstock) AS qstock
+                        FROM mzon
+                        GROUP BY TRIM(REPLACE(codigo, CHAR(9), '')), alma
+                    ) z ON z.codigo = TRIM(REPLACE(m.codigo, CHAR(9), '')) AND z.alma = ? ";
+
+            if ($esSalida) {
+                $sql .= " WHERE COALESCE(z.qstock, 0) > 0 ";
+            }
+
+            $sql .= " ORDER BY m.codigo
+                      LIMIT {$limit} OFFSET {$offset}";
+
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$like, $like, $alma]);
         } else {
             $stmt = $this->db->prepare(
@@ -241,49 +257,13 @@ class MovimientoAlmacenRepository
     {
         // Modo condicional solicitado: almacén + producto + fecha de corte.
         if ($alma !== '' && $codigo !== '' && $fecha !== '') {
-            $stmt = $this->db->prepare(
-                "SELECT frm1.codigo,
-                        frm1.lote,
-                        SUM(frm1.cantidad) AS cantidad,
-                        SUM(frm1.peso) AS peso,
-                        SUM(frm1.valor) AS valor
-                 FROM (
-                    SELECT 1 AS a,
-                           codigo AS codigo,
-                           lote,
-                           qiniano AS cantidad,
-                           piniano AS peso,
-                           viniano AS valor
-                    FROM mzon USE INDEX(PRIMARY)
-                    WHERE alma = :alma_mzon AND codigo = :codigo_mzon
-                    GROUP BY codigo, lote
-
-                    UNION ALL
-
-                    SELECT 2 AS a,
-                           tcodigo AS codigo,
-                           tlote AS lote,
-                           SUM(IF(LEFT(tcodtra, 1) = 'E', tcantid, (-1) * tcantid)) AS cantidad,
-                           SUM(IF(LEFT(tcodtra, 1) = 'E', tpeso, (-1) * tpeso)) AS peso,
-                           SUM(IF(LEFT(tcodtra, 1) = 'E', tkardex, (-1) * tkardex)) AS valor
-                    FROM imov USE INDEX(PRIMARY)
-                    WHERE talm = :alma_imov
-                      AND tcodigo = :codigo_imov
-                      AND tfectra <= :fecha_imov
-                    GROUP BY tcodigo, tlote
-                 ) AS frm1
-                 GROUP BY frm1.codigo, frm1.lote
-                 ORDER BY frm1.lote"
-            );
-
-            $stmt->execute([
-                'alma_mzon' => $alma,
-                'codigo_mzon' => $codigo,
-                'alma_imov' => $alma,
-                'codigo_imov' => $codigo,
-                'fecha_imov' => $fecha,
-            ]);
-
+             $stmt = $this->db->prepare(
+                 "SELECT m.codigo, m.lote, m.qstock AS cantidad, m.pstock AS peso, m.vstock AS valor
+                  FROM mzon m
+                  WHERE m.alma = ? AND TRIM(REPLACE(m.codigo, CHAR(9), '')) = TRIM(REPLACE(?, CHAR(9), ''))
+                  ORDER BY m.lote"
+             );
+             $stmt->execute([$alma, $codigo]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
