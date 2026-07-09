@@ -7,27 +7,32 @@
     <title>Movimiento de Almacén</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="../css/app.css">
-    <link rel="stylesheet" href="../css/components/searchable-select.css">
-    <link rel="stylesheet" href="../css/dark-theme.css">
-
-    <link rel="stylesheet" href="../css/components/estilos-movi-almacen.css">
-
-</head>
-
-<body class="bg-slate-50 text-gray-800">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
-        /* ── LAYOUT BASE ─────────────────────────────────────── */
-        html,
         body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
-        body {
-            overflow-x: hidden;
-            background-color: #f8fafc;
+        /* ── Custom Scrollbar for modern tables ── */
+        .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         /* ── Segmented Control para Formato de Impresión ── */
@@ -38,11 +43,6 @@
             border-radius: 0.5rem;
             padding: 2px;
             border: 1px solid #e2e8f0;
-        }
-        
-        body.dark-mode .print-format-container {
-            background-color: #0b1220;
-            border-color: #334155;
         }
 
         .print-format-option {
@@ -68,187 +68,171 @@
             text-align: center;
             user-select: none;
         }
-        
-        body.dark-mode .print-format-option span {
-            color: #94a3b8;
-        }
 
         .print-format-option input:checked + span {
             background-color: #ffffff;
             color: #2563eb;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
-        
-        body.dark-mode .print-format-option input:checked + span {
-            background-color: #1e293b;
-            color: #60a5fa;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
     </style>
+</head>
+
+<body class="bg-[#f8fafc] min-h-screen text-slate-800 antialiased">
     <div id="tab-panel-registro" class="w-full">
         <main class="w-full">
-            <form id="form-movimiento" autocomplete="off" class="w-full">
-                <!-- Contenedor único con bordes redondeados completos y sombra, estirado a todo el ancho (w-full) -->
-                <div class="bg-white border border-gray-200 rounded-xl shadow-sm w-full overflow-hidden dark:bg-slate-900/10 dark:border-gray-800">
-                    
-                    <!-- SECCIÓN 1: Cabecera -->
-                    <div class="p-3 bg-white dark:bg-slate-900/10 space-y-3">
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Almacén Origen</label>
-                                <select id="talm" name="talm"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500"
-                                    required>
-                                    <option value="">-- Seleccione Almacén --</option>
-                                </select>
-                            </div>
+            <form id="form-movimiento" autocomplete="off"
+                class="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-200/80 overflow-hidden flex flex-col w-full">
 
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
-                                <input type="date" id="tfectra" name="tfectra"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    required>
-                                <p id="msg-fecha" class="text-red-500 text-xs mt-1 font-medium" style="display:none"></p>
-                            </div>
+                <!-- CABECERA COMPACTA -->
+                <div class="bg-blue-700 text-white py-2 px-4 flex items-center justify-center border-b border-blue-800">
+                    <h1 class="text-xs sm:text-sm font-bold tracking-wider uppercase text-center">
+                        Movimiento de Almacén
+                    </h1>
+                </div>
 
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Transacción</label>
-                                <select id="tcodtra" name="tcodtra"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500"
-                                    required>
-                                    <option value="">-- Tipo de Transacción --</option>
-                                </select>
-                            </div>
+                <div class="p-4 space-y-4">
 
-                            <div id="grupo-almacen-destino">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Almacén Destino</label>
-                                <select id="talr" name="talr"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500">
-                                    <option value="">-- Destino Opcional --</option>
-                                </select>
-                            </div>
-
-                            <div id="grupo-cencos-destino">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Cencos Destino</label>
-                                <select id="tcencos_dest" name="tcencos_dest"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                                    <option value="">-- Centro Costo --</option>
-                                </select>
-                            </div>
+                    <!-- 1. BLOQUE SUPERIOR (Datos Generales) -->
+                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-3.5 bg-slate-50/50 p-4 rounded-xl border border-slate-200/60">
+                        <div class="xl:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Almacén Origen</label>
+                            <select id="talm" name="talm"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                                required>
+                                <option value="">-- Seleccione Almacén --</option>
+                            </select>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Cta. Cte. (Cliente/Proveedor)</label>
-                                <select id="tprocli" name="tprocli"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                                    <option value="">Buscar código o nombre...</option>
-                                </select>
-                            </div>
-
-                            <div id="grupo-emidoc">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo Doc.</label>
-                                <select id="tdoc" name="tdoc"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                                    <option value="">-- Tipo --</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Serie</label>
-                                <input type="text" id="tserie" name="tserie"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm uppercase text-center"
-                                    maxlength="4" placeholder="F001">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Número</label>
-                                <input type="number" id="tnumfac" name="tnumfac"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm" min="0">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Fecha Doc.</label>
-                                <input type="date" id="tfecfac" name="tfecfac"
-                                    class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                            </div>
+                        <div class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Fecha</label>
+                            <input type="date" id="tfectra" name="tfectra"
+                                class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                                required>
+                            <p id="msg-fecha" class="text-red-500 text-xs mt-1 font-medium" style="display:none"></p>
                         </div>
 
-                        <div class="pt-3 border-t border-gray-100 dark:border-gray-800">
-                            <div class="flex flex-col md:flex-row gap-3 items-end w-full">
-                                <div id="grupo-moneda" class="w-full md:w-48 shrink-0">
-                                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Moneda</label>
-                                    <select id="tmon" name="tmon"
-                                        class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                                        <option value="S/">S/ Soles</option>
-                                        <option value="US$">US$ Dólares</option>
+                        <div class="xl:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Transacción</label>
+                            <select id="tcodtra" name="tcodtra"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                                required>
+                                <option value="">-- Tipo de Transacción --</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-almacen-destino" class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Almacén Destino</label>
+                            <select id="talr" name="talr"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                <option value="">-- Destino Opcional --</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-cencos-destino" class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Cencos Destino</label>
+                            <select id="tcencos_dest" name="tcencos_dest"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                <option value="">-- Centro Costo --</option>
+                            </select>
+                        </div>
+
+                        <div class="xl:col-span-4">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Cta. Cte. (Cliente/Proveedor)</label>
+                            <select id="tprocli" name="tprocli"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                <option value="">Buscar código o nombre...</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-emidoc" class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Tipo Doc.</label>
+                            <select id="tdoc" name="tdoc"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                <option value="">-- Tipo --</option>
+                            </select>
+                        </div>
+
+                        <div class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Serie</label>
+                            <input type="text" id="tserie" name="tserie"
+                                class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs uppercase text-center"
+                                maxlength="4" placeholder="F001">
+                        </div>
+
+                        <div class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Número</label>
+                            <input type="number" id="tnumfac" name="tnumfac"
+                                class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs" min="0">
+                        </div>
+
+                        <div class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Fecha Doc.</label>
+                            <input type="date" id="tfecfac" name="tfecfac"
+                                class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                        </div>
+
+                        <div id="grupo-moneda" class="xl:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Moneda</label>
+                            <select id="tmon" name="tmon"
+                                class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                <option value="S/">S/ Soles</option>
+                                <option value="US$">US$ Dólares</option>
+                            </select>
+                        </div>
+
+                        <div id="grupo-tipo-cambio" class="xl:col-span-3" style="display: none;">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Tipo</label>
+                                    <select id="tcambio-tipo" name="tcambio-tipo"
+                                        class="w-full h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
+                                        <option value="compra" selected>Compra</option>
+                                        <option value="venta">Venta</option>
+                                        <option value="manual">Manual</option>
                                     </select>
                                 </div>
-
-                                <div id="grupo-tipo-cambio" class="w-full md:w-56 shrink-0" style="display: none;">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
-                                            <select id="tcambio-tipo" name="tcambio-tipo"
-                                                class="input-field w-full rounded-lg border-gray-300 shadow-sm">
-                                                <option value="compra" selected>Compra</option>
-                                                <option value="venta">Venta</option>
-                                                <option value="manual">Manual</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">T.C</label>
-                                            <input type="number" id="tcambio-valor" name="tcambio-valor"
-                                                class="input-field w-full rounded-lg border-gray-300 shadow-sm"
-                                                step="0.001" min="0">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="grupo-observacion" class="w-full flex-1">
-                                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Observación / Glosa</label>
-                                    <input type="text" id="tglosa" name="tglosa"
-                                        class="input-field w-full rounded-lg border-gray-300 shadow-sm" maxlength="250"
-                                        placeholder="Detalles adicionales del movimiento...">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">T.C</label>
+                                    <input type="number" id="tcambio-valor" name="tcambio-valor"
+                                        class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                                        step="0.001" min="0">
                                 </div>
                             </div>
+                        </div>
+
+                        <div id="grupo-observacion" class="xl:col-span-7">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Observación / Glosa</label>
+                            <input type="text" id="tglosa" name="tglosa"
+                                class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs" maxlength="250"
+                                placeholder="Detalles adicionales del movimiento...">
                         </div>
                     </div>
 
-                    <!-- Divisor horizontal natural -->
-                    <hr class="border-gray-200 mb-2">
-
-                    <!-- SECCIÓN 2: Ítems y Tabla -->
-                    <div class="p-3">
-
-                        <div id="formulario-agregar-item" class="mb-4 transition-all"
+                    <!-- 2. SECCIÓN DE DETALLE DE ÍTEMS -->
+                    <div class="space-y-4">
+                        <div id="formulario-agregar-item" class="transition-all"
                             style="display: none; opacity: 0; transform: translateY(-10px);">
-                            <div
-                                class="mov-row relative px-3 pb-3 pt-7 bg-white border border-gray-300 rounded-lg shadow-sm">
-
-                                <div
-                                    class="absolute top-2 right-3 text-[10px] font-bold text-gray-400 font-mono tracking-wide z-10">
-                                    <span class="text-blue-600">[ENTER]</span> o <span class="text-blue-600">[+]</span>
-                                    AÑADIR &nbsp;|&nbsp;
+                            <div class="flex items-start gap-1.5 min-w-0 w-full overflow-x-auto pb-2 relative px-3 pb-3 pt-7 bg-slate-50/50 border border-slate-200/60 rounded-xl shadow-2xs">
+                                <div class="absolute top-2 right-3 text-[10px] font-bold text-slate-400 font-mono tracking-wide z-10">
+                                    <span class="text-indigo-600">[ENTER]</span> o <span class="text-indigo-600">[+]</span> AÑADIR &nbsp;|&nbsp;
                                     <span class="text-amber-500">[C]</span> AMBIAR &nbsp;|&nbsp;
                                     <span class="text-red-500">[A]</span> NULAR
                                 </div>
 
-                                <div class="mov-field">
-                                    <label for="grid-tcencos"
-                                        class="mov-label text-gray-500 font-semibold">Cencos</label>
-                                    <select id="grid-tcencos" class="input-field mov-control text-xs px-1 rounded-md">
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tcencos" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Cencos</label>
+                                    <select id="grid-tcencos" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                                         <option value="">Buscar cencos...</option>
                                     </select>
-                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
-                                <div class="mov-field mov-field-product">
-                                    <label class="mov-label text-gray-500 font-medium">🔍 Producto</label>
-                                    <select id="grid-buscar-producto"
-                                        class="input-field mov-control text-xs border-gray-300 rounded-md">
+
+                                <div class="flex flex-col gap-1 min-w-[220px] flex-1 shrink-0">
+                                    <label for="grid-buscar-producto" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">🔍 Producto</label>
+                                    <select id="grid-buscar-producto" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                                         <option value="">Buscar producto...</option>
                                     </select>
-                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
 
                                 <input type="hidden" id="tcodproc" value="00">
@@ -258,558 +242,553 @@
                                 <input type="hidden" id="grid-tcodigo" value="">
                                 <input type="hidden" id="grid-tctabal" value="">
 
-                                <div class="mov-field">
-                                    <label for="grid-tlote" class="mov-label text-gray-500 font-semibold">Lote</label>
-                                    <select id="grid-tlote" class="input-field mov-control text-xs px-1 rounded-md">
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tlote" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Lote</label>
+                                    <select id="grid-tlote" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                                         <option value="">Buscar lote...</option>
                                     </select>
-                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
 
-                                <div class="mov-field">
-                                    <label for="grid-tunidad"
-                                        class="mov-label text-gray-500 font-semibold">Unidad</label>
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tunidad" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Unidad</label>
                                     <input type="text" id="grid-tunidad"
-                                        class="input-field mov-control text-[10px] bg-gray-50 border-dashed text-gray-600 text-center px-1 rounded-md"
+                                        class="w-full h-8 px-2 bg-slate-100 border border-slate-200 rounded-md text-[10px] text-slate-500 text-center shadow-2xs"
                                         readonly placeholder="-">
-                                    <span class="mov-helper mov-helper-spacer">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
-                                <div class="mov-field">
-                                    <label for="grid-tcantid"
-                                        class="mov-label text-gray-500 font-semibold">Cantidad</label>
+
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tcantid" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Cantidad</label>
                                     <input type="number" id="grid-tcantid"
-                                        class="input-field mov-control text-xs text-right font-bold text-blue-700 px-2 border-blue-400 focus:ring-blue-500 rounded-md"
+                                        class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right font-bold text-indigo-600 shadow-2xs"
                                         step="0.001" min="0" placeholder="0.00">
-                                    <span id="grid-res-cantidad" class="mov-helper text-gray-500/70">Cantidad: 0</span>
+                                    <span id="grid-res-cantidad" class="text-[10px] text-slate-400 mt-0.5 block truncate h-3.5 leading-3.5">Cantidad: 0</span>
                                 </div>
-                                <div class="mov-field">
-                                    <label for="grid-tpeso" class="mov-label text-gray-500 font-semibold">Peso</label>
+
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tpeso" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Peso</label>
                                     <input type="number" id="grid-tpeso"
-                                        class="input-field mov-control text-xs text-right px-2 rounded-md" step="0.001"
-                                        min="0" placeholder="0.00">
-                                    <span id="grid-res-peso" class="mov-helper text-gray-500/70">Peso: 0</span>
+                                        class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right shadow-2xs"
+                                        step="0.001" min="0" placeholder="0.00">
+                                    <span id="grid-res-peso" class="text-[10px] text-slate-400 mt-0.5 block truncate h-3.5 leading-3.5">Peso: 0</span>
                                 </div>
-                                <div class="mov-field">
-                                    <label for="grid-tpreuni"
-                                        class="mov-label text-gray-500 font-semibold">Precio</label>
+
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-tpreuni" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Precio</label>
                                     <input type="number" id="grid-tpreuni"
-                                        class="input-field mov-control text-xs text-right px-2 rounded-md" step="0.01"
-                                        min="0" value="0" placeholder="0.0000">
-                                    <span id="grid-res-precio" class="mov-helper text-gray-500/70">Precio: 0</span>
+                                        class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-right shadow-2xs"
+                                        step="0.01" min="0" value="0" placeholder="0.0000">
+                                    <span id="grid-res-precio" class="text-[10px] text-slate-400 mt-0.5 block truncate h-3.5 leading-3.5">Precio: 0</span>
                                 </div>
-                                <div class="mov-field">
-                                    <label for="grid-timport"
-                                        class="mov-label text-gray-500 font-semibold">Importe</label>
+
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-timport" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Importe</label>
                                     <input type="number" id="grid-timport"
-                                        class="input-field mov-control text-xs text-right px-2 bg-gray-50 border-dashed text-gray-600 rounded-md"
+                                        class="w-full h-8 px-2 bg-slate-100 border border-slate-200 rounded-md text-xs text-right text-slate-500 shadow-2xs"
                                         step="0.01" min="0" value="0" placeholder="0.00" readonly>
-                                    <span id="grid-res-importe" class="mov-helper text-gray-500/70">Importe: 0</span>
+                                    <span id="grid-res-importe" class="text-[10px] text-slate-400 mt-0.5 block truncate h-3.5 leading-3.5">Importe: 0</span>
                                 </div>
 
-                                <div class="mov-field">
-                                    <label for="grid-costoabc-display" class="mov-label text-gray-500 font-semibold">ABC
-                                        (F1)</label>
+                                <div class="flex flex-col gap-1 w-[120px] shrink-0 min-w-0">
+                                    <label for="grid-costoabc-display" class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">ABC (F1)</label>
                                     <input type="text" id="grid-costoabc-display"
-                                        class="input-field mov-control text-xs px-2 text-center font-mono rounded-md"
+                                        class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs text-center font-mono shadow-2xs"
                                         maxlength="8" placeholder="00000000">
-                                    <span id="grid-abc-ruta"
-                                        class="mov-helper text-gray-500/70 font-normal whitespace-nowrap overflow-hidden text-ellipsis block max-w-full"
-                                        title="Sin ruta seleccionada">Sin ruta seleccionada</span>
+                                    <span id="grid-abc-ruta" class="text-[10px] text-slate-400 mt-0.5 block truncate h-3.5 leading-3.5" title="Sin ruta seleccionada">Sin ruta seleccionada</span>
                                 </div>
 
-                                <div class="mov-field w-[34px] shrink-0">
-                                    <label class="mov-label text-transparent select-none">Act</label>
+                                <div class="flex flex-col gap-1 w-[34px] shrink-0 min-w-0">
+                                    <label class="block text-[10px] font-bold text-transparent mb-1 tracking-wider select-none">Act</label>
                                     <input type="text" id="sr-action-input"
-                                        class="input-field mov-control text-center font-bold text-blue-600 px-0 rounded-md border-gray-300 focus:border-blue-500 focus:bg-blue-50 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder-gray-400 w-full"
+                                        class="w-full h-8 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-center font-bold text-indigo-600 text-xs shadow-2xs focus:bg-indigo-50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                                         maxlength="1" placeholder="↵" autocomplete="off">
-                                    <span class="mov-helper text-transparent select-none">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
 
-                                <div class="mov-field w-[34px] shrink-0 hidden">
-                                    <label class="mov-label text-transparent select-none">Add</label>
+                                <div class="flex flex-col gap-1 w-[34px] shrink-0 min-w-0 hidden">
+                                    <label class="block text-[10px] font-bold text-transparent mb-1 tracking-wider select-none">Add</label>
                                     <button type="button" id="btn-agregar-item"
-                                        class="mov-action-btn text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md shadow-sm transition-all active:scale-95 h-[34px] w-full flex items-center justify-center">
+                                        class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md shadow-sm transition-all active:scale-95 h-8 w-full flex items-center justify-center">
                                         <i class="fa-solid fa-plus"></i>
                                     </button>
-                                    <span class="mov-helper text-transparent select-none">.</span>
+                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="border border-gray-200 rounded-lg overflow-hidden relative z-0">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left whitespace-nowrap">
-                                    <thead class="text-gray-600 text-xs uppercase font-bold sticky top-0 z-10">
-                                        <tr>
-                                            <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Código</th>
-                                            <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Descripción</th>
-                                            <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Cencos</th>
-                                            <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">ABC</th>
-                                            <th class="px-4 py-3 bg-gray-100 border-b border-gray-200">Lote</th>
-                                            <th class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Cant
-                                            </th>
-                                            <th class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Peso
-                                                KG</th>
-                                            <th id="col-precio"
-                                                class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">Precio
-                                            </th>
-                                            <th id="col-importe"
-                                                class="px-4 py-3 text-right bg-gray-100 border-b border-gray-200">
-                                                Importe</th>
-                                            <th class="px-4 py-3 text-center bg-gray-100 border-b border-gray-200">
-                                                Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="grid-tbody" class="divide-y divide-gray-100 bg-white">
-                                        <tr>
-                                            <td colspan="10" class="text-center text-gray-400 py-8">
-                                                <span class="block text-3xl mb-2">🛒</span>
-                                                Aún no has agregado ningún producto.
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot class="bg-blue-50/50 font-bold border-t-2 border-gray-200">
-                                        <tr>
-                                            <td colspan="5" class="px-4 py-3 text-right text-gray-600">TOTALES:</td>
-                                            <td class="px-4 py-3 text-right text-blue-700" id="total-cant">0.00</td>
-                                            <td class="px-4 py-3 text-right text-blue-700" id="total-peso">0.00</td>
-                                            <td id="col-precio-tot"></td>
-                                            <td class="px-4 py-3 text-right text-blue-700 text-base col-importe"
-                                                id="total-importe">0.00</td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 3: Acciones / Pie de formulario -->
-                    <div class="px-4 py-3 bg-white border-t border-gray-100 rounded-b-xl dark:bg-slate-900/20 dark:border-gray-800">
-                        <div class="flex flex-wrap gap-3 items-center">
-                            <!-- Limpiar -->
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + L</span>
-                                <button type="button" id="btn-nuevo"
-                                    class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-xs active:scale-[0.98]">
-                                    <i class="fa-solid fa-trash-can text-gray-400"></i> Limpiar
-                                </button>
-                            </div>
-
-                            <!-- Quitar -->
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + Q</span>
-                                <button type="button" id="btn-quitar-item"
-                                    class="btn-secondary bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-xs active:scale-[0.98]">
-                                    <i class="fa-solid fa-circle-minus text-red-500"></i> Quitar
-                                </button>
-                            </div>
-
-                            <!-- Formato de impresión -->
-                            <div id="box-formato-impresion" class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-xs dark:bg-slate-900/20 dark:border-gray-800 self-end mb-0.5">
-                                <span class="label-formato-impresion text-[11px] font-semibold text-gray-500 dark:text-gray-400">Impresión:</span>
-                                <div class="print-format-container">
-                                    <label class="print-format-option">
-                                        <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4" checked>
-                                        <span>A4</span>
-                                    </label>
-                                    <label class="print-format-option">
-                                        <input type="radio" name="formato-impresion" id="formato-impresion-80mm" value="80mm">
-                                        <span>Ticket 80mm</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Guardar / Vista Previa -->
-                            <div class="flex gap-3 items-end ml-auto">
-                                <div class="flex flex-col items-center gap-1">
-                                    <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + R</span>
-                                    <button type="button" id="btn-generar-reporte"
-                                        class="btn-secondary bg-amber-50 border border-amber-300 hover:bg-amber-100 hover:border-amber-400 text-amber-800 px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-xs active:scale-[0.98]">
-                                        <i class="fa-solid fa-file-pdf text-amber-500"></i> Vista previa
-                                    </button>
-                                </div>
-                                <div class="flex flex-col items-center gap-1">
-                                    <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider dark:text-gray-500">Alt + C</span>
-                                    <button type="button" id="btn-grabar"
-                                        class="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-7 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]">
-                                        <i class="fa-solid fa-floppy-disk"></i> Guardar
-                                    </button>
-                                </div>
-                            </div>
+                        <!-- Grilla de Detalle con Scroll Interno -->
+                        <div class="overflow-y-auto max-h-[280px] min-h-[150px] bg-white border border-slate-200 rounded-xl shadow-2xs m-1">
+                            <table class="w-full border-collapse text-xs text-left whitespace-nowrap">
+                                <thead class="bg-blue-700 text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-4 py-2.5 border-r border-slate-100/10">Código</th>
+                                        <th class="px-4 py-2.5 border-r border-slate-100/10">Descripción</th>
+                                        <th class="px-4 py-2.5 border-r border-slate-100/10">Cencos</th>
+                                        <th class="px-4 py-2.5 border-r border-slate-100/10">ABC</th>
+                                        <th class="px-4 py-2.5 border-r border-slate-100/10">Lote</th>
+                                        <th class="px-4 py-2.5 text-right border-r border-slate-100/10">Cant</th>
+                                        <th class="px-4 py-2.5 text-right border-r border-slate-100/10">Peso KG</th>
+                                        <th id="col-precio" class="px-4 py-2.5 text-right border-r border-slate-100/10">Precio</th>
+                                        <th id="col-importe" class="px-4 py-2.5 text-right border-r border-slate-100/10">Importe</th>
+                                        <th class="px-4 py-2.5 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grid-tbody" class="divide-y divide-slate-100 bg-white">
+                                    <tr>
+                                        <td colspan="10" class="text-center text-slate-400 py-8">
+                                            <span class="block text-3xl mb-2">🛒</span>
+                                            Aún no has agregado ningún producto.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-slate-50/80 font-bold border-t-2 border-slate-200 text-xs">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-3 text-right text-slate-500">TOTALES:</td>
+                                        <td class="px-4 py-3 text-right text-indigo-600 font-extrabold text-sm" id="total-cant">0.00</td>
+                                        <td class="px-4 py-3 text-right text-indigo-600 font-extrabold text-sm" id="total-peso">0.00</td>
+                                        <td id="col-precio-tot"></td>
+                                        <td class="px-4 py-3 text-right text-indigo-600 font-extrabold text-sm col-importe" id="total-importe">0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     </div>
 
                 </div>
+
+                <!-- 3. PIE DE PÁGINA: ESTADO, TOTALES Y BOTONES -->
+                <div class="bg-slate-50/80 border-t border-slate-200/80 p-4 flex flex-wrap gap-4 items-center justify-between px-6 rounded-b-2xl">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <!-- Limpiar -->
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Alt + L</span>
+                            <button type="button" id="btn-nuevo"
+                                class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center transition-all shadow-2xs gap-1.5 active:scale-[0.98]">
+                                <i class="fa-solid fa-trash-can text-slate-400"></i> Limpiar
+                            </button>
+                        </div>
+
+                        <!-- Quitar -->
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Alt + Q</span>
+                            <button type="button" id="btn-quitar-item"
+                                class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center transition-all shadow-2xs gap-1.5 active:scale-[0.98]">
+                                <i class="fa-solid fa-circle-minus text-red-500"></i> Quitar
+                            </button>
+                        </div>
+
+                        <!-- Formato de impresión -->
+                        <div id="box-formato-impresion" class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-2xs self-end mb-0.5">
+                            <span class="label-formato-impresion text-[11px] font-semibold text-slate-500">Impresión:</span>
+                            <div class="print-format-container">
+                                <label class="print-format-option">
+                                    <input type="radio" name="formato-impresion" id="formato-impresion-a4" value="a4" checked>
+                                    <span>A4</span>
+                                </label>
+                                <label class="print-format-option">
+                                    <input type="radio" name="formato-impresion" id="formato-impresion-80mm" value="80mm">
+                                    <span>Ticket 80mm</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Guardar / Vista Previa -->
+                    <div class="flex gap-3 items-end">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Alt + R</span>
+                            <button type="button" id="btn-generar-reporte"
+                                class="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-semibold rounded-lg flex items-center justify-center transition-all shadow-2xs gap-1.5 active:scale-[0.98]">
+                                <i class="fa-solid fa-file-pdf text-amber-500"></i> Vista previa
+                            </button>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-mono uppercase tracking-wider">Alt + C</span>
+                            <button type="button" id="btn-grabar"
+                                class="px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold tracking-widest uppercase rounded-lg flex items-center justify-center transition-all shadow-md active:scale-[0.98] gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </form>
         </main>
     </div><!-- /#tab-panel-registro -->
 
     <!-- Salidas Rápidas → ver dashboard-salidas-rapidas.html -->
     <!-- Modal/Popup personalizado -->
-    <div id="modal-popup" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-icon" id="modal-icon">⚠️</span>
-                <h3 class="text-lg font-bold text-gray-800" id="modal-title">Advertencia</h3>
+    <div id="modal-popup" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-[90%] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <span class="text-xl" id="modal-icon">⚠️</span>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase" id="modal-title">Advertencia</h3>
             </div>
-            <div class="modal-body" id="modal-message">
+            <div class="p-6 text-xs text-slate-600 leading-relaxed font-medium bg-white" id="modal-message">
                 Mensaje del modal
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-primary" onclick="cerrarModal()">Aceptar</button>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-end">
+                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.98] shadow-xs" onclick="cerrarModal()">Aceptar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal de Importar / Exportar detalle -->
-    <div id="modal-import-export" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 680px;">
-            <div class="modal-header">
-                <span class="modal-icon">⇅</span>
-                <h3 class="text-lg font-bold text-gray-800">Importar / Exportar Ítems</h3>
-                <div style="margin-left: auto;">
-                    <button type="button" id="btn-cerrar-modal-import-export"
-                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="modal-import-export" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-[680px] w-[95%] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">⇅</span>
+                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Importar / Exportar Ítems</h3>
                 </div>
+                <button type="button" id="btn-cerrar-modal-import-export"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none focus:outline-none">&times;</button>
             </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <div class="text-sm text-gray-600">
-                    Formato TXT con separador <strong>|</strong>. Cada línea representa un ítem.
+            <div class="p-6 space-y-4 bg-white text-xs">
+                <div class="text-slate-600 font-medium">
+                    Formato TXT con separador <strong class="text-indigo-600 font-bold">|</strong>. Cada línea representa un ítem.
                 </div>
-                <textarea id="txt-import-export" class="input-field w-full text-xs" rows="10"
+                <textarea id="txt-import-export" class="w-full p-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs font-mono" rows="10"
                     placeholder="tcodigo|tdescri|tcantid|tpreuni|tpeso|tnumlot|tcencos|timport|tctabal|tcodproc|tcodsubproc|tcodacti|tcodtarea"></textarea>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <input type="file" id="file-import-items" accept=".txt,text/plain" class="text-xs">
-                    <span class="text-[11px] text-gray-500">Puede pegar el contenido o seleccionar un archivo
-                        TXT.</span>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <input type="file" id="file-import-items" accept=".txt,text/plain" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                    <span class="text-[11px] text-slate-400">Puede pegar el contenido o seleccionar un archivo TXT.</span>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
-                <div class="flex gap-2 flex-wrap">
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-between flex-wrap gap-2.5">
+                <div class="flex gap-2">
                     <button type="button" id="btn-importar-items"
-                        class="modal-btn bg-green-600 text-white hover:bg-green-700">Importar</button>
+                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Importar</button>
                     <button type="button" id="btn-exportar-items"
-                        class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Exportar</button>
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Exportar</button>
                     <button type="button" id="btn-descargar-formato"
-                        class="modal-btn bg-indigo-600 text-white hover:bg-indigo-700">Descargar formato</button>
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Descargar formato</button>
                 </div>
                 <button type="button" id="btn-cancelar-import-export"
-                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cerrar</button>
+                    class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal de lista de movimientos -->
-    <div id="modal-lista-movimientos" class="modal-overlay" style="display: none;">
-        <div class="modal-content modal-list">
-            <div class="modal-header">
-                <span class="modal-icon">📋</span>
-                <h3 class="text-lg font-bold text-gray-800">Movimientos de Almacén</h3>
-                <div style="margin-left: auto;">
-                    <button onclick="cerrarModalMovimientos()"
-                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="modal-lista-movimientos" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-[95%] w-[1200px] max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">📋</span>
+                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Movimientos de Almacén</h3>
                 </div>
+                <button onclick="cerrarModalMovimientos()"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none focus:outline-none">&times;</button>
             </div>
-            <div class="modal-list-body">
-                <table class="table-movimientos">
-                    <thead>
+            <div class="p-6 overflow-auto bg-white flex-1 max-h-[60vh]">
+                <table class="w-full border-collapse border border-slate-200 text-xs text-left">
+                    <thead class="bg-slate-50 text-slate-700 uppercase font-bold sticky top-0 z-10 border-b border-slate-200">
                         <tr>
-                            <th>#Reg</th>
-                            <th>Fecha</th>
-                            <th>Transacción</th>
-                            <th>Alm. Origen</th>
-                            <th>Alm. Destino</th>
-                            <th>Cliente/Proveedor</th>
-                            <th>Moneda</th>
-                            <th>Libro</th>
-                            <th>Tipo Doc</th>
-                            <th>Serie</th>
-                            <th>Número</th>
-                            <th>Fecha Doc</th>
-                            <th>Cencos Dest.</th>
-                            <th>Ord. Compra</th>
-                            <th>Motivo Traslado</th>
-                            <th>Observación</th>
-                            <th>Costo Mín.</th>
-                            <th>Peso Total</th>
-                            <th>Importe</th>
-                            <th>Conductor</th>
-                            <th>Placa</th>
-                            <th>Usuario</th>
-                            <th>Fecha Reg.</th>
-                            <th>Hora Reg.</th>
+                            <th class="px-3 py-2 border border-slate-200">#Reg</th>
+                            <th class="px-3 py-2 border border-slate-200">Fecha</th>
+                            <th class="px-3 py-2 border border-slate-200">Transacción</th>
+                            <th class="px-3 py-2 border border-slate-200">Alm. Origen</th>
+                            <th class="px-3 py-2 border border-slate-200">Alm. Destino</th>
+                            <th class="px-3 py-2 border border-slate-200">Cliente/Proveedor</th>
+                            <th class="px-3 py-2 border border-slate-200">Moneda</th>
+                            <th class="px-3 py-2 border border-slate-200">Libro</th>
+                            <th class="px-3 py-2 border border-slate-200">Tipo Doc</th>
+                            <th class="px-3 py-2 border border-slate-200">Serie</th>
+                            <th class="px-3 py-2 border border-slate-200">Número</th>
+                            <th class="px-3 py-2 border border-slate-200">Fecha Doc</th>
+                            <th class="px-3 py-2 border border-slate-200">Cencos Dest.</th>
+                            <th class="px-3 py-2 border border-slate-200">Ord. Compra</th>
+                            <th class="px-3 py-2 border border-slate-200">Motivo Traslado</th>
+                            <th class="px-3 py-2 border border-slate-200">Observación</th>
+                            <th class="px-3 py-2 border border-slate-200">Costo Mín.</th>
+                            <th class="px-3 py-2 border border-slate-200">Peso Total</th>
+                            <th class="px-3 py-2 border border-slate-200">Importe</th>
+                            <th class="px-3 py-2 border border-slate-200">Conductor</th>
+                            <th class="px-3 py-2 border border-slate-200">Placa</th>
+                            <th class="px-3 py-2 border border-slate-200">Usuario</th>
+                            <th class="px-3 py-2 border border-slate-200">Fecha Reg.</th>
+                            <th class="px-3 py-2 border border-slate-200">Hora Reg.</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-movimientos-body">
+                    <tbody id="tabla-movimientos-body" class="divide-y divide-slate-200">
                         <tr>
-                            <td colspan="24" class="text-center text-gray-400 py-8">Cargando...</td>
+                            <td colspan="24" class="text-center text-slate-400 py-8">Cargando...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-end">
+                <button class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs"
                     onclick="cerrarModalMovimientos()">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal de opciones de reporte Kardex -->
-    <div id="modal-reporte-kardex" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 760px;">
-            <div class="modal-header">
-                <span class="modal-icon">📊</span>
-                <h3 class="text-lg font-bold text-gray-800">Kardex Valorado - Opciones</h3>
-                <div style="margin-left: auto;">
-                    <button type="button" id="btn-cerrar-modal-reporte"
-                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="modal-reporte-kardex" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-[760px] w-[95%] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">📊</span>
+                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Kardex Valorado - Opciones</h3>
                 </div>
+                <button type="button" id="btn-cerrar-modal-reporte"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none focus:outline-none">&times;</button>
             </div>
-            <div class="modal-body" style="display: grid; gap: 1rem;">
-                <div class="border border-gray-200 rounded-lg p-3">
-                    <label class="block text-xs text-gray-500 mb-1 font-semibold">Zona</label>
+            <div class="p-6 space-y-4 bg-white max-h-[70vh] overflow-y-auto">
+                <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/30">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Zona</label>
                     <input type="text" id="rep-zona"
-                        class="input-field w-full rounded-md border-gray-300 shadow-sm bg-gray-100" readonly>
+                        class="w-full h-9 px-3 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-600 shadow-2xs font-semibold" readonly>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg p-3">
-                    <div class="text-sm font-semibold text-gray-700 mb-2">Rango de Items</div>
-                    <div class="flex flex-wrap gap-4 items-center mb-3">
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="radio" name="rep-modo-items" id="rep-items-todo" value="todo" checked>
+                <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/30">
+                    <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Rango de Items</div>
+                    <div class="flex flex-wrap gap-4 items-center mb-3.5">
+                        <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                            <input type="radio" name="rep-modo-items" id="rep-items-todo" value="todo" checked class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                             Todo
                         </label>
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="radio" name="rep-modo-items" id="rep-items-codigo" value="codigo">
-                            Escoger Codigo
+                        <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                            <input type="radio" name="rep-modo-items" id="rep-items-codigo" value="codigo" class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
+                            Escoger Código
                         </label>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="rep-rango-codigos"
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="rep-rango-codigos"
                         style="opacity: 0.6; pointer-events: none;">
                         <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-semibold">Codigo Desde</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Código Desde</label>
                             <div class="flex gap-2">
                                 <input type="text" id="rep-codigo-desde"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
                                     placeholder="P010001" disabled>
                                 <button type="button" id="btn-rep-item-desde"
-                                    class="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-sm"
+                                    class="px-3.5 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-bold transition-all active:scale-95"
                                     disabled>🔎</button>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-semibold">Hasta</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
                             <div class="flex gap-2">
                                 <input type="text" id="rep-codigo-hasta"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
                                     placeholder="P999999" disabled>
                                 <button type="button" id="btn-rep-item-hasta"
-                                    class="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-sm"
+                                    class="px-3.5 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-bold transition-all active:scale-95"
                                     disabled>🔎</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div class="border border-gray-200 rounded-lg p-3">
-                        <div class="text-sm font-semibold text-gray-700 mb-2">Rango de Fechas</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/30">
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Rango de Fechas</div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1 font-semibold">Desde</label>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
                                 <input type="date" id="rep-fecha-desde"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1 font-semibold">Hasta</label>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
                                 <input type="date" id="rep-fecha-hasta"
-                                    class="input-field w-full rounded-md border-gray-300 shadow-sm">
+                                    class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs">
                             </div>
                         </div>
                     </div>
 
-                    <div class="border border-gray-200 rounded-lg p-3">
-                        <div class="text-sm font-semibold text-gray-700 mb-2">Stock con</div>
-                        <div class="flex flex-wrap gap-4 items-center mb-3">
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="radio" name="rep-stock-con" value="valor" checked>
+                    <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/30">
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Stock con</div>
+                        <div class="flex flex-wrap gap-3.5 items-center mb-3.5">
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                <input type="radio" name="rep-stock-con" value="valor" checked class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 Valor
                             </label>
-
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="radio" name="rep-stock-con" value="cantidad">
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                <input type="radio" name="rep-stock-con" value="cantidad" class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 Cantidad
                             </label>
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="radio" name="rep-stock-con" value="negativos">
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                <input type="radio" name="rep-stock-con" value="negativos" class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 Negativos
                             </label>
                         </div>
 
-                        <div class="text-sm font-semibold text-gray-700 mb-2">Tipo</div>
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tipo</div>
                         <div class="flex flex-wrap gap-4 items-center">
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="radio" name="rep-tipo" value="detalle" checked>
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                <input type="radio" name="rep-tipo" value="detalle" checked class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 Detalle
                             </label>
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="radio" name="rep-tipo" value="resumen">
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                <input type="radio" name="rep-tipo" value="resumen" class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 Resumen
                             </label>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
-                <span class="text-xs text-gray-500">Orden PDF: Fecha, Codigo, Nro.Doc, Cli/Pro, Descripcion,
-                    Unidades(Entrada/Salida/Stock), Valor(Entrada/Salida/Stock), Va.Unit.</span>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-between flex-wrap gap-2.5">
+                <span class="text-[10px] text-slate-400 font-medium">Orden PDF: Fecha, Código, Nro.Doc, Cli/Pro, Descripción, Unidades, Valor, Va.Unit.</span>
                 <div class="flex gap-2">
                     <button type="button" id="btn-cancelar-reporte"
-                        class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cancelar</button>
+                        class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Cancelar</button>
                     <button type="button" id="btn-procesar-reporte"
-                        class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Generar PDF</button>
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.98] shadow-xs">Generar PDF</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Modal consulta al maestro de item -->
-    <div id="modal-reporte-items" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 860px;">
-            <div class="modal-header">
-                <span class="modal-icon">🔎</span>
-                <h3 class="text-lg font-bold text-gray-800">Consulta al Maestro de Item</h3>
-                <div style="margin-left: auto;">
-                    <button type="button" id="btn-cerrar-modal-reporte-items"
-                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="modal-reporte-items" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-[860px] w-[95%] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">🔎</span>
+                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Consulta al Maestro de Item</h3>
                 </div>
+                <button type="button" id="btn-cerrar-modal-reporte-items"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none focus:outline-none">&times;</button>
             </div>
-            <div class="modal-body" style="display: grid; gap: 0.75rem;">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div class="p-6 space-y-4 bg-white">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     <input type="text" id="rep-item-buscar-codigo"
-                        class="input-field w-full rounded-md border-gray-300 shadow-sm"
-                        placeholder="Buscar por codigo...">
+                        class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                        placeholder="Buscar por código...">
                     <input type="text" id="rep-item-buscar-descripcion"
-                        class="input-field w-full rounded-md border-gray-300 shadow-sm"
-                        placeholder="Buscar por descripcion...">
+                        class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
+                        placeholder="Buscar por descripción...">
                 </div>
-                <div class="border border-gray-200 rounded-lg overflow-hidden max-h-[360px] overflow-y-auto">
-                    <table class="table-movimientos w-full text-sm">
-                        <thead>
+                <div class="border border-slate-200 rounded-xl overflow-hidden max-h-[360px] overflow-y-auto shadow-2xs bg-white">
+                    <table class="w-full border-collapse border border-slate-200 text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-700 uppercase font-bold sticky top-0 z-10 border-b border-slate-200">
                             <tr>
-                                <th>Codigo</th>
-                                <th>Descripcion</th>
-                                <th>Unidad</th>
+                                <th class="px-4 py-2 border border-slate-200">Código</th>
+                                <th class="px-4 py-2 border border-slate-200">Descripción</th>
+                                <th class="px-4 py-2 border border-slate-200">Unidad</th>
                             </tr>
                         </thead>
-                        <tbody id="rep-items-body">
+                        <tbody id="rep-items-body" class="divide-y divide-slate-200 bg-white">
                             <tr>
-                                <td colspan="3" class="text-center text-gray-400 py-6">Cargando items...</td>
+                                <td colspan="3" class="text-center text-slate-400 py-6">Cargando items...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-end">
                 <button type="button" id="btn-cancelar-modal-reporte-items"
-                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cerrar</button>
+                    class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- Vista de previsualizacion PDF Kardex -->
-    <section id="vista-reporte-kardex-preview" class="reporte-preview-page"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
-        <div
-            style="position:relative; width:90%; height:90%; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.3); overflow:hidden; display:flex; flex-direction:column;">
-            <div
-                style="background:#374151; color:white; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; min-height:50px; border-radius:12px 12px 0 0;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="fas fa-file-pdf" style="font-size:20px; color:#dc2626;"></i>
-                    <span id="titulo-reporte-preview" style="font-weight:600; font-size:14px;">Visualizador de PDF -
-                        Reporte Kardex Valorado</span>
+    <section id="vista-reporte-kardex-preview" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-[99999] transition-opacity duration-200" style="display: none;">
+        <div class="relative w-[92%] h-[92%] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="bg-slate-800 text-white px-6 py-3 flex items-center justify-between min-h-[56px] border-b border-slate-700">
+                <div class="flex items-center gap-2.5">
+                    <i class="fas fa-file-pdf text-xl text-red-500"></i>
+                    <span id="titulo-reporte-preview" class="font-bold text-xs uppercase tracking-wider">Visualizador de PDF - Reporte Kardex Valorado</span>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button type="button" id="btn-volver-reporte-preview" title="Cerrar"
-                        style="background:#dc2626; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:500; transition:all 0.2s;"
-                        onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
-                        <i class="fas fa-times"></i> Cerrar
-                    </button>
-                </div>
+                <button type="button" id="btn-volver-reporte-preview" title="Cerrar"
+                    class="px-4 py-2 bg-red-650 hover:bg-red-750 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
             </div>
             <iframe id="iframe-reporte-kardex-preview" src="" title="Vista previa Kardex PDF"
-                style="width:100%; flex:1; border:none; background:white;"></iframe>
+                class="w-full flex-1 border-0 bg-white"></iframe>
         </div>
     </section>
 
     <!-- Modal Costo ABC -->
-    <div id="modal-abc" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 860px;">
-            <div class="modal-header">
-                <span class="modal-icon">🔢</span>
-                <h3 class="text-lg font-bold text-gray-800">Costo ABC</h3>
-                <div style="margin-left: auto;">
-                    <button type="button" id="btn-cerrar-modal-abc"
-                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="modal-abc" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-[1000] transition-opacity duration-200" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-[860px] w-[95%] overflow-hidden flex flex-col transform transition-all duration-200">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">🔢</span>
+                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Costo ABC</h3>
                 </div>
+                <button type="button" id="btn-cerrar-modal-abc"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none focus:outline-none">&times;</button>
             </div>
-            <div class="modal-body" style="display: grid; gap: 0.75rem;">
-                <div class="border border-gray-200 rounded-lg p-3 flex items-center gap-2 flex-wrap font-mono text-sm">
-                    <span id="abc-chip-proc" class="px-2 py-1 rounded bg-gray-100">00</span>
-                    <span class="text-gray-400">-</span>
-                    <span id="abc-chip-subp" class="px-2 py-1 rounded bg-gray-100">00</span>
-                    <span class="text-gray-400">-</span>
-                    <span id="abc-chip-acti" class="px-2 py-1 rounded bg-gray-100">00</span>
-                    <span class="text-gray-400">-</span>
-                    <span id="abc-chip-tarea" class="px-2 py-1 rounded bg-gray-100">00</span>
-                    <span class="text-gray-500">=</span>
+            <div class="p-6 space-y-4 bg-white">
+                <div class="border border-slate-200 rounded-xl p-3.5 flex items-center gap-2.5 flex-wrap font-mono text-xs bg-slate-50/50">
+                    <span id="abc-chip-proc" class="px-2 py-1 rounded bg-white border border-slate-200 shadow-2xs text-slate-600">00</span>
+                    <span class="text-slate-400">-</span>
+                    <span id="abc-chip-subp" class="px-2 py-1 rounded bg-white border border-slate-200 shadow-2xs text-slate-600">00</span>
+                    <span class="text-slate-400">-</span>
+                    <span id="abc-chip-acti" class="px-2 py-1 rounded bg-white border border-slate-200 shadow-2xs text-slate-600">00</span>
+                    <span class="text-slate-400">-</span>
+                    <span id="abc-chip-tarea" class="px-2 py-1 rounded bg-white border border-slate-200 shadow-2xs text-slate-600">00</span>
+                    <span class="text-slate-400">=</span>
                     <span id="abc-full-code"
-                        class="px-2 py-1 rounded bg-blue-50 text-blue-700 font-bold">00000000</span>
+                        class="px-2.5 py-1 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold">00000000</span>
                 </div>
 
-                <div class="flex items-center gap-2 text-sm">
+                <div class="flex items-center gap-2.5 text-xs">
                     <span id="abc-etapa"
-                        class="px-2 py-1 rounded-full bg-blue-50 text-blue-600 font-semibold">Proceso</span>
-                    <span id="abc-etapa-desc" class="text-gray-500">Seleccione un proceso</span>
+                        class="px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold">Proceso</span>
+                    <span id="abc-etapa-desc" class="text-slate-600 font-semibold">Seleccione un proceso</span>
                 </div>
 
-                <div class="text-sm">
-                    <span class="text-gray-400">Guia:</span>
-                    <span id="abc-ruta" class="text-gray-500 font-medium">Sin ruta seleccionada</span>
+                <div class="text-xs text-slate-600 font-medium">
+                    <span class="text-slate-400">Guía:</span>
+                    <span id="abc-ruta" class="text-slate-700 font-semibold">Sin ruta seleccionada</span>
                 </div>
 
-                <input type="text" id="abc-buscar" class="input-field w-full rounded-md border-gray-300 shadow-sm"
+                <input type="text" id="abc-buscar" class="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200 shadow-2xs"
                     placeholder="Filtrar...">
 
-                <div class="border border-gray-200 rounded-lg overflow-hidden max-h-[320px] overflow-y-auto">
-                    <table class="table-movimientos w-full text-sm">
-                        <thead>
+                <div class="border border-slate-200 rounded-xl overflow-hidden max-h-[320px] overflow-y-auto shadow-2xs bg-white">
+                    <table class="w-full border-collapse border border-slate-200 text-xs text-left">
+                        <thead class="bg-blue-600 text-white uppercase font-bold sticky top-0 z-10 border-b border-slate-200">
                             <tr>
-                                <th style="width: 90px;">Cod.</th>
-                                <th>Descripcion</th>
+                                <th class="px-4 py-2 border border-slate-200" style="width: 90px;">Cod.</th>
+                                <th class="px-4 py-2 border border-slate-200">Descripción</th>
                             </tr>
                         </thead>
-                        <tbody id="abc-lista-body">
+                        <tbody id="abc-lista-body" class="divide-y divide-slate-200 bg-white">
                             <tr>
-                                <td colspan="2" class="text-center text-gray-400 py-6">Cargando...</td>
+                                <td colspan="2" class="text-center text-slate-400 py-6">Cargando...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-end gap-2.5">
                 <button type="button" id="btn-abc-volver"
-                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Volver</button>
+                    class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Volver</button>
                 <button type="button" id="btn-cancelar-modal-abc"
-                    class="modal-btn bg-gray-200 text-gray-700 hover:bg-gray-300">Cancelar</button>
+                    class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] shadow-2xs">Cancelar</button>
                 <button type="button" id="btn-aceptar-modal-abc"
-                    class="modal-btn bg-blue-600 text-white hover:bg-blue-700">Aceptar</button>
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.98] shadow-xs">Aceptar</button>
             </div>
         </div>
     </div>
 
     <script>
+        // Stub de SearchableSelect para evitar errores en el controlador
+        class SearchableSelect {
+            constructor(selectElement, options = {}) {
+                this.originalSelect = selectElement;
+                this.displayField = document.createElement('div');
+                this.searchInput = document.createElement('input');
+                selectElement.searchableSelectInstance = this;
+            }
+            loadOptions() {}
+            filterOptions() {}
+            open() {}
+            close() {}
+            updateDisplayText() {}
+        }
+        function initSearchableSelects() {}
+
         // Prevenir submit accidental del formulario (ej: Enter en campos de fecha en algunos navegadores)
         document.getElementById('form-movimiento').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -936,7 +915,6 @@
     <script src="../js/core/Service.js"></script>
     <script src="../js/core/Store.js"></script>
     <script src="../js/core/Component.js"></script>
-    <script src="../js/components/SearchableSelect.js"></script>
     <script src="../js/utils/FormNavigation.js"></script>
     <script src="../js/modules/movimiento-almacen/movimiento-almacen.service.js"></script>
     <script src="../js/modules/movimiento-almacen/movimiento-almacen.controller.js"></script>

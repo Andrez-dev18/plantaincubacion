@@ -46,7 +46,7 @@ class MovimientoAlmacenController extends Component {
     _setFieldValue(id, value) {
         const el = document.getElementById(id);
         if (!el) return false;
-        el.value = value ?? '';
+        el.value = (value === null || value === undefined || value === 'null') ? '' : value;
         return true;
     }
 
@@ -787,13 +787,15 @@ class MovimientoAlmacenController extends Component {
 
             await this._seleccionarProducto(data);
 
-            // Restablecer el select para poder seleccionar el mismo producto de nuevo
-            setTimeout(() => {
-                e.target.value = '';
-                if (e.target.searchableSelectInstance) {
+            // Solo restablecemos el valor al instante si es la instancia de SearchableSelect real,
+            // para evitar limpiar la selección visible en el select nativo de Tailwind.
+            // El select nativo se reiniciará automáticamente al agregar el ítem mediante _limpiarCamposGrid().
+            if (e.target.searchableSelectInstance && typeof e.target.searchableSelectInstance.destroy === 'function') {
+                setTimeout(() => {
+                    e.target.value = '';
                     e.target.searchableSelectInstance.loadOptions();
-                }
-            }, 100);
+                }, 100);
+            }
         });
 
         document.getElementById('grid-tlote')?.addEventListener('change', async e => {
