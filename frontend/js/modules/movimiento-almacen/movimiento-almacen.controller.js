@@ -685,10 +685,70 @@ class MovimientoAlmacenController extends Component {
 
         // Cambio de transacción → aplicar flags de coal
         document.getElementById('tcodtra').addEventListener('change', e => {
-            this._aplicarFlagsTransaccion(e.target.value);
+            const val = e.target.value;
+            this._aplicarFlagsTransaccion(val);
             // Mostrar sección de ítems automáticamente al seleccionar una transacción
-            if (e.target.value) {
+            if (val) {
                 this._mostrarSeccionItems({ enfocarProducto: false, abrirSelector: false });
+            }
+
+            // [NUEVO] Autocompletado especial para la transacción S003
+            if (val === 'S003') {
+                // 1. Autocompletar Cliente/Proveedor con Granja Rinconada del Sur S.A. (RUC 20419158462)
+                const tprocli = document.getElementById('tprocli');
+                if (tprocli) {
+                    let optionExists = false;
+                    for (let i = 0; i < tprocli.options.length; i++) {
+                        if (tprocli.options[i].value === '20419158462') {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists) {
+                        const opt = document.createElement('option');
+                        opt.value = '20419158462';
+                        opt.textContent = '20419158462 - GRANJA RINCONADA DEL SUR S.A.';
+                        opt.setAttribute('data-display', '20419158462 - GRANJA RINCONADA DEL SUR S.A.');
+                        tprocli.appendChild(opt);
+                    }
+                    tprocli.value = '20419158462';
+                    if (tprocli.searchableSelectInstance) {
+                        tprocli.searchableSelectInstance.updateDisplayText();
+                    }
+                    tprocli.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // 2. Autocompletar Tipo de Documento con GI - GUIA INTERNA
+                const tdoc = document.getElementById('tdoc');
+                if (tdoc) {
+                    let optionExists = false;
+                    for (let i = 0; i < tdoc.options.length; i++) {
+                        if (tdoc.options[i].value === 'GI') {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists) {
+                        const opt = document.createElement('option');
+                        opt.value = 'GI';
+                        opt.textContent = 'GI - GUIA INTERNA';
+                        tdoc.appendChild(opt);
+                    }
+                    tdoc.value = 'GI';
+                    if (tdoc.searchableSelectInstance) {
+                        tdoc.searchableSelectInstance.updateDisplayText();
+                    }
+                    tdoc.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // 3. Enfocar el input de Serie (tserie)
+                setTimeout(() => {
+                    const tserie = document.getElementById('tserie');
+                    if (tserie) {
+                        tserie.focus();
+                        if (typeof tserie.select === 'function') tserie.select();
+                    }
+                }, 100);
             }
         });
 
@@ -699,10 +759,12 @@ class MovimientoAlmacenController extends Component {
 
             const esValida = await this._validarFecha(fecha);
             if (!esValida) {
-                mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌');
-                setTimeout(() => {
-                    document.getElementById('tfectra').focus();
-                }, 100);
+                mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌')
+                .then(() => {
+                    setTimeout(() => {
+                        document.getElementById('tfectra').focus();
+                    }, 50);
+                });
             }
         });
 
@@ -723,8 +785,10 @@ class MovimientoAlmacenController extends Component {
 
                 const esValida = await this._validarFecha(fecha);
                 if (!esValida) {
-                    mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌');
-                    setTimeout(() => e.target.focus(), 100);
+                    mostrarModal('Fecha Inválida', 'La fecha ingresada no corresponde al año fiscal o no es válida. Por favor, coloque una fecha correcta.', '❌')
+                    .then(() => {
+                        setTimeout(() => e.target.focus(), 50);
+                    });
                 } else {
                     if (this.formNavigation) {
                         this.formNavigation.moveToNextField(e.target);

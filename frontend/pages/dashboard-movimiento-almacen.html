@@ -430,7 +430,7 @@
                 Mensaje del modal
             </div>
             <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200/60 flex items-center justify-end">
-                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.98] shadow-xs" onclick="cerrarModal()">Aceptar</button>
+                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.98] shadow-xs" onclick="if (window._resolveModal) { window._resolveModal(); } else { cerrarModal(); }">Aceptar</button>
             </div>
         </div>
     </div>
@@ -802,38 +802,63 @@
 
         // Funciones globales para el modal
         function mostrarModal(titulo, mensaje, icono = '⚠️') {
-            if (window.SwalHelpers?.showInfo) {
-                const iconMap = {
-                    '✅': 'success',
-                    '⚠️': 'warning',
-                    '❌': 'error',
-                    'ℹ️': 'info'
-                };
-                const swalIcon = iconMap[icono] || 'info';
-                window.SwalHelpers.showInfo(mensaje, titulo, swalIcon);
-                return;
-            }
+            const lastFocused = document.activeElement;
 
-            const modal = document.getElementById('modal-popup');
-            const modalTitle = document.getElementById('modal-title');
-            const modalMessage = document.getElementById('modal-message');
-            const modalIcon = document.getElementById('modal-icon');
-
-            modalTitle.textContent = titulo;
-            modalMessage.textContent = mensaje;
-            modalIcon.textContent = icono;
-
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('show'), 10);
-
-            // Cerrar con Escape
-            const handleEscape = (e) => {
-                if (e.key === 'Escape') {
-                    cerrarModal();
-                    document.removeEventListener('keydown', handleEscape);
+            return new Promise((resolve) => {
+                if (window.SwalHelpers?.showInfo) {
+                    const iconMap = {
+                        '✅': 'success',
+                        '⚠️': 'warning',
+                        '❌': 'error',
+                        'ℹ️': 'info'
+                    };
+                    const swalIcon = iconMap[icono] || 'info';
+                    window.SwalHelpers.showInfo(mensaje, titulo, swalIcon).then((result) => {
+                        if (lastFocused && typeof lastFocused.focus === 'function') {
+                            lastFocused.focus();
+                        }
+                        resolve(result);
+                    });
+                    return;
                 }
-            };
-            document.addEventListener('keydown', handleEscape);
+
+                const modal = document.getElementById('modal-popup');
+                const modalTitle = document.getElementById('modal-title');
+                const modalMessage = document.getElementById('modal-message');
+                const modalIcon = document.getElementById('modal-icon');
+
+                modalTitle.textContent = titulo;
+                modalMessage.textContent = mensaje;
+                modalIcon.textContent = icono;
+
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                    // Enfocar el botón de OK en el modal personalizado para cerrarlo con Enter
+                    const btnAceptar = modal.querySelector('button');
+                    if (btnAceptar) btnAceptar.focus();
+                }, 10);
+
+                window._resolveModal = () => {
+                    cerrarModal();
+                    if (lastFocused && typeof lastFocused.focus === 'function') {
+                        lastFocused.focus();
+                    }
+                    resolve(true);
+                };
+
+                // Cerrar con Escape
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        if (window._resolveModal) {
+                            window._resolveModal();
+                            window._resolveModal = null;
+                        }
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            });
         }
 
         function cerrarModal() {
