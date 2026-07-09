@@ -405,8 +405,13 @@ class MovimientoAlmacenController extends Component {
                     if (term.length < 2) return; // esperar al menos 2 chars
                     const r = await this.service.getClientesProveedores(term);
                     this._renderOpcionesProveedores(Array.isArray(r.data) ? r.data : []);
-                    sel.searchableSelectInstance.searchInput.value = term;
-                    sel.searchableSelectInstance.filterOptions();
+                    const inst = sel.searchableSelectInstance;
+                    if (inst) {
+                        if (document.activeElement !== inst.searchInput) {
+                            inst.searchInput.value = term;
+                        }
+                        inst.filterOptions();
+                    }
                 }, 300);
             });
         }
@@ -460,11 +465,11 @@ class MovimientoAlmacenController extends Component {
         sel.innerHTML = '<option value="">🔍 Buscar producto...</option>' + opcionesProductos + optionCargarMas;
 
         if (sel.searchableSelectInstance) {
-            sel.searchableSelectInstance.loadOptions();
-            if (term) {
-                sel.searchableSelectInstance.searchInput.value = term;
-                sel.searchableSelectInstance.filterOptions();
+            const inst = sel.searchableSelectInstance;
+            if (term && document.activeElement !== inst.searchInput) {
+                inst.searchInput.value = term;
             }
+            inst.loadOptions();
         }
     }
 
@@ -1677,10 +1682,32 @@ class MovimientoAlmacenController extends Component {
     _enfocarSiguienteCampoDespuesAbc() {
         // Con el nuevo orden (cencos→producto→lote→...), después de seleccionar
         // el producto el foco debe ir al lote y abrir su selector.
+        const activeEl = document.activeElement;
+        const producto = document.getElementById('grid-buscar-producto');
+        const cencos = document.getElementById('grid-tcencos');
+
+        // Si el foco ya avanzó al lote o más allá (por ejemplo, por la navegación rápida con Enter),
+        // no debemos robarle el foco ni volver a abrir el lote.
+        const focusEnCencosOProducto = 
+            (cencos?.searchableSelectInstance?.displayField === activeEl) ||
+            (cencos?.searchableSelectInstance?.searchInput === activeEl) ||
+            (producto?.searchableSelectInstance?.displayField === activeEl) ||
+            (producto?.searchableSelectInstance?.searchInput === activeEl);
+
+        if (!focusEnCencosOProducto && activeEl !== document.body) {
+            return;
+        }
+
         const lote = document.getElementById('grid-tlote');
+        if (lote && lote.value !== '') {
+            return; // Ya seleccionó lote, no volver a enfocar
+        }
+
         if (lote?.searchableSelectInstance?.displayField) {
-            lote.searchableSelectInstance.displayField.focus();
-            setTimeout(() => lote.searchableSelectInstance.open(), 80);
+            const inst = lote.searchableSelectInstance;
+            if (inst.isOpen) return;
+            inst.displayField.focus();
+            setTimeout(() => inst.open(), 80);
             return;
         }
         if (lote) {

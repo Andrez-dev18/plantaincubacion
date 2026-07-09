@@ -296,6 +296,20 @@ class FormNavigation {
         const prevField = focusableFields[prevIndex];
         if (prevField) {
             prevField.focus();
+
+            // Si es un SearchableSelect, abrirlo automáticamente (igual que al avanzar)
+            if (prevField.classList.contains('searchable-select-display')) {
+                setTimeout(() => {
+                    const instance = prevField._searchableSelectInstance
+                        || prevField.parentElement?.nextElementSibling?.searchableSelectInstance;
+                    if (instance) {
+                        instance.open();
+                    } else {
+                        prevField.click();
+                    }
+                }, 100);
+            }
+
             if (prevField.tagName === 'INPUT') {
                 prevField.select();
             }
