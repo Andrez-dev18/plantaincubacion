@@ -1051,6 +1051,50 @@ class MovimientoAlmacenController extends Component {
         document.getElementById('btn-aceptar-modal-abc')?.addEventListener('click', () => this._aceptarModalAbc());
         document.getElementById('abc-buscar')?.addEventListener('input', () => this._renderListaAbc());
 
+        // Atajos de teclado y navegación en Modal ABC
+        const modalAbc = document.getElementById('modal-abc');
+        if (modalAbc) {
+            modalAbc.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this._cerrarModalAbc();
+                }
+            });
+        }
+
+        const buscarInput = document.getElementById('abc-buscar');
+        if (buscarInput) {
+            buscarInput.addEventListener('keydown', (e) => {
+                const tbody = document.getElementById('abc-lista-body');
+                if (!tbody) return;
+                const rows = tbody.querySelectorAll('tr');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (rows.length > 0) {
+                        this._abcHighlightIndex = Math.min(this._abcHighlightIndex + 1, rows.length - 1);
+                        this._actualizarHighlightAbc();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (rows.length > 0) {
+                        this._abcHighlightIndex = Math.max(this._abcHighlightIndex - 1, 0);
+                        this._actualizarHighlightAbc();
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.ctrlKey) {
+                        // Ctrl + Enter: Aceptar selección actual inmediatamente
+                        this._aceptarModalAbc();
+                    } else if (rows.length > 0 && this._abcHighlightIndex >= 0 && this._abcHighlightIndex < rows.length) {
+                        const highlightedRow = rows[this._abcHighlightIndex];
+                        this._seleccionarFilaAbc(highlightedRow);
+                    }
+                }
+            });
+        }
+
         // Botones
         bind('btn-nuevo', 'click', () => this._resetFormulario());
         bind('btn-quitar-item', 'click', () => this._quitarFilaSeleccionada());
@@ -2095,43 +2139,77 @@ class MovimientoAlmacenController extends Component {
             </tr>
         `).join('');
 
+        this._abcHighlightIndex = 0;
+        this._actualizarHighlightAbc();
+
         Array.from(tbody.querySelectorAll('tr')).forEach(row => {
-            row.addEventListener('click', async () => {
-                const cod = row.dataset.cod || '00';
-                const nom = row.dataset.nom || '';
-                const s = this._abcModalState.selected;
-                const n = this._abcModalState.names;
-
-                if (this._abcModalState.level === 0) {
-                    s.proc = cod; n.proc = nom;
-                    s.subp = ''; n.subp = '';
-                    s.acti = ''; n.acti = '';
-                    s.tarea = ''; n.tarea = '';
-                    this._abcModalState.level = 1;
-                } else if (this._abcModalState.level === 1) {
-                    s.subp = cod; n.subp = nom;
-                    s.acti = ''; n.acti = '';
-                    s.tarea = ''; n.tarea = '';
-                    this._abcModalState.level = 2;
-                } else if (this._abcModalState.level === 2) {
-                    s.acti = cod; n.acti = nom;
-                    s.tarea = ''; n.tarea = '';
-                    this._abcModalState.level = 3;
-                } else {
-                    s.tarea = cod; n.tarea = nom;
-                }
-
-                this._actualizarChipsAbc();
-                await this._cargarNivelAbc(this._abcModalState.level);
-                this._renderListaAbc();
-
-                const buscar = document.getElementById('abc-buscar');
-                if (buscar) {
-                    buscar.value = '';
-                    buscar.focus();
-                }
+            row.addEventListener('click', () => {
+                this._seleccionarFilaAbc(row);
             });
         });
+    }
+
+    _actualizarHighlightAbc() {
+        const tbody = document.getElementById('abc-lista-body');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+        if (rows.length === 0) return;
+
+        if (this._abcHighlightIndex < 0) this._abcHighlightIndex = 0;
+        if (this._abcHighlightIndex >= rows.length) this._abcHighlightIndex = rows.length - 1;
+
+        rows.forEach((row, index) => {
+            if (index === this._abcHighlightIndex) {
+                row.classList.add('bg-blue-50/70', 'border-l-4', 'border-blue-500');
+                row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                row.classList.remove('bg-blue-50/70', 'border-l-4', 'border-blue-500');
+            }
+        });
+    }
+
+    async _seleccionarFilaAbc(row) {
+        if (!row) return;
+        const cod = row.dataset.cod || '00';
+        const nom = row.dataset.nom || '';
+        const s = this._abcModalState.selected;
+        const n = this._abcModalState.names;
+
+        if (this._abcModalState.level === 0) {
+            s.proc = cod; n.proc = nom;
+            s.subp = ''; n.subp = '';
+            s.acti = ''; n.acti = '';
+            s.tarea = ''; n.tarea = '';
+            this._abcModalState.level = 1;
+        } else if (this._abcModalState.level === 1) {
+            s.subp = cod; n.subp = nom;
+            s.acti = ''; n.acti = '';
+            s.tarea = ''; n.tarea = '';
+            this._abcModalState.level = 2;
+        } else if (this._abcModalState.level === 2) {
+            s.acti = cod; n.acti = nom;
+            s.tarea = ''; n.tarea = '';
+            this._abcModalState.level = 3;
+        } else {
+            s.tarea = cod; n.tarea = nom;
+        }
+
+        this._actualizarChipsAbc();
+        await this._cargarNivelAbc(this._abcModalState.level);
+        this._renderListaAbc();
+
+        const buscar = document.getElementById('abc-buscar');
+        if (buscar) {
+            buscar.value = '';
+            buscar.focus();
+        }
+
+        // Si ya completamos todos los niveles (nivel 3 es Tarea y ya fue seleccionada),
+        // podemos aceptar automáticamente el modal para ahorrarle pasos al usuario.
+        if (this._abcModalState.level === 3 && s.tarea) {
+            this._aceptarModalAbc();
+        }
     }
 
     async _abrirModalAbc(options = {}) {
@@ -2140,6 +2218,7 @@ class MovimientoAlmacenController extends Component {
         if (!modal) return;
 
         this._abcAutoFlowActivo = !!autoFlow;
+        this._abcActiveElementBeforeOpen = document.activeElement;
 
         const baseCodes = {
             proc: document.getElementById('tcodproc')?.value || '00',
@@ -2184,7 +2263,14 @@ class MovimientoAlmacenController extends Component {
 
             if (continuarFlujo) {
                 this._enfocarSiguienteCampoDespuesAbc();
+            } else if (this._abcActiveElementBeforeOpen) {
+                try {
+                    this._abcActiveElementBeforeOpen.focus();
+                } catch (e) {
+                    console.warn('Error al enfocar el elemento de origen:', e);
+                }
             }
+            this._abcActiveElementBeforeOpen = null;
         }, 200);
     }
 
@@ -2840,7 +2926,12 @@ class MovimientoAlmacenController extends Component {
         this._renderGrid();
         this._actualizarTotales();
         this._recalcularResumenStockSegunContexto();
-        this._enfocarSiguienteCampoDespuesAbc();
+        const actionInput = document.getElementById('sr-action-input');
+        if (actionInput) {
+            actionInput.focus();
+        } else {
+            this._enfocarSiguienteCampoDespuesAbc();
+        }
     }
 
     _renderGrid() {
