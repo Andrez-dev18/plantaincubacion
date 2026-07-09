@@ -336,11 +336,12 @@ class MovimientoAlmacenController extends Component {
                     gridCencos.searchableSelectInstance = new SearchableSelect(gridCencos, {
                         placeholder: 'Buscar...',
                         noResults: 'Sin resultados',
-                        autoFocus: false,
+                        autoFocus: true,
                         moveToNextOnSelect: false // navegación manual vía change
                     });
                 } else {
                     gridCencos.searchableSelectInstance.loadOptions();
+                    gridCencos.searchableSelectInstance.options.autoFocus = true;
                     gridCencos.searchableSelectInstance.options.moveToNextOnSelect = false;
                 }
 
@@ -368,9 +369,9 @@ class MovimientoAlmacenController extends Component {
                         }, 80);
                     });
 
-                    // Enter en cencos cerrado → ir a producto (antes que attachEvents lo abra)
+                    // Enter en cencos cerrado → ir a producto solo si ya tiene un valor seleccionado
                     inst.displayField.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' && !inst.isOpen) {
+                        if (e.key === 'Enter' && !inst.isOpen && inst.originalSelect.value !== '') {
                             e.preventDefault();
                             e.stopImmediatePropagation();
                             const producto = document.getElementById('grid-buscar-producto');
@@ -1086,15 +1087,9 @@ class MovimientoAlmacenController extends Component {
         const ultimoCampo = document.getElementById('tglosa');
         if (ultimoCampo) {
             // Solo revelar la sección, sin enfocar el producto
+            // (La navegación Enter → grid-tcencos la maneja FormNavigation)
             ultimoCampo.addEventListener('focus', () => {
                 this._mostrarSeccionItems({ enfocarProducto: false, abrirSelector: false });
-            });
-            // Enter en glosa SÍ enfoca y abre el producto
-            ultimoCampo.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this._mostrarSeccionItems({ enfocarProducto: true, abrirSelector: true });
-                }
             });
         }
 

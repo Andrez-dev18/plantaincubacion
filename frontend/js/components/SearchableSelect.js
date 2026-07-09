@@ -50,6 +50,9 @@ class SearchableSelect {
         `;
         this.container.appendChild(this.displayField);
 
+        // Guardar referencia inversa para que FormNavigation pueda acceder a la instancia
+        this.displayField._searchableSelectInstance = this;
+
         // Dropdown (floating overlay)
         this.dropdown = document.createElement('div');
         this.dropdown.className = 'searchable-select-dropdown fixed bg-white border border-slate-200/80 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] z-[999999] p-1.5 flex flex-col gap-1.5 transition-all duration-150 ease-out transform scale-95 opacity-0 pointer-events-none';

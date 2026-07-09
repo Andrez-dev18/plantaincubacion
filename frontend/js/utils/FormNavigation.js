@@ -263,7 +263,12 @@ class FormNavigation {
             // Si es un SearchableSelect, abrirlo automáticamente
             if (nextField.classList.contains('searchable-select-display')) {
                 setTimeout(() => {
-                    nextField.click();
+                    const select = nextField.parentElement?.querySelector('select');
+                    if (select?.searchableSelectInstance) {
+                        select.searchableSelectInstance.open();
+                    } else {
+                        nextField.click();
+                    }
                 }, 100);
             }
 
