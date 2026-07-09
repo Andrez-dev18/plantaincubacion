@@ -142,6 +142,8 @@ class ListaGuiaElectronicaController
                 $pdf->RowDetalle($item);
             }
 
+            $pdf->GenerarFooter($cabecera);
+
             // Generar salida y descargar
             $pdf->Output('I', "Guia_{$cabecera['serie']}_{$cabecera['numero']}.pdf");
             exit;
