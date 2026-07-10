@@ -184,4 +184,55 @@ class UsuarioController
             $this->jsonResponse(['success' => false, 'message' => 'Error al procesar el menú'], 500);
         }
     }
+
+    /**
+     * Valida si existe una sesión activa y retorna los datos del usuario
+     */
+    public function validarSesionConRol()
+    {
+        session_name('SESS_INCUBA');
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $idUsuario = $_SESSION['id_usuario'] ?? $_SESSION['username'] ?? null;
+
+        if ($idUsuario) {
+            $this->jsonResponse([
+                'success' => true,
+                'data' => $_SESSION
+            ]);
+        } else {
+            $this->jsonResponse(['success' => false, 'message' => 'Sesión expirada o inactiva'], 401);
+        }
+    }
+
+    /**
+     * Cierra la sesión activa y destruye las variables correspondientes
+     */
+    public function logoutConRol()
+    {
+        session_name('SESS_INCUBA');
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION = [];
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
+        session_destroy();
+        $this->jsonResponse(['success' => true, 'message' => 'Sesión cerrada correctamente']);
+    }
+
+    /**
+     * Alias de obtenerMenuLateral para compatibilidad con rutas de auth
+     */
+    public function obtenerMenu()
+    {
+        $this->obtenerMenuLateral();
+    }
 }

@@ -9,7 +9,7 @@ try {
     
     // Repositories
     require_once __DIR__ . '/repositories/UsuarioRepository.php';
-    require_once __DIR__ . '/repositories/UsuarioRolRepository.php'; // Lo conservamos para el Service
+    require_once __DIR__ . '/repositories/AsignacionRepository.php';
     require_once __DIR__ . '/repositories/NavegacionRepository.php';
     require_once __DIR__ . '/repositories/GalponRepository.php';
     require_once __DIR__ . '/repositories/CaracteristicaRepository.php';
@@ -27,7 +27,7 @@ try {
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
-    require_once __DIR__ . '/services/UsuarioRolService.php';
+    require_once __DIR__ . '/services/AsignacionService.php';
     require_once __DIR__ . '/services/UsuarioAdminService.php';
     require_once __DIR__ . '/services/NavegacionService.php';
     require_once __DIR__ . '/services/GalponService.php';
@@ -46,7 +46,7 @@ try {
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
-    require_once __DIR__ . '/controllers/UsuarioRolController.php';
+    require_once __DIR__ . '/controllers/AsignacionController.php';
     require_once __DIR__ . '/controllers/UsuarioAdminController.php';
     require_once __DIR__ . '/controllers/NavegacionController.php';
     require_once __DIR__ . '/controllers/GalponController.php';
@@ -68,7 +68,7 @@ try {
 
     // 2. Crear repositorios
     $usuarioRepository = new UsuarioRepository($db);
-    $usuarioRolRepository = new UsuarioRolRepository($db);
+    $asignacionRepository = new AsignacionRepository($db);
     $navegacionRepository = new NavegacionRepository($db);
     $galponRepository = new GalponRepository($db);
     $caracteristicaRepository = new CaracteristicaRepository($db);
@@ -82,7 +82,7 @@ try {
 
     // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
-    $usuarioRolService = new UsuarioRolService($db);
+    $asignacionService = new AsignacionService($db);
     $usuarioAdminService = new UsuarioAdminService($usuarioRepository, $rolRepository);
     $rolService = new RolService($db);
     $navegacionService = new NavegacionService($db);
@@ -100,7 +100,7 @@ try {
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
-    $usuarioRolController = new UsuarioRolController($usuarioRolRepository);
+    $asignacionController = new AsignacionController();
     $usuarioAdminController = new UsuarioAdminController($usuarioAdminService);
     $rolController = new RolController($rolRepository);
     $navegacionController = new NavegacionController();
@@ -121,7 +121,8 @@ try {
         'db' => $db,
         'controllers' => [
             'usuario' => $usuarioController,
-            'usuarioRol' => $usuarioRolController,
+            'usuarioRol' => $asignacionController,
+            'asignacion' => $asignacionController,
             'usuarioAdmin' => $usuarioAdminController,
             'navegacion' => $navegacionController,
             'galpon' => $galponController,
@@ -139,7 +140,8 @@ try {
         ],
         'services' => [
             'usuario' => $usuarioService,
-            'usuarioRol' => $usuarioRolService,
+            'usuarioRol' => $asignacionService,
+            'asignacion' => $asignacionService,
             'usuarioAdmin' => $usuarioAdminService,
             'navegacion' => $navegacionService,
             'galpon' => $galponService,
@@ -154,7 +156,8 @@ try {
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
-            'usuarioRol' => $usuarioRolRepository,
+            'usuarioRol' => $asignacionRepository,
+            'asignacion' => $asignacionRepository,
             'navegacion' => $navegacionRepository,
             'galpon' => $galponRepository,
             'caracteristica' => $caracteristicaRepository,

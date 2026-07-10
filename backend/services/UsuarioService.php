@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../repositories/UsuarioRepository.php';
-require_once __DIR__ . '/../repositories/UsuarioRolRepository.php';
+require_once __DIR__ . '/../repositories/AsignacionRepository.php';
 
 class UsuarioService {
     private $usuarioRepo;
@@ -8,7 +8,7 @@ class UsuarioService {
 
     public function __construct($db) {
         $this->usuarioRepo = new UsuarioRepository($db);
-        $this->rolRepo = new UsuarioRolRepository($db);
+        $this->rolRepo = new AsignacionRepository($db);
     }
 
     // ─────────────────────────────────────────────────────────────────────

@@ -58,8 +58,8 @@ try {
     $rolRoutes = require_once __DIR__ . '/../routes/rol.php';
     $rolRoutes($container);
 
-    $usuarioRolRoutes = require_once __DIR__ . '/../routes/usuario-rol.php';
-    $usuarioRolRoutes($container);
+    $asignacionRoutes = require_once __DIR__ . '/../routes/asignacion.php';
+    $asignacionRoutes($container);
 
     // ========================================
     // MÓDULOS FUNCIONALES (NO TOCAR)
