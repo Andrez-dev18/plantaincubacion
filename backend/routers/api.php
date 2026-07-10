@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Front Controller - Punto de entrada único de la API
  * 
@@ -8,12 +9,12 @@
  */
 
 // Configurar manejo de errores para que siempre retorne JSON
-set_error_handler(function($errno, $errstr, $errfile, $errline) {
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
     error_log("PHP Error [$errno]: $errstr in $errfile:$errline");
     throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
 });
 
-set_exception_handler(function($exception) {
+set_exception_handler(function ($exception) {
     error_log("Uncaught Exception: " . $exception->getMessage());
     http_response_code(500);
     header('Content-Type: application/json; charset=UTF-8');
@@ -29,7 +30,7 @@ require_once __DIR__ . '/../middleware/security.php';
 // Manejar peticiones OPTIONS para CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit; 
+    exit;
 }
 
 // Configurar headers
@@ -51,8 +52,8 @@ try {
     // ========================================
     // MÓDULO USUARIOS/ROLES/PERMISOS
     // ========================================
-    $usuarioSistemaRoutes = require_once __DIR__ . '/../routes/usuario-sistema.php';
-    $usuarioSistemaRoutes($container);
+    $usuarioRoutes = require_once __DIR__ . '/../routes/usuario.php';
+    $usuarioRoutes($container);
 
     $rolRoutes = require_once __DIR__ . '/../routes/rol.php';
     $rolRoutes($container);
@@ -110,7 +111,7 @@ try {
     // ========================================
     $simulacionEscenariosRoutes = require_once __DIR__ . '/../routes/simulacion-escenarios.routes.php';
     $simulacionEscenariosRoutes($container);
-    
+
     // ========================================
     // MÓDULO: REPORTE DE TRANSACCIONES
     // ========================================
@@ -137,7 +138,7 @@ try {
 
     $listaGuiaElectronicaRoutes = require_once __DIR__ . '/../routes/lista-guia-electronica.routes.php';
     $listaGuiaElectronicaRoutes($container);
-    
+
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
     // require_once __DIR__ . '/../routes/lotes.php';
@@ -157,4 +158,3 @@ try {
         'message' => 'Error del servidor: ' . $e->getMessage()
     ]);
 }
-?>

@@ -1,55 +1,152 @@
 <?php
 require_once __DIR__ . '/../repositories/UsuarioRepository.php';
 require_once __DIR__ . '/../repositories/UsuarioRolRepository.php';
-require_once __DIR__ . '/../repositories/NavegacionRepository.php';
 
 class UsuarioService {
-    private $repo;
-    private $usuarioRolRepo;
-    private $navegacionRepo;
+    private $usuarioRepo;
+    private $rolRepo;
 
     public function __construct($db) {
-        $this->repo = new UsuarioRepository($db);
-        $this->usuarioRolRepo = new UsuarioRolRepository($db);
-        $this->navegacionRepo = new NavegacionRepository($db);
+        $this->usuarioRepo = new UsuarioRepository($db);
+        $this->rolRepo = new UsuarioRolRepository($db);
     }
 
-    /**
-     * Autenticar (método original - mantener compatibilidad)
-     * DEPRECADO: Usar autenticarConRol() para el nuevo sistema
-     */
-    public function autenticar($usuario, $password, $ubicacion) {
-        $result = $this->repo->login($usuario, $password);
+    // ─────────────────────────────────────────────────────────────────────
+    // DATATABLES (Lista optimizada)
+    // ─────────────────────────────────────────────────────────────────────
+    public function obtenerUsuariosServerSide($postData) {
+        $start = $postData['start'] ?? 0;
+        $length = $postData['length'] ?? 10;
+        $searchValue = $postData['search']['value'] ?? '';
+        $orderColumn = $postData['order'][0]['column'] ?? 0;
+        $orderDir = $postData['order'][0]['dir'] ?? 'asc';
 
-        if ($result) {
+        return $this->usuarioRepo->getUsuariosServerSide($start, $length, $searchValue, $orderColumn, $orderDir);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // OBTENER INDIVIDUAL (Para el Modal de Edición)
+    // ─────────────────────────────────────────────────────────────────────
+    public function obtenerUsuarioConRoles($codigo) {
+        try {
+            $usuario = $this->usuarioRepo->obtenerPorCodigo($codigo);
+            
+            if (!$usuario) {
+                return ['success' => false, 'message' => 'Usuario no encontrado'];
+            }
+
+            // Le inyectamos los roles que tiene asignados en Planta Incubación
+            $usuario['roles'] = $this->rolRepo->obtenerRolesCodigo($codigo);
+
             return [
                 'success' => true,
-                'data' => $result
+                'data' => $usuario
             ];
-        } else {
-            return [
-                'success' => false,
-                'message' => 'Usuario o contraseña incorrectos'
-            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
         }
     }
 
-    /**
-     * Autenticar con sistema multi-programa
-     * Retorna usuario con todos sus roles y módulos
-     */
+    // ─────────────────────────────────────────────────────────────────────
+    // CREAR / EDITAR USUARIO + ASIGNAR ROLES
+    // ─────────────────────────────────────────────────────────────────────
+    public function guardarUsuario($datos) {
+        try {
+            $codigo = trim($datos['codigo']);
+            $isEdit = !empty($datos['is_edit']) && $datos['is_edit'] == '1';
+            $idsRoles = isset($datos['roles']) ? (array)$datos['roles'] : [];
+
+            // Validaciones básicas
+            if (empty($codigo) || empty($datos['nombre'])) {
+                return ['success' => false, 'message' => 'El código y nombre son obligatorios.'];
+            }
+
+            if (!$isEdit && empty($datos['password'])) {
+                return ['success' => false, 'message' => 'La contraseña es obligatoria para usuarios nuevos.'];
+            }
+
+            // Guardar en base de datos (El repo ya sabe si hacer INSERT o UPDATE)
+            $resultadoGuardar = $this->usuarioRepo->guardar($datos, $isEdit);
+
+            if (!$resultadoGuardar) {
+                return ['success' => false, 'message' => 'Error al guardar los datos base del usuario.'];
+            }
+
+            // Guardar Roles (Reemplaza los anteriores por los nuevos marcados si vienen en la petición)
+            if (isset($datos['roles'])) {
+                $usuarioLogueado = $_SESSION['usuario'] ?? 'SYSTEM';
+                $this->rolRepo->guardarRolesUsuario($codigo, $idsRoles, $usuarioLogueado);
+            }
+
+            return [
+                'success' => true,
+                'message' => $isEdit ? 'Usuario actualizado correctamente.' : 'Usuario registrado exitosamente.'
+            ];
+
+        } catch (Exception $e) {
+            // Si el código ya existía al hacer INSERT, la BD lanzará error de clave duplicada
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                return ['success' => false, 'message' => 'El código de usuario ya está registrado.'];
+            }
+            return ['success' => false, 'message' => 'Error interno: ' . $e->getMessage()];
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // CAMBIO DE ESTADO Y CONTRASEÑA
+    // ─────────────────────────────────────────────────────────────────────
+    public function cambiarEstado($codigo) {
+        try {
+            $resultado = $this->usuarioRepo->toggleEstado($codigo);
+            return [
+                'success' => $resultado,
+                'message' => $resultado ? 'Estado actualizado.' : 'No se pudo actualizar el estado.'
+            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
+    public function resetearPassword($codigo, $newPassword) {
+        try {
+            if (empty($newPassword)) {
+                return ['success' => false, 'message' => 'La contraseña no puede estar vacía.'];
+            }
+
+            $resultado = $this->usuarioRepo->adminResetPassword($codigo, $newPassword);
+            return [
+                'success' => $resultado,
+                'message' => $resultado ? 'Contraseña actualizada exitosamente.' : 'No se pudo actualizar la contraseña.'
+            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // CATÁLOGOS (Para pintar los Checkboxes en el frontend)
+    // ─────────────────────────────────────────────────────────────────────
+    public function obtenerCatalogoRoles() {
+        try {
+            $roles = $this->rolRepo->obtenerRolesActivos();
+            return [
+                'success' => true,
+                'data' => $roles
+            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
     public function autenticarConRol($username, $password) {
         try {
-            // La contraseña se cifra con AES en el repositorio
-            $result = $this->repo->loginConRol($username, $password);
+            // Llama a la función real del repositorio
+            $result = $this->usuarioRepo->loginConRol($username, $password);
 
             if ($result) {
-                // Obtener todos los roles del usuario
-                $roles = $this->usuarioRolRepo->obtenerRolesPorUsuario($result['id_usuario']);
+                // Obtener los roles específicos de Planta Incubación (programa 1)
+                $roles = $this->rolRepo->obtenerRolesCodigo($result['id_usuario']);
                 
-                // Obtener módulos visibles (usa tablas adm_usuario_rol + amd_dashboard_modulos)
-                $modulos = $this->navegacionRepo->obtenerMenuJerarquico($result['id_usuario']);
-
                 return [
                     'success' => true,
                     'data' => [
@@ -57,8 +154,7 @@ class UsuarioService {
                         'username' => $result['username'],
                         'nombre_completo' => $result['nombre_completo'],
                         'estado' => $result['estado'],
-                        'roles' => $roles,
-                        'modulos' => $modulos
+                        'roles' => $roles
                     ]
                 ];
             } else {
@@ -74,189 +170,5 @@ class UsuarioService {
             ];
         }
     }
-
-    /**
-     * Obtener menú jerárquico del usuario
-     */
-    public function obtenerMenu($idUsuario, $programa = null) {
-        try {
-            $modulos = $this->navegacionRepo->obtenerMenuJerarquico($idUsuario, $programa);
-
-            return [
-                'success' => true,
-                'data' => $modulos
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener menú: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Obtener todos los usuarios
-     */
-    public function obtenerTodos() {
-        try {
-            $usuarios = $this->repo->obtenerTodos();
-            
-            // Agregar roles a cada usuario
-            foreach ($usuarios as &$usuario) {
-                $usuario['roles'] = $this->usuarioRolRepo->obtenerRolesPorUsuario($usuario['id_usuario']);
-            }
-            
-            return [
-                'success' => true,
-                'data' => $usuarios
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener usuarios: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Obtener usuario por ID
-     */
-    public function obtenerPorId($idUsuario) {
-        try {
-            $usuario = $this->repo->obtenerPorId($idUsuario);
-            
-            if ($usuario) {
-                $usuario['roles'] = $this->usuarioRolRepo->obtenerRolesPorUsuario($idUsuario);
-            }
-            
-            return [
-                'success' => true,
-                'data' => $usuario
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener usuario: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Crear usuario
-     */
-    public function crear($username, $password, $nombreCompleto, $roles = []) {
-        try {
-            // Verificar username único
-            if ($this->repo->existeUsername($username)) {
-                return [
-                    'success' => false,
-                    'message' => 'El username ya existe'
-                ];
-            }
-
-            // Crear usuario
-            $idUsuario = $this->repo->crear($username, $password, $nombreCompleto);
-            
-            if (!$idUsuario) {
-                return [
-                    'success' => false,
-                    'message' => 'Error al crear usuario'
-                ];
-            }
-
-            // Asignar roles si se proporcionaron
-            if (!empty($roles)) {
-                $this->usuarioRolRepo->asignarRolesLote($idUsuario, $roles);
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Usuario creado exitosamente',
-                'id_usuario' => $idUsuario
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al crear usuario: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Actualizar usuario
-     */
-    public function actualizar($idUsuario, $username, $nombreCompleto, $roles = null) {
-        try {
-            // Verificar username único
-            if ($this->repo->existeUsername($username, $idUsuario)) {
-                return [
-                    'success' => false,
-                    'message' => 'El username ya existe'
-                ];
-            }
-
-            // Actualizar usuario
-            $resultado = $this->repo->actualizar($idUsuario, $username, $nombreCompleto);
-            
-            if (!$resultado) {
-                return [
-                    'success' => false,
-                    'message' => 'Error al actualizar usuario'
-                ];
-            }
-
-            // Actualizar roles si se proporcionaron
-            if ($roles !== null) {
-                $this->usuarioRolRepo->asignarRolesLote($idUsuario, $roles);
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Usuario actualizado exitosamente'
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al actualizar usuario: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Cambiar contraseña
-     */
-    public function cambiarPassword($idUsuario, $password) {
-        try {
-            $resultado = $this->repo->actualizarPassword($idUsuario, $password);
-            
-            return [
-                'success' => $resultado,
-                'message' => $resultado ? 'Contraseña actualizada exitosamente' : 'Error al actualizar contraseña'
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al cambiar contraseña: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Eliminar (desactivar) usuario
-     */
-    public function eliminar($idUsuario) {
-        try {
-            $resultado = $this->repo->eliminar($idUsuario);
-            
-            return [
-                'success' => $resultado,
-                'message' => $resultado ? 'Usuario desactivado exitosamente' : 'Error al desactivar usuario'
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al eliminar usuario: ' . $e->getMessage()
-            ];
-        }
-    }
 }
+?>

@@ -1,12 +1,7 @@
 <?php
 /**
  * Bootstrap - Grafo de Dependencias (DI Container)
- * 
- * Este archivo construye todas las dependencias del sistema en el orden correcto:
- * 1. Conexión a base de datos
- * 2. Repositorios
- * 3. Servicios
- * 4. Controladores
+ * Limpio y Optimizado para el nuevo módulo de Usuarios
  */
 
 try {
@@ -14,7 +9,7 @@ try {
     
     // Repositories
     require_once __DIR__ . '/repositories/UsuarioRepository.php';
-    require_once __DIR__ . '/repositories/UsuarioRolRepository.php';
+    require_once __DIR__ . '/repositories/UsuarioRolRepository.php'; // Lo conservamos para el Service
     require_once __DIR__ . '/repositories/NavegacionRepository.php';
     require_once __DIR__ . '/repositories/GalponRepository.php';
     require_once __DIR__ . '/repositories/CaracteristicaRepository.php';
@@ -22,7 +17,6 @@ try {
     require_once __DIR__ . '/repositories/DashboardModuloRepository.php';
     require_once __DIR__ . '/repositories/RolRepository.php';
     require_once __DIR__ . '/repositories/PermisoRepository.php';
-    require_once __DIR__ . '/repositories/UsuarioSistemaRepository.php';
     require_once __DIR__ . '/repositories/SimulacionEscenariosRepository.php';
     require_once __DIR__ . '/repositories/MovimientoAlmacenRepository.php';
     require_once __DIR__ . '/repositories/ReporteTransaccionesRepository.php';
@@ -32,8 +26,9 @@ try {
     require_once __DIR__ . '/repositories/ListaGuiaElectronicaRepository.php';
 
     // Services
-    require_once __DIR__ . '/services/UsuarioService.php';
+    require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
     require_once __DIR__ . '/services/UsuarioRolService.php';
+    require_once __DIR__ . '/services/UsuarioAdminService.php';
     require_once __DIR__ . '/services/NavegacionService.php';
     require_once __DIR__ . '/services/GalponService.php';
     require_once __DIR__ . '/services/CaracteristicaService.php';
@@ -41,7 +36,6 @@ try {
     require_once __DIR__ . '/services/DashboardModuloService.php';
     require_once __DIR__ . '/services/RolService.php';
     require_once __DIR__ . '/services/PermisoService.php';
-    require_once __DIR__ . '/services/UsuarioAdminService.php';
     require_once __DIR__ . '/services/SimulacionEscenariosService.php';
     require_once __DIR__ . '/services/MovimientoAlmacenService.php';
     require_once __DIR__ . '/services/ReporteTransaccionService.php';
@@ -51,8 +45,9 @@ try {
     require_once __DIR__ . '/services/ListaGuiaElectronicaService.php';
 
     // Controllers
-    require_once __DIR__ . '/controllers/UsuarioController.php';
+    require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
     require_once __DIR__ . '/controllers/UsuarioRolController.php';
+    require_once __DIR__ . '/controllers/UsuarioAdminController.php';
     require_once __DIR__ . '/controllers/NavegacionController.php';
     require_once __DIR__ . '/controllers/GalponController.php';
     require_once __DIR__ . '/controllers/CaracteristicaController.php';
@@ -60,9 +55,7 @@ try {
     require_once __DIR__ . '/controllers/DashboardModuloController.php';
     require_once __DIR__ . '/controllers/RolController.php';
     require_once __DIR__ . '/controllers/PermisoController.php';
-    require_once __DIR__ . '/controllers/UsuarioSistemaController.php';
     require_once __DIR__ . '/controllers/SimulacionEscenariosController.php';
-    require_once __DIR__ . '/controllers/UsuarioAdminController.php';
     require_once __DIR__ . '/controllers/MovimientoAlmacenController.php';
     require_once __DIR__ . '/controllers/ReporteTransaccionController.php';
     require_once __DIR__ . '/controllers/ReporteStockController.php';
@@ -70,10 +63,10 @@ try {
     require_once __DIR__ . '/controllers/GuiaElectronicaController.php';
     require_once __DIR__ . '/controllers/ListaGuiaElectronicaController.php';
 
-    // 1. Crear conexión (raíz del grafo) - Patrón Singleton
+    // 1. Crear conexión
     $db = Database::getInstance()->getConnection();
 
-    // 2. Crear repositorios (nivel más interno - dependen solo de $db)
+    // 2. Crear repositorios
     $usuarioRepository = new UsuarioRepository($db);
     $usuarioRolRepository = new UsuarioRolRepository($db);
     $navegacionRepository = new NavegacionRepository($db);
@@ -83,24 +76,21 @@ try {
     $dashboardModuloRepository = new DashboardModuloRepository($db);
     $rolRepository = new RolRepository($db);
     $permisoRepository = new PermisoRepository($db);
-    $usuarioSistemaRepository = new UsuarioSistemaRepository($db);
     $movimientoAlmacenRepository = new MovimientoAlmacenRepository($db);
     $guiaElectronicaRepository = new GuiaElectronicaRepository($db);
     $listaGuiaElectronicaRepository = new ListaGuiaElectronicaRepository($db);
 
-    // 3. Crear servicios (nivel medio - dependen de repositorios)
-    // NOTA: Los nuevos servicios (UsuarioService, RolService, UsuarioRolService, NavegacionService)
-    // ahora crean sus propias dependencias internamente usando $db
+    // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
-    $rolService = new RolService($db);
     $usuarioRolService = new UsuarioRolService($db);
+    $usuarioAdminService = new UsuarioAdminService($usuarioRepository, $rolRepository);
+    $rolService = new RolService($db);
     $navegacionService = new NavegacionService($db);
     $galponService = new GalponService($galponRepository);
     $caracteristicaService = new CaracteristicaService($caracteristicaRepository);
     $moduloService = new ModuloService($moduloRepository);
     $dashboardModuloService = new DashboardModuloService($dashboardModuloRepository);
     $permisoService = new PermisoService($permisoRepository, $dashboardModuloRepository);
-    $usuarioAdminService = new UsuarioAdminService($usuarioRepository, $rolRepository);
     $movimientoAlmacenService = new MovimientoAlmacenService($db);
     $reporteTransaccionService = new ReporteTransaccionService($db);
     $reporteStockService = new ReporteStockService($db);
@@ -108,20 +98,17 @@ try {
     $guiaElectronicaService = new GuiaElectronicaService($db);
     $listaGuiaElectronicaService = new ListaGuiaElectronicaService($db);
 
-    // 4. Crear controladores (nivel externo - dependen de servicios o $db)
-    // NOTA: Los nuevos controladores (UsuarioController, RolController, UsuarioRolController, NavegacionController)
-    // no reciben dependencias, las crean internamente
-    $usuarioController = new UsuarioController();
-    $rolController = new RolController($rolRepository);
+    // 4. Crear controladores
+    $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
     $usuarioRolController = new UsuarioRolController($usuarioRolRepository);
-    $usuarioSistemaController = new UsuarioSistemaController($usuarioSistemaRepository);
+    $usuarioAdminController = new UsuarioAdminController($usuarioAdminService);
+    $rolController = new RolController($rolRepository);
     $navegacionController = new NavegacionController();
     $galponController = new GalponController($galponService);
     $caracteristicaController = new CaracteristicaController($caracteristicaService);
     $moduloController = new ModuloController($moduloService);
     $dashboardModuloController = new DashboardModuloController($dashboardModuloService);
     $permisoController = new PermisoController($permisoService);
-    $usuarioAdminController = new UsuarioAdminController($usuarioAdminService);
     $movimientoAlmacenController = new MovimientoAlmacenController($movimientoAlmacenService);
     $reporteTransaccionController = new ReporteTransaccionController($db);
     $reporteStockController = new ReporteStockController($db);
@@ -135,6 +122,7 @@ try {
         'controllers' => [
             'usuario' => $usuarioController,
             'usuarioRol' => $usuarioRolController,
+            'usuarioAdmin' => $usuarioAdminController,
             'navegacion' => $navegacionController,
             'galpon' => $galponController,
             'caracteristica' => $caracteristicaController,
@@ -142,9 +130,7 @@ try {
             'dashboard_modulo' => $dashboardModuloController,
             'rol' => $rolController,
             'permiso' => $permisoController,
-            'usuarioAdmin' => $usuarioAdminController,
             'movimientoAlmacen' => $movimientoAlmacenController,
-            'usuarioSistema' => $usuarioSistemaController,
             'reporteTransaccion' => $reporteTransaccionController,
             'reporteStock' => $reporteStockController,
             'reporteKardex' => $reporteKardexController,
@@ -154,6 +140,7 @@ try {
         'services' => [
             'usuario' => $usuarioService,
             'usuarioRol' => $usuarioRolService,
+            'usuarioAdmin' => $usuarioAdminService,
             'navegacion' => $navegacionService,
             'galpon' => $galponService,
             'caracteristica' => $caracteristicaService,
@@ -161,7 +148,6 @@ try {
             'dashboard_modulo' => $dashboardModuloService,
             'rol' => $rolService,
             'permiso' => $permisoService,
-            'usuarioAdmin' => $usuarioAdminService,
             'movimientoAlmacen' => $movimientoAlmacenService,
             'guiaElectronica' => $guiaElectronicaService,
             'listaGuiaElectronica' => $listaGuiaElectronicaService,
