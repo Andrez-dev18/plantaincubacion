@@ -1,252 +1,196 @@
 <?php
 /**
- * RolRepository — Acceso a datos para Módulo Roles y Permisos
- *
- * Tablas:
- *   adm_rol              — catálogo de roles
- *   adm_rol_progr_modulo — módulos permitidos por rol y programa
- *   amd_dashboard_modulos — menús disponibles (árbol de checkboxes)
- *   amd_programas         — programas del sistema
- *
- * @package Backend
- * @subpackage Repositories
+ * RolRepository — Adaptado exclusivamente para Planta Incubación (_pic)
+ * Tablas: adm_rol_pic, adm_rol_progr_modulo_pic, amd_dashboard_modulos_pic
  */
-class RolRepository {
+date_default_timezone_set('America/Lima');
 
-    /** @var PDO */
+class RolRepository
+{
     private $conn;
+    // Forzamos el ID de programa para Planta Incubación
+    private $idPrograma = '1';
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->conn = $db;
-        $this->migrarColumnas();
-    }
-
-    /**
-     * Auto-migración: agrega columnas faltantes en adm_rol.
-     */
-    private function migrarColumnas(): void {
-        try {
-            $ddl = [
-                'activo'       => "ALTER TABLE adm_rol ADD COLUMN activo TINYINT(1) NOT NULL DEFAULT 1 AFTER nom_rol",
-                'descripcion'  => "ALTER TABLE adm_rol ADD COLUMN descripcion VARCHAR(255) NULL AFTER activo",
-                'id_programa'  => "ALTER TABLE adm_rol ADD COLUMN id_programa TINYINT(4) NULL AFTER descripcion",
-                'fecha_update' => "ALTER TABLE adm_rol ADD COLUMN fecha_update DATETIME NULL AFTER id_programa",
-            ];
-            foreach ($ddl as $col => $sql) {
-                $check = $this->conn->query("SHOW COLUMNS FROM adm_rol LIKE '{$col}'");
-                if ($check->rowCount() === 0) {
-                    $this->conn->exec($sql);
-                }
-            }
-        } catch (Exception $e) {
-            error_log("RolRepository::migrarColumnas: " . $e->getMessage());
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // CATÁLOGO DE ROLES
+    // LISTADOS Y OBTENCIÓN INDIVIDUAL
     // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Listar todos los roles con conteo de módulos asignados.
-     */
-    public function obtenerTodos(): array {
-        $sql = "SELECT r.id,
-                       r.cod_rol,
-                       r.nom_rol,
-                       r.descripcion,
-                       COALESCE(r.activo, 1) AS activo,
-                       r.fecha_update,
-                       COUNT(rpm.cod_mod) AS total_modulos
-                FROM adm_rol r
-                LEFT JOIN adm_rol_progr_modulo rpm ON rpm.id_rol = r.id
-                GROUP BY r.id
-                ORDER BY r.nom_rol ASC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+    public function listarRoles()
+    {
+        $query = "SELECT r.id, r.cod_rol, r.nom_rol, r.descripcion, r.activo,
+                         (SELECT COUNT(*) FROM adm_rol_progr_modulo_pic rpm WHERE rpm.id_rol = r.id AND rpm.id_programa = :id_programa) as total_modulos
+                  FROM adm_rol_pic r 
+                  WHERE r.id_programa = :id_programa 
+                  ORDER BY r.id DESC";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':id_programa' => $this->idPrograma]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Obtener un rol por ID.
-     */
-    public function obtenerPorId(int $id): ?array {
-        $stmt = $this->conn->prepare("SELECT * FROM adm_rol WHERE id = :id LIMIT 1");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
+    public function obtenerPorId($id)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM adm_rol_pic WHERE id = :id AND id_programa = :id_programa");
+        $stmt->execute([':id' => $id, ':id_programa' => $this->idPrograma]);
+        $rol = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    /**
-     * Crear un nuevo rol.
-     * @throws Exception si cod_rol ya existe
-     */
-    public function crear(array $data): int {
-        $codRol = strtoupper(trim($data['cod_rol']));
-        $nomRol = trim($data['nom_rol']);
-        $desc   = trim($data['descripcion'] ?? '');
-
-        $chk = $this->conn->prepare("SELECT COUNT(*) FROM adm_rol WHERE cod_rol = :c");
-        $chk->execute([':c' => $codRol]);
-        if ((int)$chk->fetchColumn() > 0) {
-            throw new Exception("Ya existe un rol con el código «{$codRol}».");
+        if ($rol) {
+            // Obtenemos el arreglo simple de IDs de módulos marcados
+            $stmtPermisos = $this->conn->prepare("SELECT cod_mod FROM adm_rol_progr_modulo_pic WHERE id_rol = :id AND id_programa = :id_programa");
+            $stmtPermisos->execute([':id' => $id, ':id_programa' => $this->idPrograma]);
+            $rol['permisos'] = $stmtPermisos->fetchAll(PDO::FETCH_COLUMN);
         }
 
-        $stmt = $this->conn->prepare(
-            "INSERT INTO adm_rol (cod_rol, nom_rol, descripcion, activo, fecha_update)
-             VALUES (:cod, :nom, :desc, 1, NOW())"
-        );
-        $stmt->execute([':cod' => $codRol, ':nom' => $nomRol, ':desc' => $desc ?: null]);
-        return (int)$this->conn->lastInsertId();
+        return $rol;
     }
 
-    /**
-     * Actualizar nombre y descripción de un rol.
-     */
-    public function actualizar(int $id, string $nomRol, string $descripcion): bool {
-        $stmt = $this->conn->prepare(
-            "UPDATE adm_rol
-                SET nom_rol     = :nom,
-                    descripcion = :desc,
-                    fecha_update = NOW()
-              WHERE id = :id"
-        );
+    // Retorna la estructura jerárquica para dibujar los Checkboxes de Permisos
+    public function obtenerModulosPrograma()
+    {
+        $query = "SELECT cod_mod, nom_mod, tipo, parent_cod, orden, icono 
+                  FROM amd_dashboard_modulos_pic 
+                  WHERE id_programa = :id_programa 
+                  ORDER BY parent_cod, orden";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':id_programa' => $this->idPrograma]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // CREAR Y EDITAR (Con Transacción Atómica)
+    // ─────────────────────────────────────────────────────────────────────
+    public function guardar($datos, $modulosPermitidos, $isEdit = false)
+    {
+        try {
+            $this->conn->beginTransaction();
+            $idRol = null;
+
+            if ($isEdit) {
+                // ACTUALIZAR ROL
+                $query = "UPDATE adm_rol_pic SET cod_rol = :cod_rol, nom_rol = :nom_rol, descripcion = :descripcion 
+                          WHERE id = :id AND id_programa = :id_programa";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute([
+                    ':cod_rol' => strtoupper(trim($datos['cod_rol'])),
+                    ':nom_rol' => trim($datos['nom_rol']),
+                    ':descripcion' => $datos['descripcion'] ?? null,
+                    ':id' => $datos['id'],
+                    ':id_programa' => $this->idPrograma
+                ]);
+                $idRol = $datos['id'];
+            } else {
+                // CREAR ROL
+                $query = "INSERT INTO adm_rol_pic (cod_rol, nom_rol, descripcion, activo, id_programa, fecha_creacion) 
+                          VALUES (:cod_rol, :nom_rol, :descripcion, 1, :id_programa, NOW())";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute([
+                    ':cod_rol' => strtoupper(trim($datos['cod_rol'])),
+                    ':nom_rol' => trim($datos['nom_rol']),
+                    ':descripcion' => $datos['descripcion'] ?? null,
+                    ':id_programa' => $this->idPrograma
+                ]);
+                $idRol = $this->conn->lastInsertId();
+            }
+
+            // REEMPLAZAR PERMISOS DE MÓDULOS
+            // 1. Borramos los permisos actuales para este rol y programa
+            $stmtDel = $this->conn->prepare("DELETE FROM adm_rol_progr_modulo_pic WHERE id_rol = :id_rol AND id_programa = :id_programa");
+            $stmtDel->execute([':id_rol' => $idRol, ':id_programa' => $this->idPrograma]);
+
+            // 2. Insertamos los nuevos marcados
+            if (!empty($modulosPermitidos) && is_array($modulosPermitidos)) {
+                $placeholders = [];
+                $valores = [];
+
+                foreach ($modulosPermitidos as $codMod) {
+                    $placeholders[] = "(?, ?, ?)";
+                    $valores[] = $idRol;
+                    $valores[] = $this->idPrograma;
+                    $valores[] = $codMod;
+                }
+
+                $queryIns = "INSERT INTO adm_rol_progr_modulo_pic (id_rol, id_programa, cod_mod) VALUES " . implode(', ', $placeholders);
+                $stmtIns = $this->conn->prepare($queryIns);
+                $stmtIns->execute($valores);
+            }
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // VALIDACIONES Y CAMBIO DE ESTADO
+    // ─────────────────────────────────────────────────────────────────────
+    public function eliminar($id)
+    {
+        // Verificar que ningún usuario esté utilizando este rol en la tabla _pic
+        $sqlCheck = "SELECT COUNT(*) 
+                     FROM adm_usuario_rol_pic ur 
+                     JOIN adm_rol_pic r ON r.cod_rol = ur.cod_rol
+                     WHERE r.id = :id AND r.id_programa = :id_programa AND ur.epre = 'RS'";
+
+        $stmtCheck = $this->conn->prepare($sqlCheck);
+        $stmtCheck->execute([
+            ':id' => $id,
+            ':id_programa' => $this->idPrograma
+        ]);
+
+        if ($stmtCheck->fetchColumn() > 0) {
+            throw new Exception("No puedes eliminar este rol porque hay usuarios asignados a él en Planta Incubación. Remueva los accesos primero.");
+        }
+
+        $this->conn->beginTransaction();
+        try {
+            // Eliminar asignaciones de módulos
+            $stmtDelPerm = $this->conn->prepare("DELETE FROM adm_rol_progr_modulo_pic WHERE id_rol = :id AND id_programa = :id_programa");
+            $stmtDelPerm->execute([':id' => $id, ':id_programa' => $this->idPrograma]);
+
+            // Eliminar el catálogo del rol
+            $stmtDelRol = $this->conn->prepare("DELETE FROM adm_rol_pic WHERE id = :id AND id_programa = :id_programa");
+            $stmtDelRol->execute([
+                ':id' => $id,
+                ':id_programa' => $this->idPrograma
+            ]);
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
+    public function cambiarEstado($id)
+    {
+        // Intercambia el estado entre 1 y 0
+        $stmt = $this->conn->prepare("UPDATE adm_rol_pic SET activo = IF(activo = 1, 0, 1) WHERE id = :id AND id_programa = :id_programa");
         return $stmt->execute([
-            ':nom'  => trim($nomRol),
-            ':desc' => trim($descripcion) ?: null,
-            ':id'   => $id,
+            ':id' => $id,
+            ':id_programa' => $this->idPrograma
         ]);
     }
 
-    /**
-     * Activar / desactivar un rol.
-     */
-    public function toggleActivo(int $id, int $activo): bool {
-        $stmt = $this->conn->prepare(
-            "UPDATE adm_rol
-                SET activo       = :a,
-                    fecha_update = NOW()
-              WHERE id = :id"
-        );
-        return $stmt->execute([':a' => $activo ? 1 : 0, ':id' => $id]);
-    }
+    public function existeCodRol($codRol, $idExcluir = null)
+    {
+        $query = "SELECT id FROM adm_rol_pic WHERE cod_rol = :cod_rol AND id_programa = :id_programa";
+        $params = [':cod_rol' => $codRol, ':id_programa' => $this->idPrograma];
 
-    /**
-     * Eliminar permanentemente un rol y todas sus asignaciones en cascada.
-     * @throws Exception si el rol no existe
-     */
-    public function eliminar(int $id): void {
-        $chk = $this->conn->prepare("SELECT COUNT(*) FROM adm_rol WHERE id = :id");
-        $chk->execute([':id' => $id]);
-        if ((int)$chk->fetchColumn() === 0) {
-            throw new Exception("El rol con ID {$id} no existe.");
+        if ($idExcluir) {
+            $query .= " AND id != :id_excluir";
+            $params[':id_excluir'] = $idExcluir;
         }
 
-        $this->conn->beginTransaction();
-        try {
-            $this->conn->prepare(
-                "DELETE FROM adm_usuario_rol
-                  WHERE cod_rol = (SELECT cod_rol FROM adm_rol WHERE id = :id)"
-            )->execute([':id' => $id]);
-
-            $this->conn->prepare(
-                "DELETE FROM adm_rol_progr_modulo WHERE id_rol = :id"
-            )->execute([':id' => $id]);
-
-            $this->conn->prepare(
-                "DELETE FROM adm_rol WHERE id = :id"
-            )->execute([':id' => $id]);
-
-            $this->conn->commit();
-        } catch (Exception $e) {
-            $this->conn->rollBack();
-            throw $e;
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // MÓDULOS POR ROL
-    // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Obtener los cod_mod asignados a un rol (opcionalmente filtrado por programa).
-     *
-     * @return string[]
-     */
-    public function obtenerModulosDeRol(int $idRol, string $idPrograma = ''): array {
-        if ($idPrograma !== '') {
-            $stmt = $this->conn->prepare(
-                "SELECT cod_mod FROM adm_rol_progr_modulo
-                  WHERE id_rol = :id AND id_programa = :prog"
-            );
-            $stmt->execute([':id' => $idRol, ':prog' => $idPrograma]);
-        } else {
-            $stmt = $this->conn->prepare(
-                "SELECT cod_mod FROM adm_rol_progr_modulo WHERE id_rol = :id"
-            );
-            $stmt->execute([':id' => $idRol]);
-        }
-        return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'cod_mod');
-    }
-
-    /**
-     * Guardar (reemplazar) los módulos de un rol para un programa dado.
-     */
-    public function guardarModulos(int $idRol, string $idPrograma, array $codMods): void {
-        $this->conn->beginTransaction();
-        try {
-            $this->conn->prepare(
-                "DELETE FROM adm_rol_progr_modulo WHERE id_rol = :id AND id_programa = :prog"
-            )->execute([':id' => $idRol, ':prog' => $idPrograma]);
-
-            if (!empty($codMods)) {
-                $ins = $this->conn->prepare(
-                    "INSERT IGNORE INTO adm_rol_progr_modulo
-                        (id_rol, id_programa, cod_mod, fecha_creacion, fecha_actualizacion)
-                     VALUES (:id, :prog, :mod, NOW(), NOW())"
-                );
-                foreach ($codMods as $cod) {
-                    $ins->execute([':id' => $idRol, ':prog' => $idPrograma, ':mod' => trim($cod)]);
-                }
-            }
-            $this->conn->commit();
-        } catch (Exception $e) {
-            $this->conn->rollBack();
-            throw $e;
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // MENÚS DISPONIBLES (árbol de checkboxes)
-    // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Retorna los módulos de un programa para construir el árbol de checkboxes.
-     */
-    public function obtenerMenusDisponibles(string $idPrograma): array {
-        $stmt = $this->conn->prepare(
-            "SELECT cod_mod, tipo, parent_cod, nom_mod, label_short,
-                    icono, url, nivel0, nivel1, nivel2, nivel3, orden
-               FROM amd_dashboard_modulos
-              WHERE id_programa = :prog
-              ORDER BY orden, nivel0, nivel1, nivel2"
-        );
-        $stmt->execute([':prog' => $idPrograma]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // PROGRAMAS
-    // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Retorna todos los programas disponibles en amd_programas.
-     */
-    public function obtenerProgramas(): array {
-        $stmt = $this->conn->query(
-            "SELECT id_programa, nombre FROM amd_programas ORDER BY nombre ASC"
-        );
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchColumn() !== false;
     }
 }
-
+?>

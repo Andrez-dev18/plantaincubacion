@@ -14,14 +14,11 @@ return function($container) {
     }
     if (empty($path)) { $path = '/'; }
 
-    if ($method === 'GET'  && preg_match('#^/api/rol/listar$#', $path))             { $ctrl->listar();           exit; }
-    if ($method === 'GET'  && preg_match('#^/api/rol/programas$#', $path))          { $ctrl->listarProgramas();  exit; }
-    if ($method === 'GET'  && preg_match('#^/api/rol/menus-disponibles$#', $path))  { $ctrl->menusDisponibles(); exit; }
-    if ($method === 'GET'  && preg_match('#^/api/rol/modulos$#', $path))            { $ctrl->obtenerModulos();   exit; }
-    if ($method === 'POST' && preg_match('#^/api/rol/crear$#', $path))              { $ctrl->crear();            exit; }
-    if ($method === 'POST' && preg_match('#^/api/rol/actualizar$#', $path))         { $ctrl->actualizar();       exit; }
+    if (($method === 'GET' || $method === 'POST') && preg_match('#^/api/rol/listar$#', $path))             { $ctrl->listar();           exit; }
+    if (($method === 'GET' || $method === 'POST') && preg_match('#^/api/rol/arbol$#', $path))              { $ctrl->obtenerModulosArbol(); exit; }
+    if ($method === 'POST' && preg_match('#^/api/rol/obtener$#', $path))            { $ctrl->obtener();          exit; }
+    if ($method === 'POST' && preg_match('#^/api/rol/guardar$#', $path))            { $ctrl->guardar();          exit; }
     if ($method === 'POST' && preg_match('#^/api/rol/toggle$#', $path))             { $ctrl->toggleActivo();     exit; }
-    if ($method === 'POST' && preg_match('#^/api/rol/guardar-modulos$#', $path))    { $ctrl->guardarModulos();   exit; }
     if ($method === 'POST' && preg_match('#^/api/rol/eliminar$#', $path))           { $ctrl->eliminar();         exit; }
 
     return false;

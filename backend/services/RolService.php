@@ -1,19 +1,22 @@
 <?php
 require_once __DIR__ . '/../repositories/RolRepository.php';
 
-class RolService {
+class RolService
+{
     private $repo;
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->repo = new RolRepository($db);
     }
 
-    /**
-     * Listar todos los roles
-     */
-    public function listar() {
+    // ─────────────────────────────────────────────────────────────────────
+    // LISTADOS Y OBTENCIÓN INDIVIDUAL
+    // ─────────────────────────────────────────────────────────────────────
+    public function listarRoles()
+    {
         try {
-            $roles = $this->repo->obtenerTodos();
+            $roles = $this->repo->listarRoles();
             return [
                 'success' => true,
                 'data' => $roles
@@ -26,48 +29,10 @@ class RolService {
         }
     }
 
-    /**
-     * Listar roles de un programa específico
-     */
-    public function listarPorPrograma($programa) {
+    public function obtenerModulosArbol()
+    {
         try {
-            $roles = $this->repo->obtenerPorPrograma($programa);
-            return [
-                'success' => true,
-                'data' => $roles
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener roles: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Obtener lista de programas
-     */
-    public function obtenerProgramas() {
-        try {
-            $programas = $this->repo->obtenerProgramas();
-            return [
-                'success' => true,
-                'data' => $programas
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener programas: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Obtener módulos de un programa
-     */
-    public function obtenerModulosPorPrograma($idPrograma) {
-        try {
-            $modulos = $this->repo->obtenerModulosPorPrograma($idPrograma);
+            $modulos = $this->repo->obtenerModulosPrograma();
             return [
                 'success' => true,
                 'data' => $modulos
@@ -75,85 +40,21 @@ class RolService {
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error al obtener módulos: ' . $e->getMessage()
+                'message' => 'Error al obtener el árbol de módulos: ' . $e->getMessage()
             ];
         }
     }
 
-    /**
-     * Obtener módulos asignados a un rol agrupados por programa
-     */
-    public function obtenerModulosAgrupadosPorPrograma($idRol) {
+    public function obtenerPorId($id)
+    {
         try {
-            $programas = $this->repo->obtenerModulosAgrupadosPorPrograma($idRol);
-            return [
-                'success' => true,
-                'data' => $programas
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener módulos asignados: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Obtener módulos asignados a un rol
-     */
-    public function obtenerModulosAsignados($idRol) {
-        try {
-            $modulos = $this->repo->obtenerModulosAsignados($idRol);
-            return [
-                'success' => true,
-                'data' => $modulos
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al obtener módulos asignados: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Asignar módulos a un rol
-     */
-    public function asignarModulos($idRol, $idPrograma, $modulos) {
-        try {
-            $resultado = $this->repo->asignarModulos($idRol, $idPrograma, $modulos);
-            
-            if ($resultado) {
-                return [
-                    'success' => true,
-                    'message' => 'Módulos asignados exitosamente'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Error al asignar módulos'
-                ];
+            if (empty($id)) {
+                return ['success' => false, 'message' => 'El identificador del rol no fue proporcionado.'];
             }
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al asignar módulos: ' . $e->getMessage()
-            ];
-        }
-    }
 
-    /**
-     * Obtener un rol por ID
-     */
-    public function obtenerPorId($idRol) {
-        try {
-            $rol = $this->repo->obtenerPorId($idRol);
-            
+            $rol = $this->repo->obtenerPorId($id);
             if (!$rol) {
-                return [
-                    'success' => false,
-                    'message' => 'Rol no encontrado'
-                ];
+                return ['success' => false, 'message' => 'Rol no encontrado.'];
             }
 
             return [
@@ -168,172 +69,106 @@ class RolService {
         }
     }
 
-    /**
-     * Crear un nuevo rol
-     */
-    public function crear($nombreRol, $descripcion, $programas = []) {
+    // ─────────────────────────────────────────────────────────────────────
+    // CREAR Y EDITAR ROL
+    // ─────────────────────────────────────────────────────────────────────
+    public function guardarRol($datos)
+    {
         try {
-            // Validaciones
-            if (empty($nombreRol)) {
+            $isEdit = !empty($datos['is_edit']) && ($datos['is_edit'] === 'true' || $datos['is_edit'] === '1' || $datos['is_edit'] === true);
+
+            if (empty($datos['cod_rol']) || empty($datos['nom_rol'])) {
+                return ['success' => false, 'message' => 'El código y nombre del rol son obligatorios.'];
+            }
+
+            // Normalización estricta (Mayúsculas y sin espacios)
+            $datos['cod_rol'] = strtoupper(trim(preg_replace('/\s+/', '_', $datos['cod_rol'])));
+
+            // Validación de duplicados
+            $idExcluir = $isEdit ? $datos['id'] : null;
+            if ($this->repo->existeCodRol($datos['cod_rol'], $idExcluir)) {
                 return [
-                    'success' => false,
-                    'message' => 'El nombre del rol es obligatorio'
+                    'success' => false, 
+                    'message' => "El código de rol '{$datos['cod_rol']}' ya se encuentra registrado en Planta Incubación."
                 ];
             }
 
-            if (empty($programas)) {
-                return [
-                    'success' => false,
-                    'message' => 'Debe asignar al menos un programa'
-                ];
-            }
+            // Limpieza perimetral de módulos
+            $modulosPermitidos = isset($datos['modulos_permitidos']) ? array_unique($datos['modulos_permitidos']) : [];
 
-            // Verificar que no exista
-            if ($this->repo->existeNombre($nombreRol)) {
-                return [
-                    'success' => false,
-                    'message' => 'Ya existe un rol con ese nombre'
-                ];
-            }
+            $resultado = $this->repo->guardar($datos, $modulosPermitidos, $isEdit);
 
-            $resultado = $this->repo->crear($nombreRol, '', $descripcion);
-
-            if ($resultado && isset($resultado['id_rol'])) {
-                $idRol = $resultado['id_rol'];
-                
-                // Asignar módulos para cada programa
-                foreach ($programas as $programa) {
-                    $idPrograma = $programa['id_programa'];
-                    $modulos = $programa['modulos'] ?? [];
-                    
-                    if (!empty($modulos)) {
-                        $this->repo->asignarModulos($idRol, $idPrograma, $modulos);
-                    }
-                }
-                
-                return [
-                    'success' => true,
-                    'message' => 'Rol creado exitosamente',
-                    'id_rol' => $idRol
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Error al crear el rol'
-                ];
-            }
+            return [
+                'success' => $resultado,
+                'message' => $isEdit ? 'Rol actualizado exitosamente.' : 'Rol creado exitosamente.'
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error al crear rol: ' . $e->getMessage()
+                'message' => 'Error al guardar el rol: ' . $e->getMessage()
             ];
         }
     }
 
-    /**
-     * Actualizar un rol
-     */
-    public function actualizar($idRol, $nombreRol, $descripcion, $programas = []) {
+    // ─────────────────────────────────────────────────────────────────────
+    // VALIDACIONES DE SEGURIDAD Y ESTADOS
+    // ─────────────────────────────────────────────────────────────────────
+    public function eliminarRol($id)
+    {
         try {
-            // Validaciones
-            if (empty($nombreRol)) {
-                return [
-                    'success' => false,
-                    'message' => 'El nombre del rol es obligatorio'
-                ];
-            }
+            // Verificamos primero si intentan borrar el registro administrativo
+            $rolActual = $this->repo->obtenerPorId($id);
 
-            if (empty($programas)) {
-                return [
-                    'success' => false,
-                    'message' => 'Debe asignar al menos un programa'
-                ];
-            }
-
-            // Verificar que el rol existe
-            $rolExistente = $this->repo->obtenerPorId($idRol);
-            if (!$rolExistente) {
-                return [
-                    'success' => false,
-                    'message' => 'Rol no encontrado'
-                ];
-            }
-
-            // Verificar nombre único
-            if ($this->repo->existeNombre($nombreRol, $idRol)) {
-                return [
-                    'success' => false,
-                    'message' => 'Ya existe un rol con ese nombre'
-                ];
-            }
-
-            $resultado = $this->repo->actualizar($idRol, $nombreRol, '', $descripcion);
-
-            if ($resultado) {
-                // Primero eliminar todas las asignaciones existentes del rol
-                $this->repo->eliminarModulosRol($idRol);
-                
-                // Asignar módulos para cada programa
-                foreach ($programas as $programa) {
-                    $idPrograma = $programa['id_programa'];
-                    $modulos = $programa['modulos'] ?? [];
-                    
-                    if (!empty($modulos)) {
-                        $this->repo->asignarModulos($idRol, $idPrograma, $modulos);
-                    }
+            if ($rolActual) {
+                $codRol = strtoupper($rolActual['cod_rol'] ?? '');
+                if ($id == 1 || $codRol === 'ADMIN-PLANTA' || $codRol === 'ADMIN_PLANTA' || $codRol === 'ADMIN') {
+                    return [
+                        'success' => false, 
+                        'message' => 'El rol de Administrador está blindado y no se puede eliminar por seguridad.'
+                    ];
                 }
-                
-                return [
-                    'success' => true,
-                    'message' => 'Rol actualizado exitosamente'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Error al actualizar el rol'
-                ];
             }
+
+            $resultado = $this->repo->eliminar($id);
+            return [
+                'success' => $resultado,
+                'message' => 'Rol eliminado exitosamente.'
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error al actualizar rol: ' . $e->getMessage()
+                'message' => $e->getMessage() // Aquí el repositorio lanza la alerta si hay usuarios asignados
             ];
         }
     }
 
-    /**
-     * Eliminar (desactivar) un rol
-     */
-    public function eliminar($idRol) {
+    public function cambiarEstado($id)
+    {
         try {
-            // Verificar que el rol existe
-            $rolExistente = $this->repo->obtenerPorId($idRol);
-            if (!$rolExistente) {
-                return [
-                    'success' => false,
-                    'message' => 'Rol no encontrado'
-                ];
+            $rolActual = $this->repo->obtenerPorId($id);
+
+            if ($rolActual) {
+                $codRol = strtoupper($rolActual['cod_rol'] ?? '');
+                // Protegemos el rol ADMIN de ser desactivado
+                if (($id == 1 || $codRol === 'ADMIN-PLANTA' || $codRol === 'ADMIN_PLANTA' || $codRol === 'ADMIN') && (int)$rolActual['activo'] === 1) {
+                    return [
+                        'success' => false, 
+                        'message' => 'Protección del Sistema: No se puede desactivar el acceso del rol Administrador principal.'
+                    ];
+                }
             }
 
-            $resultado = $this->repo->eliminar($idRol);
-
-            if ($resultado) {
-                return [
-                    'success' => true,
-                    'message' => 'Rol desactivado exitosamente'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Error al desactivar el rol'
-                ];
-            }
+            $resultado = $this->repo->cambiarEstado($id);
+            return [
+                'success' => $resultado,
+                'message' => 'Estado del rol actualizado.'
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error al eliminar rol: ' . $e->getMessage()
+                'message' => 'Error al cambiar estado: ' . $e->getMessage()
             ];
         }
     }
 }
-
+?>

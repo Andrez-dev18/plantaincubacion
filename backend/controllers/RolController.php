@@ -1,203 +1,120 @@
 <?php
 /**
- * RolController — Módulo Roles y Permisos
- *
- * Endpoints:
- *   GET  /api/rol/listar              → listar()
- *   GET  /api/rol/programas           → listarProgramas()
- *   GET  /api/rol/menus-disponibles   → menusDisponibles()
- *   GET  /api/rol/modulos             → obtenerModulos()
- *   POST /api/rol/crear               → crear()
- *   POST /api/rol/actualizar          → actualizar()
- *   POST /api/rol/toggle              → toggleActivo()
- *   POST /api/rol/guardar-modulos     → guardarModulos()
- *   POST /api/rol/eliminar            → eliminar()
- *
- * @package Backend
- * @subpackage Controllers
+ * RolController — Controlador Único y Optimizado (Planta Incubación)
+ * 
+ * Endpoints Unificados:
+ *   POST /api/rol/listar       -> listar()
+ *   POST /api/rol/arbol        -> obtenerModulosArbol()
+ *   POST /api/rol/obtener      -> obtener()
+ *   POST /api/rol/guardar      -> guardar() (Crea/Edita y asigna permisos)
+ *   POST /api/rol/toggle       -> toggleActivo()
+ *   POST /api/rol/eliminar     -> eliminar()
  */
+
+require_once __DIR__ . '/../services/RolService.php';
+require_once __DIR__ . '/../config/database.php';
+
 class RolController {
 
-    private $rolRepository;
+    private $service;
 
-    public function __construct($rolRepository) {
-        $this->rolRepository = $rolRepository;
+    public function __construct($dependency) {
+        // Mantenemos compatibilidad con el bootstrap por si inyecta el Repo o la BD
+        $db = ($dependency instanceof RolRepository) ? Database::getInstance()->getConnection() : $dependency;
+        $this->service = new RolService($db);
     }
 
-    // ─── helpers ──────────────────────────────────────────────────────────
+    // ─── Helpers ──────────────────────────────────────────────────────────
 
-    private function json($data, int $status = 200): void {
-        http_response_code($status);
+    private function jsonResponse($data, $statusCode = 200) {
+        http_response_code($statusCode);
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
-    private function input(): array {
-        return json_decode(file_get_contents('php://input'), true) ?? [];
+    private function getRequestData() {
+        $json = json_decode(file_get_contents('php://input'), true);
+        return $json ? $json : $_POST;
     }
 
-    // ─── GET /api/rol/listar ──────────────────────────────────────────────
+    // ─── Endpoints ────────────────────────────────────────────────────────
 
-    public function listar(): void {
-        try {
-            $roles = $this->rolRepository->obtenerTodos();
-            $this->json(['success' => true, 'data' => $roles]);
-        } catch (Exception $e) {
-            error_log('RolController::listar — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => 'Error al obtener roles.'], 500);
-        }
+    /**
+     * POST /api/rol/listar
+     * Lista todos los roles del Programa 1 (Planta Incubación)
+     */
+    public function listar() {
+        $resultado = $this->service->listarRoles();
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 500);
     }
 
-    // ─── GET /api/rol/programas ───────────────────────────────────────────
-
-    public function listarProgramas(): void {
-        try {
-            $programas = $this->rolRepository->obtenerProgramas();
-            $this->json(['success' => true, 'data' => $programas]);
-        } catch (Exception $e) {
-            error_log('RolController::listarProgramas — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => 'Error al obtener programas.'], 500);
-        }
+    /**
+     * POST /api/rol/arbol
+     * Obtiene el árbol completo de módulos para dibujar los Checkboxes
+     */
+    public function obtenerModulosArbol() {
+        $resultado = $this->service->obtenerModulosArbol();
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 500);
     }
 
-    // ─── GET /api/rol/menus-disponibles?id_programa=X ────────────────────
+    /**
+     * POST /api/rol/obtener
+     * Obtiene un rol específico y su arreglo de módulos permitidos
+     */
+    public function obtener() {
+        $data = $this->getRequestData();
+        $id = $data['id'] ?? null;
 
-    public function menusDisponibles(): void {
-        try {
-            $idPrograma = trim($_GET['id_programa'] ?? '');
-            if ($idPrograma === '') {
-                $this->json(['success' => true, 'data' => []]);
-                return;
-            }
-            $menus = $this->rolRepository->obtenerMenusDisponibles($idPrograma);
-            $this->json(['success' => true, 'data' => $menus]);
-        } catch (Exception $e) {
-            error_log('RolController::menusDisponibles — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => 'Error al obtener menús.'], 500);
+        if (!$id) {
+            $this->jsonResponse(['success' => false, 'message' => 'ID de rol requerido'], 400);
         }
+
+        $resultado = $this->service->obtenerPorId($id);
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 404);
     }
 
-    // ─── GET /api/rol/modulos?id_rol=X&id_programa=Y ─────────────────────
-
-    public function obtenerModulos(): void {
-        $idRol      = (int)($_GET['id_rol'] ?? 0);
-        $idPrograma = trim($_GET['id_programa'] ?? '');
-        if ($idRol <= 0) {
-            $this->json(['success' => false, 'message' => 'id_rol inválido.'], 400);
-            return;
-        }
-        try {
-            $modulos = $this->rolRepository->obtenerModulosDeRol($idRol, $idPrograma);
-            $this->json(['success' => true, 'data' => $modulos]);
-        } catch (Exception $e) {
-            error_log('RolController::obtenerModulos — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => 'Error al obtener módulos del rol.'], 500);
-        }
+    /**
+     * POST /api/rol/guardar
+     * Inserta o actualiza un rol Y guarda sus permisos asociados en una sola transacción
+     */
+    public function guardar() {
+        $data = $this->getRequestData();
+        $resultado = $this->service->guardarRol($data);
+        
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 400);
     }
 
-    // ─── POST /api/rol/crear ──────────────────────────────────────────────
+    /**
+     * POST /api/rol/toggle
+     * Activa o desactiva un rol (Protege al ADMIN)
+     */
+    public function toggleActivo() {
+        $data = $this->getRequestData();
+        $id = $data['id'] ?? null;
 
-    public function crear(): void {
-        try {
-            $data   = $this->input();
-            $codRol = trim($data['cod_rol'] ?? '');
-            $nomRol = trim($data['nom_rol'] ?? '');
-
-            if (empty($codRol)) {
-                $this->json(['success' => false, 'message' => 'El código del rol es obligatorio.'], 400);
-                return;
-            }
-            if (empty($nomRol)) {
-                $this->json(['success' => false, 'message' => 'El nombre del rol es obligatorio.'], 400);
-                return;
-            }
-
-            $id = $this->rolRepository->crear($data);
-            $this->json(['success' => true, 'message' => 'Rol creado correctamente.', 'id' => $id]);
-        } catch (Exception $e) {
-            error_log('RolController::crear — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => $e->getMessage()], 422);
+        if (!$id) {
+            $this->jsonResponse(['success' => false, 'message' => 'ID requerido'], 400);
         }
+
+        $resultado = $this->service->cambiarEstado($id);
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 400);
     }
 
-    // ─── POST /api/rol/actualizar ─────────────────────────────────────────
+    /**
+     * POST /api/rol/eliminar
+     * Elimina un rol validando que no tenga usuarios asignados
+     */
+    public function eliminar() {
+        $data = $this->getRequestData();
+        $id = $data['id'] ?? null;
 
-    public function actualizar(): void {
-        try {
-            $data = $this->input();
-            $id   = (int)($data['id'] ?? 0);
-            $nom  = trim($data['nom_rol'] ?? '');
-            $desc = trim($data['descripcion'] ?? '');
-
-            if ($id <= 0)   { $this->json(['success' => false, 'message' => 'ID inválido.'], 400); return; }
-            if (empty($nom)){ $this->json(['success' => false, 'message' => 'El nombre es obligatorio.'], 400); return; }
-
-            $this->rolRepository->actualizar($id, $nom, $desc);
-            $this->json(['success' => true, 'message' => 'Rol actualizado correctamente.']);
-        } catch (Exception $e) {
-            error_log('RolController::actualizar — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
+        if (!$id) {
+            $this->jsonResponse(['success' => false, 'message' => 'ID requerido'], 400);
         }
-    }
 
-    // ─── POST /api/rol/toggle ─────────────────────────────────────────────
-
-    public function toggleActivo(): void {
-        try {
-            $data   = $this->input();
-            $id     = (int)($data['id'] ?? 0);
-            $activo = (int)($data['activo'] ?? 0);
-
-            if ($id <= 0) { $this->json(['success' => false, 'message' => 'ID inválido.'], 400); return; }
-
-            $this->rolRepository->toggleActivo($id, $activo);
-            $estado = $activo ? 'activado' : 'desactivado';
-            $this->json(['success' => true, 'message' => "Rol {$estado} correctamente."]);
-        } catch (Exception $e) {
-            error_log('RolController::toggleActivo — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    // ─── POST /api/rol/guardar-modulos ────────────────────────────────────
-    // Body JSON: { "id_rol": X, "id_programa": "Y", "cod_mods": ["MOD1", ...] }
-
-    public function guardarModulos(): void {
-        try {
-            $data       = $this->input();
-            $idRol      = (int)($data['id_rol'] ?? 0);
-            $idPrograma = trim($data['id_programa'] ?? '');
-            $codMods    = $data['cod_mods'] ?? [];
-
-            if ($idRol <= 0)       { $this->json(['success' => false, 'message' => 'id_rol inválido.'], 400); return; }
-            if ($idPrograma === '') { $this->json(['success' => false, 'message' => 'id_programa requerido.'], 400); return; }
-            if (!is_array($codMods)){ $this->json(['success' => false, 'message' => 'cod_mods debe ser un arreglo.'], 400); return; }
-
-            $this->rolRepository->guardarModulos($idRol, $idPrograma, $codMods);
-            $this->json([
-                'success' => true,
-                'message' => count($codMods) . ' módulo(s) asignados correctamente.',
-            ]);
-        } catch (Exception $e) {
-            error_log('RolController::guardarModulos — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    // ─── POST /api/rol/eliminar ───────────────────────────────────────────
-
-    public function eliminar(): void {
-        try {
-            $data = $this->input();
-            $id   = (int)($data['id'] ?? 0);
-
-            if ($id <= 0) { $this->json(['success' => false, 'message' => 'ID inválido.'], 400); return; }
-
-            $this->rolRepository->eliminar($id);
-            $this->json(['success' => true, 'message' => 'Rol eliminado correctamente.']);
-        } catch (Exception $e) {
-            error_log('RolController::eliminar — ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $resultado = $this->service->eliminarRol($id);
+        $this->jsonResponse($resultado, $resultado['success'] ? 200 : 400);
     }
 }
+?>
