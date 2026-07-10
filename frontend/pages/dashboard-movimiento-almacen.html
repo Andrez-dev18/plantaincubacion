@@ -224,7 +224,7 @@
                                     <select id="grid-tcencos" class="w-full h-8 px-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 text-xs shadow-2xs">
                                         <option value="">Buscar cencos...</option>
                                     </select>
-                                    <span class="text-[10px] text-transparent select-none mt-0.5 block h-3.5 leading-3.5">.</span>
+                                    <span id="grid-res-cencos-nombre" class="text-[10px] text-slate-400 mt-0.5 block whitespace-nowrap h-3.5 leading-3.5">Centro: -</span>
                                 </div>
 
                                 <div class="flex flex-col gap-1 min-w-[220px] flex-1 shrink-0">
@@ -821,7 +821,7 @@
                     // Enfocar el botón de OK en el modal personalizado para cerrarlo con Enter
                     const btnAceptar = modal.querySelector('button');
                     if (btnAceptar) btnAceptar.focus();
-                }, 10);
+                }, 120);
 
                 window._resolveModal = () => {
                     cerrarModal();

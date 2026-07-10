@@ -24,12 +24,23 @@ const firePopup = (options = {}) => {
     if (!Swal?.fire) return Promise.resolve(null);
 
     const themed = getThemeSwalOptions();
+    const originalDidOpen = options.didOpen;
+
     return Swal.fire({
         ...themed,
         allowOutsideClick: false,
         allowEscapeKey: true,
         heightAuto: false,
-        ...options
+        ...options,
+        didOpen: (popup) => {
+            setTimeout(() => {
+                const btn = Swal.getConfirmButton();
+                if (btn) btn.focus();
+            }, 100);
+            if (typeof originalDidOpen === 'function') {
+                originalDidOpen(popup);
+            }
+        }
     });
 };
 

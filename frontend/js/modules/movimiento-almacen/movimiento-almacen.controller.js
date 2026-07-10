@@ -350,14 +350,15 @@ class MovimientoAlmacenController extends Component {
                 if (inst && !inst._navBound) {
                     inst._navBound = true;
 
-                    // Mostrar solo el código cuando se selecciona
-                    gridCencos.addEventListener('change', function () {
-                        if (this.value && this.searchableSelectInstance?.displayField) {
-                            const span = this.searchableSelectInstance.displayField.querySelector('span');
+                    // Mostrar solo el código cuando se selecciona y actualizar la etiqueta de nombre
+                    gridCencos.addEventListener('change', () => {
+                        if (gridCencos.value && gridCencos.searchableSelectInstance?.displayField) {
+                            const span = gridCencos.searchableSelectInstance.displayField.querySelector('span');
                             if (span) {
-                                span.textContent = this.value;
+                                span.textContent = gridCencos.value;
                             }
                         }
+                        this._actualizarCencosNombreLabel();
                     });
 
                     // Selección de cencos → navegar a producto y abrirlo
@@ -909,6 +910,31 @@ class MovimientoAlmacenController extends Component {
             const lote = e.target.value || '00000000';
             const codigo = this._getCodigoProductoActual();
             const alma = document.getElementById('talm')?.value || '';
+
+            // Sincronizar inmediatamente desde los lotes cargados en memoria
+            if (codigo && alma) {
+                const loteData = this._lotes?.find(l => String(l.lote).trim() === String(lote).trim());
+                if (loteData) {
+                    const qstock = Number(loteData.cantidad ?? 0);
+                    const pstock = Number(loteData.peso ?? 0);
+                    
+                    this._kardexBase = {
+                        qstock: Number.isFinite(qstock) ? qstock : 0,
+                        pstock: Number.isFinite(pstock) ? pstock : 0,
+                        cosuni: this._kardexBase?.cosuni ?? 0,
+                        vstock: this._kardexBase?.vstock ?? 0
+                    };
+                    
+                    this._kardexContext = {
+                        codigo: String(codigo ?? '').trim(),
+                        lote: this._normalizarLote(lote),
+                        alma: String(alma ?? '').trim()
+                    };
+
+                    this._actualizarResumenKardexDisponible({ codigo, lote });
+                }
+            }
+
             if (codigo && alma) {
                 await this._consultarKardex(codigo, lote, alma);
             }
@@ -922,8 +948,8 @@ class MovimientoAlmacenController extends Component {
         const importeEl = document.getElementById('grid-timport');
 
         cantidadEl?.addEventListener('input', () => this._actualizarImporteGrid());
-        cantidadEl?.addEventListener('blur', () => this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: false }));
-        cantidadEl?.addEventListener('change', () => this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: false }));
+        cantidadEl?.addEventListener('blur', () => this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: true }));
+        cantidadEl?.addEventListener('change', () => this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: true }));
         precioEl?.addEventListener('input', () => this._actualizarImporteGrid());
         importeEl?.addEventListener('input', () => this._actualizarPrecioDesdeImporteGrid());
 
@@ -1807,10 +1833,7 @@ class MovimientoAlmacenController extends Component {
 
         // Determinar dirección de la transacción (entrada o salida)
         const codtra = this._getFieldValue('tcodtra', '');
-        const trans = this._transacciones?.[codtra];
-        const esSalida = trans
-            ? (trans.gentsa == 1)
-            : (String(codtra).charAt(0).toUpperCase() === 'S');
+        const esSalida = String(codtra).charAt(0).toUpperCase() === 'S';
 
         // SALIDA: mostrar stock disponible (validación de no despachar más de lo que hay)
         // ENTRADA: mostrar stock base (no descontar nada, se está sumando al inventario)
@@ -1852,8 +1875,7 @@ class MovimientoAlmacenController extends Component {
 
         // Solo validar stock para SALIDAS; en ENTRADAS no hay límite de stock
         const codtra = this._getFieldValue('tcodtra', '');
-        const trans = this._transacciones?.[codtra];
-        const esSalida = trans ? (trans.gentsa == 1) : (String(codtra).charAt(0).toUpperCase() === 'S');
+        const esSalida = String(codtra).charAt(0).toUpperCase() === 'S';
         if (!esSalida) return true;
 
         const inputCantidad = document.getElementById('grid-tcantid');
@@ -1883,6 +1905,10 @@ class MovimientoAlmacenController extends Component {
             this._popupCantidadInsuficienteActivo = true;
             this._ultimoPopupCantidad = { key, at: now };
 
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+
             Promise.resolve(
                 this._popupWarning(`No hay cantidad suficiente en el lote actual. Disponible: ${disponible.toFixed(2)}.`)
             ).finally(() => {
@@ -1907,6 +1933,20 @@ class MovimientoAlmacenController extends Component {
         const { codigo, lote, alma } = this._kardexContext || {};
         if (!codigo || !alma) return;
         this._actualizarResumenKardexDisponible({ codigo, lote });
+    }
+
+    _actualizarCencosNombreLabel() {
+        const selectCencos = document.getElementById('grid-tcencos');
+        const lblNombre = document.getElementById('grid-res-cencos-nombre');
+        if (!lblNombre) return;
+
+        if (selectCencos && selectCencos.value) {
+            const option = selectCencos.selectedOptions[0];
+            const nombre = option ? (option.dataset.nombre || '') : '';
+            lblNombre.textContent = nombre ? `Centro: ${nombre}` : 'Centro: -';
+        } else {
+            lblNombre.textContent = 'Centro: -';
+        }
     }
 
     async _consultarKardex(codigo, lote, alma) {
@@ -2297,12 +2337,12 @@ class MovimientoAlmacenController extends Component {
 
     _popupSuccess(message) {
         if (window.SwalHelpers?.showSuccess) {
-            window.SwalHelpers.showSuccess(message);
-            return;
+            return window.SwalHelpers.showSuccess(message);
         }
         if (typeof mostrarModal === 'function') {
-            mostrarModal('Éxito', message, '✅');
+            return mostrarModal('Éxito', message, '✅');
         }
+        return Promise.resolve(null);
     }
 
     _popupWarning(message) {
@@ -2310,20 +2350,19 @@ class MovimientoAlmacenController extends Component {
             return window.SwalHelpers.showWarning(message);
         }
         if (typeof mostrarModal === 'function') {
-            mostrarModal('Advertencia', message, '⚠️');
-            return null;
+            return mostrarModal('Advertencia', message, '⚠️');
         }
-        return null;
+        return Promise.resolve(null);
     }
 
     _popupError(message) {
         if (window.SwalHelpers?.showError) {
-            window.SwalHelpers.showError(message);
-            return;
+            return window.SwalHelpers.showError(message);
         }
         if (typeof mostrarModal === 'function') {
-            mostrarModal('Error', message, '❌');
+            return mostrarModal('Error', message, '❌');
         }
+        return Promise.resolve(null);
     }
 
     async _popupConfirm(title, text) {
@@ -2772,11 +2811,17 @@ class MovimientoAlmacenController extends Component {
             && this._kardexContext.lote === loteActual
             && this._kardexContext.alma === alma;
 
-        if (contextoCoincide) {
-            this._actualizarResumenKardexDisponible({ codigo: item.tcodigo, lote: loteActual });
-            if (!this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: true })) {
-                return;
-            }
+        if (!contextoCoincide) {
+            this._kardexContext = {
+                codigo: item.tcodigo,
+                lote: loteActual,
+                alma: alma
+            };
+            this._recalcularResumenStockSegunContexto();
+        }
+
+        if (!this._validarCantidadDisponibleLote({ mostrarPopup: true, refocusInput: true })) {
+            return;
         }
 
         if (this._esUnidadKgs()) {
@@ -2897,6 +2942,7 @@ class MovimientoAlmacenController extends Component {
                 selectCencos.searchableSelectInstance.loadOptions();
                 selectCencos.searchableSelectInstance.updateDisplayText();
             }
+            this._actualizarCencosNombreLabel();
         }
 
         this._productoActual = {
@@ -3497,6 +3543,7 @@ class MovimientoAlmacenController extends Component {
         }
 
         this._actualizarCombosBuscablesFormulario({ recargarOpciones: true });
+        this._actualizarCencosNombreLabel();
 
         ['grupo-emidoc', 'grupo-guia', 'grupo-motivo', 'grupo-cencos',
             'grupo-ordcom', 'grupo-observacion', 'grupo-moneda', 'grupo-tipo-cambio'].forEach(id => {
