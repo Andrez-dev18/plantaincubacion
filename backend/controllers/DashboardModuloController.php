@@ -2,10 +2,9 @@
 /**
  * DashboardModuloController
  *
- * Controlador para el orden del dashboard
+ * Controlador para gestionar el menú del dashboard
+ * Adaptado a la lógica del sistema mejorado con programa ID 1
  */
-
-require_once __DIR__ . '/../services/DashboardModuloService.php';
 
 class DashboardModuloController {
     private $service;
@@ -15,238 +14,127 @@ class DashboardModuloController {
     }
 
     /**
-     * GET /dashboard-modulos?programa=...
+     * Obtener el menú jerárquico del usuario autenticado
+     * GET /menu/obtener
+     */
+    public function obtener() {
+        header('Content-Type: application/json; charset=UTF-8');
+
+        try {
+            $usuarioActual = $_SESSION['username'] ?? $_SESSION['usuario'] ?? null;
+            $epre = $_SESSION['epre'] ?? 'RS';
+
+            if (!$usuarioActual) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Usuario no autenticado']);
+                return;
+            }
+
+            $menuArbol = $this->service->obtenerMenuJerarquico($usuarioActual, $epre);
+
+            if (!empty($menuArbol)) {
+                echo json_encode(['success' => true, 'data' => $menuArbol]);
+            } else {
+                echo json_encode(['success' => true, 'data' => [], 'message' => 'El usuario no tiene roles asignados']);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Listar todos los módulos
+     * GET /menu/listar
      */
     public function listar() {
+        header('Content-Type: application/json; charset=UTF-8');
         try {
-            header('Content-Type: application/json; charset=UTF-8');
+            $data = $this->service->listarTodos();
+            echo json_encode(['success' => true, 'data' => $data]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 
-            $programa = isset($_GET['programa']) && $_GET['programa'] !== ''
-                ? $_GET['programa']
-                : null;
+    /**
+     * Listar grupos de módulos
+     * GET /menu/grupos
+     */
+    public function listarGrupos() {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $data = $this->service->listarGrupos();
+            echo json_encode(['success' => true, 'data' => $data]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 
-            // Leer usuario de la sesión PHP (nuevo sistema: 'username'; legacy: 'usuario')
-            $userCodigo = $_SESSION['username'] ?? $_SESSION['usuario'] ?? null;
-
-            // Sin sesión activa → devolver vacío (el frontend redirigirá al login)
-            if (empty($userCodigo)) {
-                echo json_encode(['success' => true, 'data' => []]);
-                return;
+    /**
+     * Obtener un módulo por ID
+     * GET /menu/obtenerPorId?id=X
+     */
+    public function obtenerModulosId() {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $id = $_GET['id'] ?? null;
+            if (!$id) {
+                throw new Exception("ID no proporcionado.");
             }
 
-            $data = $this->service->listar($programa, $userCodigo);
-
-            echo json_encode([
-                'success' => true,
-                'data' => $data
-            ]);
+            $data = $this->service->obtenerPorId($id);
+            echo json_encode(['success' => true, 'data' => $data]);
         } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::listar: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al listar modulos del dashboard: ' . $e->getMessage()
-            ]);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * POST /dashboard-modulos/seed
+     * Guardar (crear o actualizar) un módulo
+     * POST /menu/guardar
      */
-    public function seed() {
+    public function guardar() {
+        header('Content-Type: application/json; charset=UTF-8');
         try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-            $programa = $data['programa'] ?? ($_GET['programa'] ?? 'Planta de Incubacion');
-
-            $inserted = $this->service->seedIfEmpty($programa);
-
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'inserted' => $inserted
-                ]
-            ]);
-        } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::seed: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al sembrar modulos del dashboard: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * PATCH /dashboard-modulos/orden
-     */
-    public function mover() {
-        try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-            $programa = $data['programa'] ?? 'Planta de Incubacion';
-            $codMod = $data['cod_mod'] ?? null;
-            $direction = $data['direction'] ?? null;
-
-            if (!$codMod || !in_array($direction, ['up', 'down'], true)) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Datos incompletos para ordenar'
-                ]);
-                return;
+            // Recibimos los datos (Puede ser $_POST estándar o JSON payload)
+            $datos = $_POST;
+            if (empty($datos)) {
+                $datos = json_decode(file_get_contents("php://input"), true) ?: [];
             }
 
-            $result = $this->service->mover($programa, $codMod, $direction);
+            $this->service->guardarModulo($datos);
 
-            echo json_encode($result);
+            $mensaje = empty($datos['id']) ? "Módulo creado correctamente." : "Módulo actualizado correctamente.";
+            echo json_encode(['success' => true, 'message' => $mensaje]);
         } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::mover: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al ordenar modulos del dashboard: ' . $e->getMessage()
-            ]);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * POST /dashboard-modulos/sync
-     */
-    public function sync() {
-        try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-            $programa = $data['programa'] ?? 'Planta de Incubacion';
-            $items = $data['items'] ?? [];
-
-            if (!is_array($items) || empty($items)) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'No hay items para sincronizar'
-                ]);
-                return;
-            }
-
-            $inserted = $this->service->syncFromList($programa, $items);
-
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'inserted' => $inserted
-                ]
-            ]);
-        } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::sync: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al sincronizar modulos del dashboard: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * POST /dashboard-modulos
-     */
-    public function crear() {
-        try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-
-            if (empty($data['cod_mod']) || empty($data['nom_mod']) || empty($data['tipo'])) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Campos obligatorios: cod_mod, nom_mod, tipo'
-                ]);
-                return;
-            }
-
-            $result = $this->service->crear($data);
-
-            echo json_encode([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Módulo creado correctamente'
-            ]);
-        } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::crear: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al crear módulo: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * PUT /dashboard-modulos
-     */
-    public function actualizar() {
-        try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-            
-            // Remover campo _method si existe (method override)
-            unset($data['_method']);
-
-            if (empty($data['cod_mod'])) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'El campo cod_mod es obligatorio'
-                ]);
-                return;
-            }
-
-            $result = $this->service->actualizar($data);
-
-            echo json_encode([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Módulo actualizado correctamente'
-            ]);
-        } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::actualizar: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al actualizar módulo: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * DELETE /dashboard-modulos
+     * Eliminar un módulo por ID
+     * POST /menu/eliminar
      */
     public function eliminar() {
+        header('Content-Type: application/json; charset=UTF-8');
         try {
-            $data = json_decode(file_get_contents('php://input'), true) ?: [];
-            
-            // Remover campo _method si existe (method override)
-            unset($data['_method']);
+            $datos = json_decode(file_get_contents("php://input"), true);
+            $id = $datos['id'] ?? $_POST['id'] ?? null;
 
-            if (empty($data['cod_mod'])) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'El campo cod_mod es obligatorio'
-                ]);
-                return;
+            if (!$id) {
+                throw new Exception("ID no proporcionado.");
             }
 
-            $result = $this->service->eliminar($data['cod_mod'], $data['programa'] ?? 'Planta de Incubacion');
-
-            echo json_encode([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Módulo eliminado correctamente'
-            ]);
+            $this->service->eliminarModulo($id);
+            echo json_encode(['success' => true, 'message' => "Módulo eliminado correctamente."]);
         } catch (Exception $e) {
-            error_log("Error en DashboardModuloController::eliminar: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al eliminar módulo: ' . $e->getMessage()
-            ]);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 }
-

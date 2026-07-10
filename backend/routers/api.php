@@ -76,6 +76,9 @@ try {
     $dashboardModuloRoutes = require_once __DIR__ . '/../routes/dashboard-modulo.php';
     $dashboardModuloRoutes($container);
 
+    $menuRoutes = require_once __DIR__ . '/../routes/menu.php';
+    $menuRoutes($container);
+
     $movimientoAlmacenRoutes = require_once __DIR__ . '/../routes/movimiento-almacen.routes.php';
     $movimientoAlmacenRoutes($container);
 

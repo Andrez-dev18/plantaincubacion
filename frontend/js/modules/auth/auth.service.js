@@ -250,6 +250,20 @@ class AuthService extends Service {
             nombre: sessionStorage.getItem('user_rol_nombre')
         };
     }
+
+    /**
+     * Obtiene el menú jerárquico del usuario autenticado
+     * @returns {Promise<object>}
+     */
+    async obtenerMenu() {
+        try {
+            const response = await this.get('/menu/obtener');
+            return response;
+        } catch (error) {
+            console.error('Error en obtenerMenu:', error);
+            return { success: false, message: error.message };
+        }
+    }
 }
 
 window.AuthService = AuthService;

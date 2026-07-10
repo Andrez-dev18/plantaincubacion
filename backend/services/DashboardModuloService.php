@@ -2,7 +2,8 @@
 /**
  * DashboardModuloService
  *
- * Servicio para gestionar orden del dashboard
+ * Servicio para gestionar el menú del dashboard
+ * Adaptado a la lógica del sistema mejorado con programa ID 1
  */
 
 require_once __DIR__ . '/../repositories/DashboardModuloRepository.php';
@@ -15,242 +16,115 @@ class DashboardModuloService {
     }
 
     /**
-     * Listar modulos del dashboard por programa
+     * Obtener menú jerárquico para el usuario
      *
-     * @param string|null $programa
-     * @param string|null $userCodigo  Si se provee, filtra solo módulos accesibles para ese usuario
+     * @param string $usuarioCodigo
+     * @param string $epre
      * @return array
      */
-    public function listar($programa, string $userCodigo = null) {
-        // Si hay usuario en sesión, filtrar por sus roles
-        if ($userCodigo !== null && $userCodigo !== '') {
-            return $this->repo->findAllByProgramaParaUsuario($programa, $userCodigo);
+    public function obtenerMenuJerarquico($usuarioCodigo, $epre) {
+        if (empty($usuarioCodigo) || empty($epre)) {
+            throw new Exception("Faltan datos de identificación del usuario.");
         }
-        return $this->repo->findAllByPrograma($programa);
+
+        $modulosPlanos = $this->repo->getMenuPermitido($usuarioCodigo, $epre, '1');
+
+        return $this->construirArbol($modulosPlanos);
     }
 
     /**
-     * Sembrar modulos desde tabla modulos si esta vacio
+     * Función recursiva para armar el árbol de carpetas e items
      *
-     * @param string $programa
-     * @return int
-     */
-    public function seedIfEmpty($programa) {
-        $count = $this->repo->countByPrograma($programa);
-        if ($count > 0) {
-            return 0;
-        }
-
-        return $this->repo->seedFromModulos($programa);
-    }
-
-    /**
-     * Mover un item en el orden
-     *
-     * @param string $programa
-     * @param string $codMod
-     * @param string $direction
+     * @param array $elementos
+     * @param string|null $parentId
      * @return array
      */
-    public function mover($programa, $codMod, $direction) {
-        $list = $this->repo->findOrdenList($programa);
+    private function construirArbol(array $elementos, $parentId = null) {
+        $branch = array();
 
-        $index = -1;
-        $current = null;
+        foreach ($elementos as $elemento) {
+            if ($elemento['parent_cod'] == $parentId) {
+                $children = $this->construirArbol($elementos, $elemento['cod_mod']);
 
-        foreach ($list as $i => $row) {
-            if ($row['cod_mod'] === $codMod) {
-                $index = $i;
-                $current = $row;
-                break;
-            }
-        }
-
-        if ($index === -1 || !$current) {
-            return [
-                'success' => false,
-                'message' => 'Modulo no encontrado'
-            ];
-        }
-
-        if ($current['tipo'] === 'group') {
-            $blocks = [];
-            $currentBlockIndex = -1;
-
-            foreach ($list as $row) {
-                if ($row['tipo'] === 'group') {
-                    $blocks[] = [
-                        'groupCod' => $row['cod_mod'],
-                        'rows' => [$row]
-                    ];
-                    if ($row['cod_mod'] === $current['cod_mod']) {
-                        $currentBlockIndex = count($blocks) - 1;
-                    }
-                    continue;
-                }
-
-                $lastIndex = count($blocks) - 1;
-                if ($lastIndex >= 0 && $blocks[$lastIndex]['groupCod'] && $row['parent_cod'] === $blocks[$lastIndex]['groupCod']) {
-                    $blocks[$lastIndex]['rows'][] = $row;
+                if ($children) {
+                    $elemento['children'] = $children;
                 } else {
-                    $blocks[] = [
-                        'groupCod' => null,
-                        'rows' => [$row]
-                    ];
+                    $elemento['children'] = [];
                 }
-            }
 
-            if ($currentBlockIndex === -1) {
-                return [
-                    'success' => false,
-                    'message' => 'No se pudo identificar el grupo'
-                ];
-            }
-
-            $targetIndex = $direction === 'up' ? $currentBlockIndex - 1 : $currentBlockIndex + 1;
-            while ($targetIndex >= 0 && $targetIndex < count($blocks)) {
-                if ($blocks[$targetIndex]['groupCod']) {
-                    break;
-                }
-                $targetIndex = $direction === 'up' ? $targetIndex - 1 : $targetIndex + 1;
-            }
-
-            if ($targetIndex < 0 || $targetIndex >= count($blocks)) {
-                return [
-                    'success' => false,
-                    'message' => 'No se puede mover en esa direccion'
-                ];
-            }
-
-            $movingBlock = $blocks[$currentBlockIndex];
-            array_splice($blocks, $currentBlockIndex, 1);
-            if ($direction === 'up') {
-                array_splice($blocks, $targetIndex, 0, [$movingBlock]);
-            } else {
-                $insertIndex = $targetIndex;
-                if ($currentBlockIndex < $targetIndex) {
-                    $insertIndex = $targetIndex; // ya removido el bloque actual
-                } else {
-                    $insertIndex = $targetIndex + 1;
-                }
-                array_splice($blocks, $insertIndex, 0, [$movingBlock]);
-            }
-
-            $orderedCods = [];
-            foreach ($blocks as $block) {
-                foreach ($block['rows'] as $row) {
-                    $orderedCods[] = $row['cod_mod'];
-                }
-            }
-
-            $this->repo->updateOrdenFromList($programa, $orderedCods);
-
-            return [
-                'success' => true,
-                'message' => 'Orden actualizado'
-            ];
-        }
-
-        $siblings = array_values(array_filter($list, function ($row) use ($current) {
-            $parentA = $row['parent_cod'] ?? null;
-            $parentB = $current['parent_cod'] ?? null;
-
-            return $row['tipo'] === $current['tipo'] && $parentA === $parentB;
-        }));
-
-        $siblingsIndex = -1;
-        foreach ($siblings as $i => $row) {
-            if ($row['cod_mod'] === $codMod) {
-                $siblingsIndex = $i;
-                break;
+                $branch[] = $elemento;
             }
         }
-
-        $targetIndex = $direction === 'up' ? $siblingsIndex - 1 : $siblingsIndex + 1;
-        if ($targetIndex < 0 || $targetIndex >= count($siblings)) {
-            return [
-                'success' => false,
-                'message' => 'No se puede mover en esa direccion'
-            ];
-        }
-
-        $target = $siblings[$targetIndex];
-
-        $this->repo->swapOrden(
-            $programa,
-            $current['cod_mod'],
-            $target['cod_mod'],
-            (int)$current['orden'],
-            (int)$target['orden']
-        );
-
-        return [
-            'success' => true,
-            'message' => 'Orden actualizado'
-        ];
+        return $branch;
     }
 
     /**
-     * Sincronizar el orden completo desde una lista
+     * Listar todos los módulos del programa por defecto (ID 1)
      *
-     * @param string $programa
-     * @param array $items
-     * @return int
-     */
-    public function syncFromList($programa, $items) {
-        return $this->repo->replaceForPrograma($programa, $items);
-    }
-
-    /**
-     * Crear un nuevo módulo
-     *
-     * @param array $data
      * @return array
      */
-    public function crear($data) {
-        $programa = $data['programa'] ?? 'Planta de Incubacion';
-        
-        // Inferir niveles automáticamente si no están presentes
-        if (empty($data['nivel0'])) {
-            if ($data['tipo'] === 'group') {
-                // Para grupos, extraer número de grp-X
-                if (preg_match('/grp-(\\d+)/', $data['cod_mod'], $matches)) {
-                    $data['nivel0'] = (int)$matches[1];
-                }
-            } elseif ($data['tipo'] === 'item' && !empty($data['parent_cod'])) {
-                // Para items, extraer números de item-X-Y
-                if (preg_match('/item-(\\d+)-(\\d+)/', $data['cod_mod'], $matches)) {
-                    $data['nivel0'] = (int)$matches[1];
-                    $data['nivel1'] = (int)$matches[2];
-                }
-            }
+    public function listarTodos() {
+        return $this->repo->listarModulosMenu('1');
+    }
+
+    /**
+     * Listar grupos de módulos del programa por defecto (ID 1)
+     *
+     * @return array
+     */
+    public function listarGrupos() {
+        return $this->repo->listarModulosGrupos('1');
+    }
+
+    /**
+     * Obtener un módulo por ID
+     *
+     * @param int|string $id
+     * @return array|false
+     */
+    public function obtenerPorId($id) {
+        return $this->repo->obtenerPorId($id);
+    }
+
+    /**
+     * Guardar (insertar o actualizar) un módulo
+     *
+     * @param array $datos
+     * @return bool
+     */
+    public function guardarModulo($datos) {
+        // Validaciones básicas
+        if (empty($datos['cod_mod']) || empty($datos['nom_mod']) || empty($datos['tipo']) || empty($datos['orden'])) {
+            throw new Exception("Los campos Código, Nombre, Tipo y Orden son obligatorios.");
         }
-        
-        // Obtener el siguiente orden disponible
-        $maxOrden = $this->repo->getMaxOrden($programa);
-        $data['orden'] = $maxOrden + 1;
-        
-        return $this->repo->crear($data);
+
+        if ($datos['tipo'] === 'group') {
+            $datos['url'] = null;
+            $datos['tipo_param'] = null;
+        }
+
+        $datos['id_programa'] = '1';
+
+        return $this->repo->guardar($datos);
     }
 
     /**
-     * Actualizar un módulo existente
+     * Eliminar un módulo por ID
      *
-     * @param array $data
-     * @return array
+     * @param int|string $id
+     * @return bool
      */
-    public function actualizar($data) {
-        return $this->repo->actualizar($data);
-    }
+    public function eliminarModulo($id) {
+        $modulo = $this->repo->obtenerPorId($id);
 
-    /**
-     * Eliminar un módulo
-     *
-     * @param string $codMod
-     * @param string $programa
-     * @return array
-     */
-    public function eliminar($codMod, $programa) {
-        return $this->repo->eliminar($codMod, $programa);
+        if (!$modulo) {
+            throw new Exception("El módulo no existe.");
+        }
+
+        if ($modulo['tipo'] === 'group' && $this->repo->tieneHijos($modulo['cod_mod'], '1')) {
+            throw new Exception("No puedes eliminar este grupo porque tiene sub-módulos dentro. Elimina o mueve los sub-módulos primero.");
+        }
+
+        return $this->repo->eliminar($id);
     }
 }

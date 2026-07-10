@@ -538,10 +538,17 @@
 
 
         <script>
-            function toggleSubmenu(id) {
+            function toggleSubmenu(id, btn) {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.classList.toggle('hidden');
+                
+                if (btn) {
+                    const chevron = btn.querySelector('.fa-chevron-down, .fa-chevron-right, .chevron-icon');
+                    if (chevron) {
+                        chevron.classList.toggle('rotate-180');
+                    }
+                }
             }
 
             const DASHBOARD_PROGRAMA = 'Planta de Incubacion';
@@ -698,34 +705,12 @@
 
             const loadSidebarMenu = async () => {
                 try {
-                    console.log('🔍 Cargando menú del sidebar...');
-                    window.disableIAMMenu = true;
-                    const baseUrl = window.AppConfig?.API?.BASE_URL || 'http://localhost/plantaincubacion/backend';
-                    const endpoint = window.AppConfig?.API?.ENDPOINTS?.DASHBOARD_MODULOS?.LISTAR || '/dashboard-modulos';
-                    const url = `${baseUrl}${endpoint}?programa=${encodeURIComponent(DASHBOARD_PROGRAMA)}`;
-
-                    console.log('📡 URL:', url);
-
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-
-                    const data = await response.json();
-                    console.log('📦 Datos recibidos:', data);
-
-                    if (!data || !data.success || !Array.isArray(data.data)) {
-                        console.error('❌ Datos inválidos');
-                        return;
+                    console.log('🔍 Cargando menú del sidebar (MenuNavController)...');
+                    if (window.menuPrincipal) {
+                        await window.menuPrincipal.init();
+                    } else {
+                        console.error('❌ menuPrincipal no está instanciado.');
                     }
-
-                    console.log(`✅ Total módulos: ${data.data.length}`);
-                    renderSidebarMenu(data.data);
-                    window.menuLoadedFromDashboard = true;
-
-                    console.log('🔐 Aplicando filtro de permisos...');
-                    PermisosManager.filtrarMenuPorPermisos();
-                    console.log('✅ Filtro aplicado');
                 } catch (error) {
                     console.error('❌ Error al cargar menu:', error);
                 }
