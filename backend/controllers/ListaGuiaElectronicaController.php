@@ -27,7 +27,7 @@ class ListaGuiaElectronicaController
 
             // Obtener listado
             $rows = $this->service->listarGuias($search, $almacen, $desde, $hasta, $serie, $numero);
-            
+
             // Estructura de retorno compatible con el controlador frontend
             $data = [
                 'rows' => $rows
@@ -127,22 +127,31 @@ class ListaGuiaElectronicaController
 
             $pdf = new PDFGuia('P', 'mm', 'A4');
             $pdf->AddPage();
-            
-            // Renderizar la cabecera personalizada del reporte
-            $pdf->HeaderCustom($cabecera);
-            
-            // Renderizar los datos de cabecera generales
-            $pdf->GenerarCabecerasGenerales($cabecera);
-            
-            // Dibujar la cabecera de la tabla de detalles
-            $pdf->TablaDetalleCabecera();
-            
-            // Iterar y pintar los renglones
-            foreach ($detalle as $item) {
-                $pdf->RowDetalle($item);
-            }
 
-            $pdf->GenerarFooter($cabecera);
+            // --- NUEVO CÓDIGO CON PAGINACIÓN ---
+            $limite_filas = 21; // El límite exacto para no salirnos de la caja de 115mm
+            $paginas_detalle = array_chunk($detalle, $limite_filas);
+
+            foreach ($paginas_detalle as $indice => $grupo_items) {
+
+                // Si ya pasamos la primera página, agregamos una hoja nueva
+                if ($indice > 0) {
+                    $pdf->AddPage();
+                }
+
+                // 1. Volvemos a dibujar TODA la estructura superior para esta nueva hoja
+                $pdf->HeaderCustom($cabecera);
+                $pdf->GenerarCabecerasGenerales($cabecera);
+                $pdf->TablaDetalleCabecera();
+
+                // 2. Imprimimos SOLO los items que caben en esta página (máximo 21)
+                foreach ($grupo_items as $item) {
+                    $pdf->RowDetalle($item);
+                }
+
+                // 3. Imprimimos el footer (Observaciones, textos legales y QR) para cerrar la hoja
+                $pdf->GenerarFooter($cabecera);
+            }
 
             // Generar salida y descargar
             $pdf->Output('I', "Guia_{$cabecera['serie']}_{$cabecera['numero']}.pdf");
@@ -165,7 +174,7 @@ class ListaGuiaElectronicaController
     {
         $val = trim((string)$fecha);
         if ($val === '') return '-';
-        
+
         $datePart = explode(' ', $val)[0];
         $parts = explode('-', $datePart);
         if (count($parts) === 3) {
