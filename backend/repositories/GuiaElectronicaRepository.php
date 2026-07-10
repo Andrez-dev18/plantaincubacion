@@ -418,9 +418,10 @@ class GuiaElectronicaRepository
         return 0.0;
     }
 
-    public function guardarGuia(array $cabecera, array $detalle): bool
+    public function guardarGuia(array $cabecera, array $detalle): string
     {
         $this->db->beginTransaction();
+        $tregCreado = '';
         try {
             $user = $cabecera['tuser'] ?? 'SYS';
             $fechaEmision = $cabecera['fechaEmision'];
@@ -436,6 +437,7 @@ class GuiaElectronicaRepository
 
                 // Documento 1 (Origen)
                 $registro1 = $this->getNuevoRegImov();
+                $tregCreado = $registro1;
 
                 $sqlCab = "INSERT INTO guia (
                     tuser, tdate, ttime, tprocli, tdoc, tserie, tnumfac, tfectra, tlib, 
@@ -605,6 +607,7 @@ class GuiaElectronicaRepository
                 }
 
                 $registroImov = $this->getNuevoRegImov();
+                $tregCreado = $registroImov;
 
                 $sqlCab = "INSERT INTO guia (
                     tuser, tdate, ttime, tprocli, tdoc, tserie, tnumfac, tfectra, tlib, 
@@ -817,7 +820,7 @@ class GuiaElectronicaRepository
             }
 
             $this->db->commit();
-            return true;
+            return $tregCreado;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;

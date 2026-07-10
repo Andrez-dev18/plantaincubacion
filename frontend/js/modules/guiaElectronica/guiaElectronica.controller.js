@@ -1572,17 +1572,32 @@ class GuiaElectronicaController {
             return;
         }
 
-        // Confirmación
+        // Confirmación con opciones de Guardar e Imprimir o Solo Guardar
         const confirm = await window.Swal.fire({
             title: '¿Confirmar guardado?',
-            text: 'Se procederá a guardar la cabecera y el detalle en la base de datos.',
+            text: 'Seleccione una opción para guardar la guía en la base de datos.',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Sí, guardar',
-            cancelButtonText: 'Cancelar'
+            showDenyButton: true,
+            confirmButtonText: 'Guardar e Imprimir',
+            denyButtonText: 'Solo Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#3085d6',
+            denyButtonColor: '#4f46e5'
         });
 
-        if (!confirm.isConfirmed) return;
+        if (confirm.isDismissed) return;
+        const imprimirAlGuardar = confirm.isConfirmed;
+
+        // Abrir pestaña vacía inmediatamente si se eligió imprimir para evitar bloqueo de popup
+        let pdfWindow = null;
+        if (imprimirAlGuardar) {
+            pdfWindow = window.open('', '_blank');
+            if (pdfWindow) {
+                pdfWindow.document.write('<html><head><title>Generando PDF...</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#4b5563;background-color:#f9fafb;"><div style="text-align:center;"><h2>Generando PDF de la Guía...</h2><p>Espere un momento, por favor.</p></div></body></html>');
+                pdfWindow.document.close();
+            }
+        }
 
         // Recolectar datos de cabecera
         const transaccion = document.getElementById('transaccion')?.value || ''; // S440 o S400
@@ -1649,6 +1664,14 @@ class GuiaElectronicaController {
             const response = await this.guiaService.guardarGuia(payload);
 
             if (response && response.success) {
+                // Si el usuario eligió Guardar e Imprimir, redireccionar la ventana abierta al endpoint del PDF
+                if (pdfWindow && response.treg) {
+                    const printUrl = `/plantaincubacion/backend/index.php/api/lista-guia-electronica/pdf?treg=${encodeURIComponent(response.treg)}`;
+                    pdfWindow.location.href = printUrl;
+                } else if (pdfWindow) {
+                    pdfWindow.close();
+                }
+
                 await window.Swal.fire({
                     icon: 'success',
                     title: '¡Guardado!',
@@ -1700,6 +1723,7 @@ class GuiaElectronicaController {
                 // Foco al inicio
                 document.getElementById('tipoEnvioAlmacen')?.focus();
             } else {
+                if (pdfWindow) pdfWindow.close();
                 window.Swal.fire({
                     icon: 'error',
                     title: 'Error al guardar',
@@ -1707,6 +1731,7 @@ class GuiaElectronicaController {
                 });
             }
         } catch (error) {
+            if (pdfWindow) pdfWindow.close();
             console.error("Error al guardar la guía:", error);
             window.Swal.fire({
                 icon: 'error',

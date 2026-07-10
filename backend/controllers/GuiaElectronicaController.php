@@ -351,10 +351,11 @@ class GuiaElectronicaController
             }
             $cabecera['tuser'] = $_SESSION['usuario'] ?? $_SESSION['username'] ?? 'SYS';
 
-            $result = $this->service->guardarGuia($cabecera, $detalle);
+            $treg = $this->service->guardarGuia($cabecera, $detalle);
 
             echo json_encode([
-                "success" => $result,
+                "success" => !empty($treg),
+                "treg" => $treg,
                 "message" => "Guía guardada correctamente."
             ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (Exception $e) {
