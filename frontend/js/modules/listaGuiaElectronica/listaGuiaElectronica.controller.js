@@ -50,7 +50,9 @@ class ListaGuiaElectronicaController {
         };
 
         this._debouncedSearch = this._debounce(() => {
-            this.listarGuias();
+            if (this.dataTable) {
+                this.dataTable.search(this.el.searchInput?.value || '').draw();
+            }
         }, 350);
     }
 
@@ -77,7 +79,9 @@ class ListaGuiaElectronicaController {
 
         // Botón Aplicar filtros
         this.el.btnAplicarFiltros?.addEventListener('click', () => {
-            this.listarGuias();
+            if (this.dataTable) {
+                this.dataTable.ajax.reload();
+            }
         });
 
         // Botón Limpiar filtros
@@ -87,7 +91,9 @@ class ListaGuiaElectronicaController {
             if (this.el.filterAlmacenOrigen) this.el.filterAlmacenOrigen.value = '';
             if (this.el.filterSerie) this.el.filterSerie.value = '';
             if (this.el.filterNumero) this.el.filterNumero.value = '';
-            this.listarGuias();
+            if (this.dataTable) {
+                this.dataTable.search('').ajax.reload();
+            }
         });
 
         // Buscador general (RUC o Razón Social) con debounce
@@ -95,7 +101,9 @@ class ListaGuiaElectronicaController {
 
         // Cambio rápido de almacén
         this.el.filterAlmacenOrigen?.addEventListener('change', () => {
-            this.listarGuias();
+            if (this.dataTable) {
+                this.dataTable.ajax.reload();
+            }
         });
 
         // Acciones en la tabla (delegación de eventos)
@@ -169,119 +177,134 @@ class ListaGuiaElectronicaController {
         }
     }
 
-    _buildFiltros() {
-        return {
-            q: this.el.searchInput?.value?.trim() || '',
-            talm: this.el.filterAlmacenOrigen?.value || '',
-            fecini: this.el.filterFechaDesde?.value || '',
-            fecfin: this.el.filterFechaHasta?.value || '',
-            serie: this.el.filterSerie?.value?.trim() || '',
-            numero: this.el.filterNumero?.value?.trim() || ''
-        };
-    }
-
     async listarGuias() {
-        this._setLoading(true);
-
-        try {
-            const response = await this.service.listarGuias(this._buildFiltros());
-            if (!response?.success) {
-                throw new Error(response?.error || 'No se pudo obtener el listado de guías.');
-            }
-
-            const payload = response.data || {};
-            this.rows = Array.isArray(payload.rows) ? payload.rows : [];
-
-            this._renderTabla();
-        } catch (error) {
-            console.error('Error al cargar guías:', error);
-            this.rows = [];
-            this._renderTabla();
-            window.SwalHelpers?.showError(error.message || 'No se pudo cargar el listado de guías de remisión.');
-        } finally {
-            this._setLoading(false);
+        if (this.dataTable) {
+            this.dataTable.ajax.reload();
+            return;
         }
+
+        this.dataTable = $('#tablaListaGuias').DataTable({
+            serverSide: true,
+            processing: true,
+            searching: true,
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            ajax: {
+                url: this.service.base + '/listar',
+                type: 'GET',
+                data: (d) => {
+                    d.talm = this.el.filterAlmacenOrigen?.value || '';
+                    d.fecini = this.el.filterFechaDesde?.value || '';
+                    d.fecfin = this.el.filterFechaHasta?.value || '';
+                    d.serie = this.el.filterSerie?.value?.trim() || '';
+                    d.numero = this.el.filterNumero?.value?.trim() || '';
+                },
+                dataSrc: (json) => {
+                    this.rows = json.data || [];
+                    return json.data;
+                },
+                error: (xhr, error, thrown) => {
+                    console.error('Error al cargar guías:', error, thrown);
+                    window.SwalHelpers?.showError('No se pudo cargar el listado de guías de remisión.');
+                }
+            },
+            columns: [
+                { 
+                    data: null, 
+                    className: 'px-4 py-3 text-center font-mono',
+                    orderable: false,
+                    render: (data, type, row, meta) => {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { 
+                    data: 'fecha_emision', 
+                    className: 'px-4 py-3 text-left font-mono text-slate-700',
+                    render: (data) => this._formatFecha(data)
+                },
+                { 
+                    data: 'tipo_doc', 
+                    className: 'px-4 py-3 text-center font-mono text-slate-700'
+                },
+                { 
+                    data: 'serie', 
+                    className: 'px-4 py-3 text-center font-mono font-semibold'
+                },
+                { 
+                    data: 'numero', 
+                    className: 'px-4 py-3 text-center font-mono font-semibold'
+                },
+                { 
+                    data: 'cliente_ruc', 
+                    className: 'px-4 py-3 text-left font-mono'
+                },
+                { 
+                    data: 'cliente_razon_social', 
+                    className: 'px-4 py-3 text-left max-w-[200px] truncate text-slate-700',
+                    render: (data) => `<span title="${this._escapeHtml(data)}">${this._escapeHtml(data)}</span>`
+                },
+                { 
+                    data: 'almacen_origen', 
+                    className: 'px-4 py-3 text-left text-slate-700',
+                    render: (data, type, row) => {
+                        return `<span class="font-mono text-gray-800 font-semibold">${this._escapeHtml(data)}</span>` + 
+                            (row.nom_almacen ? `<span class="text-gray-400 text-[10px]"> - ${this._escapeHtml(row.nom_almacen)}</span>` : '');
+                    }
+                },
+                { 
+                    data: 'bultos', 
+                    className: 'px-4 py-3 text-right font-mono text-slate-700',
+                    render: (data) => this._formatEntero(data)
+                },
+                { 
+                    data: 'peso_total', 
+                    className: 'px-4 py-3 text-right font-bold font-mono text-slate-700',
+                    render: (data) => this._formatDecimal(data)
+                },
+                { 
+                    data: null, 
+                    className: 'px-4 py-3 text-center',
+                    orderable: false,
+                    render: (data, type, row) => {
+                        const actionSerie = row.serie || '';
+                        const actionNumero = row.numero || '';
+                        return `
+                            <div class="flex gap-2 justify-center">
+                                <button class="action-btn action-view" data-action="ver" 
+                                    data-treg="${this._escapeHtml(row.treg)}" 
+                                    data-serie="${this._escapeHtml(actionSerie)}" 
+                                    data-numero="${this._escapeHtml(actionNumero)}" 
+                                    title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn action-pdf" data-action="imprimir" 
+                                    data-treg="${this._escapeHtml(row.treg)}" 
+                                    title="Imprimir Guía">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            ordering: false,
+            autoWidth: false,
+            drawCallback: () => {
+                this._setLoading(false);
+            },
+            preDrawCallback: () => {
+                this._setLoading(true);
+            }
+        });
     }
 
     _setLoading(isLoading) {
         if (this.el.loadingMessage) {
             this.el.loadingMessage.style.display = isLoading ? 'flex' : 'none';
         }
-
-        if (this.el.tableBodyGuias && isLoading) {
-            this.el.tableBodyGuias.innerHTML = `
-                <tr>
-                    <td colspan="11" class="text-center py-8 text-gray-500">
-                        <i class="fas fa-spinner fa-spin mr-2"></i>Cargando guías de remisión...
-                    </td>
-                </tr>
-            `;
-        }
-    }
-
-    _renderTabla() {
-        if (!this.el.tableBodyGuias) return;
-
-        if (!this.rows.length) {
-            this.el.tableBodyGuias.innerHTML = `
-                <tr>
-                    <td colspan="11" class="text-center py-8 text-slate-550 font-medium">
-                        <i class="fas fa-info-circle mr-2 text-slate-400"></i>No hay datos para mostrar
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        this.el.tableBodyGuias.innerHTML = this.rows.map((row, idx) => {
-            const fecha = this._formatFecha(row.fecha_emision || row.tfectra || row.tfecha);
-            const tipoDoc = row.tipo_doc || row.tdoc || '09';
-            const serie = row.serie || row.tserie || '';
-            const numero = row.numero || row.tnumfac || '';
-            const clienteRuc = row.cliente_ruc || row.tprocli || '';
-            const razonSocial = row.cliente_razon_social || row.nombre || row.nom_cliente || '';
-            const origen = row.almacen_origen || row.talm || '';
-            
-            const bultos = this._formatEntero(row.bultos ?? row.tnum_bultos ?? row.tcanttot ?? 0);
-            const pesoTotal = this._formatDecimal(row.peso_total ?? row.tpeso_bruto ?? row.tpesotot ?? 0);
-
-            const actionSerie = row.serie || row.tserie || '';
-            const actionNumero = row.numero || row.tnumfac || '';
-
-            return `
-                <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors text-xs text-slate-700">
-                    <td class="px-4 py-3 text-center text-gray-500">${idx + 1}</td>
-                    <td class="px-4 py-3 text-left font-mono">${this._escapeHtml(fecha)}</td>
-                    <td class="px-4 py-3 text-center font-mono">${this._escapeHtml(tipoDoc)}</td>
-                    <td class="px-4 py-3 text-center font-mono font-semibold text-gray-800">${this._escapeHtml(serie)}</td>
-                    <td class="px-4 py-3 text-center font-mono font-semibold text-gray-800">${this._escapeHtml(numero)}</td>
-                    <td class="px-4 py-3 text-left font-mono text-gray-600">${this._escapeHtml(clienteRuc)}</td>
-                    <td class="px-4 py-3 text-left max-w-[200px] truncate" title="${this._escapeHtml(razonSocial)}">${this._escapeHtml(razonSocial)}</td>
-                    <td class="px-4 py-3 text-left">
-                        <span class="font-mono text-gray-800 font-semibold">${this._escapeHtml(origen)}</span>
-                        ${row.nom_almacen ? `<span class="text-gray-400 text-[10px]"> - ${this._escapeHtml(row.nom_almacen)}</span>` : ''}
-                    </td>
-                    <td class="px-4 py-3 text-right font-mono">${bultos}</td>
-                    <td class="px-4 py-3 text-right font-bold font-mono">${pesoTotal}</td>
-                    <td class="px-4 py-3">
-                        <div class="flex gap-2 justify-center">
-                            <button class="action-btn action-view" data-action="ver" 
-                                data-treg="${this._escapeHtml(row.treg)}" 
-                                data-serie="${this._escapeHtml(actionSerie)}" 
-                                data-numero="${this._escapeHtml(actionNumero)}" 
-                                title="Ver detalle">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="action-btn action-pdf" data-action="imprimir" 
-                                data-treg="${this._escapeHtml(row.treg)}" 
-                                title="Imprimir Guía">
-                                <i class="fas fa-print"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
     }
 
     _imprimirGuia(treg) {

@@ -12,64 +12,108 @@ class ListaGuiaElectronicaRepository
     /**
      * Obtiene el listado de guías de remisión electrónicas de salida con filtros dinámicos
      */
-    public function listarGuias(?string $search = null, ?string $almacen = null, ?string $desde = null, ?string $hasta = null, ?string $serie = null, ?string $numero = null): array
+    public function listarGuias(?string $search = null, ?string $almacen = null, ?string $desde = null, ?string $hasta = null, ?string $serie = null, ?string $numero = null, ?int $start = null, ?int $length = null): array
     {
-        $sql = "SELECT 
-                    g.treg AS treg,
-                    g.tfectra AS fecha_emision, g.tfectra AS tfectra,
-                    g.tdoc AS tipo_doc, g.tdoc AS tdoc,
-                    g.tserie AS serie, g.tserie AS tserie,
-                    g.tnumfac AS numero, g.tnumfac AS tnumfac,
-                    g.talm AS almacen_origen, g.talm AS talm,
-                    a.descri AS nom_almacen,
-                    g.tprocli AS cliente_ruc, g.tprocli AS tprocli,
-                    COALESCE(c.nombre, g.tdesmot_traslado) AS cliente_razon_social, COALESCE(c.nombre, g.tdesmot_traslado) AS nombre,
-                    ROUND(g.tcanttot, 0) AS bultos, ROUND(g.tcanttot, 0) AS tcanttot,
-                    ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot
-                FROM guia g
-                LEFT JOIN ccte c ON g.tprocli = c.codigo
-                LEFT JOIN alma a ON g.talm = a.codalm
-                WHERE LEFT(g.tcodtra, 1) = 'S'";
+        // 1. Total records without filters (only base condition)
+        $sqlTotal = "SELECT COUNT(g.treg) FROM guia g WHERE LEFT(g.tcodtra, 1) = 'S'";
+        $stmtTotal = $this->db->prepare($sqlTotal);
+        $stmtTotal->execute();
+        $recordsTotal = (int)$stmtTotal->fetchColumn();
 
+        // 2. Base query for filtering
+        $sqlBase = " FROM guia g
+                     LEFT JOIN ccte c ON g.tprocli = c.codigo
+                     LEFT JOIN alma a ON g.talm = a.codalm
+                     WHERE LEFT(g.tcodtra, 1) = 'S'";
+
+        $where = "";
         $params = [];
 
         if ($almacen !== null && trim($almacen) !== '') {
-            $sql .= " AND g.talm = ?";
+            $where .= " AND g.talm = ?";
             $params[] = trim($almacen);
         }
 
         if ($desde !== null && trim($desde) !== '') {
-            $sql .= " AND g.tfectra >= ?";
+            $where .= " AND g.tfectra >= ?";
             $params[] = trim($desde);
         }
 
         if ($hasta !== null && trim($hasta) !== '') {
-            $sql .= " AND g.tfectra <= ?";
+            $where .= " AND g.tfectra <= ?";
             $params[] = trim($hasta);
         }
 
         if ($serie !== null && trim($serie) !== '') {
-            $sql .= " AND g.tserie LIKE ?";
+            $where .= " AND g.tserie LIKE ?";
             $params[] = '%' . trim($serie) . '%';
         }
 
         if ($numero !== null && trim($numero) !== '') {
-            $sql .= " AND g.tnumfac LIKE ?";
+            $where .= " AND g.tnumfac LIKE ?";
             $params[] = '%' . trim($numero) . '%';
         }
 
         if ($search !== null && trim($search) !== '') {
-            $sql .= " AND (g.tprocli LIKE ? OR c.nombre LIKE ?)";
+            $where .= " AND (g.tprocli LIKE ? OR c.nombre LIKE ? OR g.tserie LIKE ? OR g.tnumfac LIKE ?)";
             $term = '%' . trim($search) . '%';
+            $params[] = $term;
+            $params[] = $term;
             $params[] = $term;
             $params[] = $term;
         }
 
-        $sql .= " ORDER BY g.tfectra DESC, g.tnumfac DESC LIMIT 500";
+        // 3. Count filtered records
+        $sqlFiltered = "SELECT COUNT(g.treg) " . $sqlBase . $where;
+        $stmtFiltered = $this->db->prepare($sqlFiltered);
+        $stmtFiltered->execute($params);
+        $recordsFiltered = (int)$stmtFiltered->fetchColumn();
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // 4. Fetch page records
+        $sqlData = "SELECT 
+                        g.treg AS treg,
+                        g.tfectra AS fecha_emision, g.tfectra AS tfectra,
+                        g.tdoc AS tipo_doc, g.tdoc AS tdoc,
+                        g.tserie AS serie, g.tserie AS tserie,
+                        g.tnumfac AS numero, g.tnumfac AS tnumfac,
+                        g.talm AS almacen_origen, g.talm AS talm,
+                        a.descri AS nom_almacen,
+                        g.tprocli AS cliente_ruc, g.tprocli AS tprocli,
+                        COALESCE(c.nombre, g.tdesmot_traslado) AS cliente_razon_social, COALESCE(c.nombre, g.tdesmot_traslado) AS nombre,
+                        ROUND(g.tcanttot, 0) AS bultos, ROUND(g.tcanttot, 0) AS tcanttot,
+                        ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot"
+                    . $sqlBase . $where
+                    . " ORDER BY g.tfectra DESC, g.tnumfac DESC";
+
+        if ($start !== null && $length !== null) {
+            $sqlData .= " LIMIT ?, ?";
+        } else {
+            $sqlData .= " LIMIT 500";
+        }
+
+        $stmt = $this->db->prepare($sqlData);
+
+        // Bind parameters using 1-based index
+        $index = 1;
+        foreach ($params as $param) {
+            $stmt->bindValue($index, $param, PDO::PARAM_STR);
+            $index++;
+        }
+
+        if ($start !== null && $length !== null) {
+            $stmt->bindValue($index, (int)$start, PDO::PARAM_INT);
+            $index++;
+            $stmt->bindValue($index, (int)$length, PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'rows' => $rows
+        ];
     }
 
     /**

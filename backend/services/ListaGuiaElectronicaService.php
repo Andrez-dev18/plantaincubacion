@@ -16,9 +16,9 @@ class ListaGuiaElectronicaService
     /**
      * Obtiene las guías filtradas delegando en el repositorio
      */
-    public function listarGuias(?string $search = null, ?string $almacen = null, ?string $desde = null, ?string $hasta = null, ?string $serie = null, ?string $numero = null): array
+    public function listarGuias(?string $search = null, ?string $almacen = null, ?string $desde = null, ?string $hasta = null, ?string $serie = null, ?string $numero = null, ?int $start = null, ?int $length = null): array
     {
-        return $this->repo->listarGuias($search, $almacen, $desde, $hasta, $serie, $numero);
+        return $this->repo->listarGuias($search, $almacen, $desde, $hasta, $serie, $numero, $start, $length);
     }
 
     /**

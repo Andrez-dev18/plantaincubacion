@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
     <link rel="stylesheet" href="../assets/css/dashboard-style.css">
     <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 
     <style>
         body {
@@ -97,6 +98,114 @@
         .table-scroll td {
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
+        }
+
+        /* Diseño limpio y moderno basado en image.png (solo líneas horizontales, sin bordes a los costados) */
+        #tablaListaGuias {
+            border-collapse: collapse !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+            width: 100% !important;
+            min-width: 1200px !important;
+        }
+
+        #tablaListaGuias th,
+        #tablaListaGuias td {
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: 1px solid #cbd5e1 !important; /* Solo bordes horizontales */
+            padding: 12px 16px !important;
+            font-size: 0.75rem !important;
+            white-space: nowrap !important;
+        }
+
+        /* Fuerza a que el cabecero de la tabla sea azul-600 */
+        #tablaListaGuias thead th,
+        table.dataTable thead th,
+        table.dataTable thead th.sorting,
+        table.dataTable thead th.sorting_asc,
+        table.dataTable thead th.sorting_desc {
+            background-color: #2563eb !important; /* Azul 600 */
+            font-size: 0.75rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.03em !important;
+            padding: 12px 16px !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-bottom: 2px solid #1d4ed8 !important; /* Línea inferior azul más oscura */
+        }
+
+        /* Hover de filas */
+        #tablaListaGuias tbody tr:hover {
+            background-color: #f8fafc !important;
+        }
+
+        /* Alineación y estilo de controles de DataTable */
+        .dataTables_wrapper {
+            padding: 0.5rem 0;
+        }
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            background-color: #ffffff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-left: 0.5rem;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+        .dataTables_wrapper .dataTables_info {
+            font-size: 0.75rem;
+            color: #4b5563;
+            padding-top: 0.75rem;
+        }
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 0.75rem;
+            padding-top: 0.75rem;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.25rem 0.5rem !important;
+            margin: 0 0.125rem !important;
+            border-radius: 0.375rem !important;
+            border: 1px solid transparent !important;
+            transition: all 0.2s;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #e0f2fe !important;
+            color: #0369a1 !important;
+            border-color: #bae6fd !important;
         }
 
         .action-btn {
@@ -295,21 +404,21 @@
             </div>
 
             <!-- TABLA PRINCIPAL DE GUÍAS -->
-            <div class="table-scroll">
+            <div class="w-full overflow-x-auto">
                 <table class="min-w-full" id="tablaListaGuias">
                     <thead>
                         <tr>
-                            <th class="px-4 py-3 text-center w-12 font-semibold">N°</th>
-                            <th class="px-4 py-3 text-left font-semibold">Fecha</th>
-                            <th class="px-4 py-3 text-center font-semibold">Doc</th>
-                            <th class="px-4 py-3 text-center font-semibold">Serie</th>
-                            <th class="px-4 py-3 text-center font-semibold">Número</th>
-                            <th class="px-4 py-3 text-left font-semibold">Cliente</th>
-                            <th class="px-4 py-3 text-left font-semibold">Razón Social</th>
-                            <th class="px-4 py-3 text-left font-semibold">Origen</th>
-                            <th class="px-4 py-3 text-right font-semibold">Bultos</th>
-                            <th class="px-4 py-3 text-right font-semibold">Peso Total</th>
-                            <th class="px-4 py-3 text-center font-semibold">Acciones</th>
+                            <th class="px-4 py-3 text-center w-12 font-semibold text-white">N°</th>
+                            <th class="px-4 py-3 text-left font-semibold text-white">Fecha</th>
+                            <th class="px-4 py-3 text-center font-semibold text-white">Doc</th>
+                            <th class="px-4 py-3 text-center font-semibold text-white">Serie</th>
+                            <th class="px-4 py-3 text-center font-semibold text-white">Número</th>
+                            <th class="px-4 py-3 text-left font-semibold text-white">Cliente</th>
+                            <th class="px-4 py-3 text-left font-semibold text-white">Razón Social</th>
+                            <th class="px-4 py-3 text-left font-semibold text-white">Origen</th>
+                            <th class="px-4 py-3 text-right font-semibold text-white">Bultos</th>
+                            <th class="px-4 py-3 text-right font-semibold text-white">Peso Total</th>
+                            <th class="px-4 py-3 text-center font-semibold text-white">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tableBodyGuias" class="divide-y divide-slate-100 bg-white">
@@ -451,6 +560,8 @@
     </div>
 
     <!-- SCRIPTS CORE DE LA APLICACIÓN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/core/Http.js"></script>
     <script src="../js/core/Service.js"></script>

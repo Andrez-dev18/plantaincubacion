@@ -19,24 +19,40 @@ class ListaGuiaElectronicaController
         try {
             // Capturar parámetros $_GET
             $search = $_GET['search'] ?? $_GET['q'] ?? null;
+            if (is_array($search)) {
+                $search = $search['value'] ?? null;
+            }
             $almacen = $_GET['almacen'] ?? $_GET['talm'] ?? null;
             $desde = $_GET['desde'] ?? $_GET['fecini'] ?? null;
             $hasta = $_GET['hasta'] ?? $_GET['fecfin'] ?? null;
             $serie = $_GET['serie'] ?? null;
             $numero = $_GET['numero'] ?? null;
 
-            // Obtener listado
-            $rows = $this->service->listarGuias($search, $almacen, $desde, $hasta, $serie, $numero);
+            $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : null;
+            $start = isset($_GET['start']) ? (int)$_GET['start'] : null;
+            $length = isset($_GET['length']) ? (int)$_GET['length'] : null;
 
-            // Estructura de retorno compatible con el controlador frontend
-            $data = [
-                'rows' => $rows
-            ];
+            // Obtener listado paginado
+            $result = $this->service->listarGuias($search, $almacen, $desde, $hasta, $serie, $numero, $start, $length);
 
-            echo json_encode([
-                'success' => true,
-                'data' => $data
-            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            // Si es una petición de DataTable Server-Side (tiene parámetro draw)
+            if ($draw !== null) {
+                echo json_encode([
+                    'draw' => $draw,
+                    'recordsTotal' => $result['recordsTotal'],
+                    'recordsFiltered' => $result['recordsFiltered'],
+                    'data' => $result['rows']
+                ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'data' => [
+                        'rows' => $result['rows'],
+                        'recordsTotal' => $result['recordsTotal'],
+                        'recordsFiltered' => $result['recordsFiltered']
+                    ]
+                ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            }
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
