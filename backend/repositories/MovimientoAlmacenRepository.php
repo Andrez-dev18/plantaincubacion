@@ -997,4 +997,17 @@ class MovimientoAlmacenRepository
             'alma'  => $alma
         ]);
     }
+
+    public function getCorrelativo(string $tdoc, string $tserie): string
+    {
+        $sql = "SELECT COALESCE(MAX(CAST(tnumfac AS UNSIGNED)), 0) + 1 AS correlativo 
+                FROM guia 
+                WHERE tdoc = :tdoc AND tserie = :tserie";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':tdoc', $tdoc, PDO::PARAM_STR);
+        $stmt->bindValue(':tserie', $tserie, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (string)($row['correlativo'] ?? '1');
+    }
 }

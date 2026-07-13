@@ -24,6 +24,9 @@ class MovimientoAlmacenService extends Service {
         return Http.get(`${this.base}/lotes${q ? `?${q}` : ''}`);
     }
     getTipoCambio(fecha)          { return Http.get(`${this.base}/tipo-cambio?fecha=${fecha}`); }
+    getCorrelativo(tdoc, tserie) {
+        return Http.get(`${this.base}/correlativo?tdoc=${encodeURIComponent(tdoc)}&tserie=${encodeURIComponent(tserie)}`);
+    }
 
     // ── ABC Costing (cascada) ─────────────────────────────────────────────────
     getProcesos()                         { return Http.get(`${this.base}/abc/procesos`); }

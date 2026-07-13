@@ -705,6 +705,19 @@ class MovimientoAlmacenController extends Component {
             // Mostrar sección de ítems automáticamente al seleccionar una transacción
             if (val) {
                 this._mostrarSeccionItems({ enfocarProducto: false, abrirSelector: false });
+
+                // Autocompletar tserie con S000 si empieza con S y E000 si empieza con E
+                const firstChar = val.trim().charAt(0).toUpperCase();
+                const tserieEl = document.getElementById('tserie');
+                if (tserieEl) {
+                    if (firstChar === 'S') {
+                        tserieEl.value = 'S000';
+                        tserieEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else if (firstChar === 'E') {
+                        tserieEl.value = 'E000';
+                        tserieEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
             }
 
             // [NUEVO] Autocompletado especial para la transacción S003
@@ -833,6 +846,14 @@ class MovimientoAlmacenController extends Component {
 
         document.getElementById('tmon').addEventListener('change', () => {
             this._toggleTipoCambioUI();
+        });
+
+        document.getElementById('tdoc')?.addEventListener('change', () => {
+            this._actualizarCorrelativo();
+        });
+
+        document.getElementById('tserie')?.addEventListener('change', () => {
+            this._actualizarCorrelativo();
         });
 
         // Enter en moneda: si soles → saltar a observación; si dólar → ir a tipo de cambio
@@ -1635,6 +1656,28 @@ class MovimientoAlmacenController extends Component {
         }
 
         this._actualizarTipoCambio();
+    }
+
+    async _actualizarCorrelativo() {
+        const tdoc = (document.getElementById('tdoc')?.value || '').trim();
+        const tserie = (document.getElementById('tserie')?.value || '').trim();
+        const tnumfacEl = document.getElementById('tnumfac');
+
+        if (!tnumfacEl) return;
+
+        if (!tdoc || !tserie) {
+            return;
+        }
+
+        try {
+            const res = await this.service.getCorrelativo(tdoc, tserie);
+            if (res && res.success && res.data && res.data.correlativo !== undefined) {
+                tnumfacEl.value = res.data.correlativo;
+                tnumfacEl.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } catch (error) {
+            console.error("Error al obtener correlativo:", error);
+        }
     }
 
     async _actualizarTipoCambio() {

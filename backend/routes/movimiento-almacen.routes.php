@@ -71,6 +71,10 @@ return function($container) {
     if ($route === 'tipo-cambio' && $method === 'GET') {
         $ctrl->getTipoCambio();
     }
+    // GET /api/movimiento-almacen/correlativo?tdoc=...&tserie=...
+    if ($route === 'correlativo' && $method === 'GET') {
+        $ctrl->getCorrelativo();
+    }
     // GET /api/movimiento-almacen/productos?q=...
     if ($route === 'productos' && $method === 'GET') {
         $ctrl->buscarProductos();

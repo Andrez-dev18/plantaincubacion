@@ -114,6 +114,9 @@ class MovimientoAlmacenService {
     }
     public function getTipoCambioPorFecha(string $fecha): ?array { return $this->repo->getTipoCambioPorFecha($fecha); }
     public function getClientePorCodigo(string $codigo): ?array  { return $this->repo->getClientePorCodigo($codigo); }
+    public function getCorrelativo(string $tdoc, string $tserie): array {
+        return ['correlativo' => $this->repo->getCorrelativo($tdoc, $tserie)];
+    }
 
     public function getAbc(string $tipo, array $params): array {
         switch ($tipo) {

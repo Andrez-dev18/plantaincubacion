@@ -89,6 +89,19 @@ class MovimientoAlmacenController
         $this->json($this->service->getTipoCambioPorFecha($fecha));
     }
 
+    public function getCorrelativo(): void
+    {
+        $tdoc = trim((string)($_GET['tdoc'] ?? ''));
+        $tserie = trim((string)($_GET['tserie'] ?? ''));
+        if ($tdoc === '') {
+            $this->error('Tipo de documento (tdoc) es requerido.', 400);
+        }
+        if ($tserie === '') {
+            $this->error('Serie (tserie) es requerida.', 400);
+        }
+        $this->json($this->service->getCorrelativo($tdoc, $tserie));
+    }
+
     public function buscarProductos(): void
     {
         $termino = $_GET['q'] ?? '';
