@@ -40,7 +40,9 @@ class ReporteStockService
         foreach ($resultadosRaw as $row) {
             // A. Cálculos Base Matemáticos (Unidades y Valores)
             $inicioUnidades = round((float)$row['stock_dia_cero'] + (float)$row['historia_unidades'], 4);
-            $inicioValor    = round((float)$row['valor_dia_cero'] + (float)$row['historia_valor'], 4);
+            if ($inicioUnidades == 0) $inicioUnidades = 0;
+            $inicioValor = round((float)$row['valor_dia_cero'] + (float)$row['historia_valor'], 4);
+            if ($inicioValor == 0) $inicioValor = 0;
 
             $entradaUnidades = round((float)$row['entrada_unidades'], 4);
             $entradaValor    = round((float)$row['entrada_valor'], 4);

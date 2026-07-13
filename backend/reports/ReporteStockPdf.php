@@ -54,8 +54,8 @@ class ReporteStockPdf extends FPDF
 
             // Fila 1 (Super Cabecera) - Total 277mm
             $this->Cell(18, 5, 'CODIGO', 'TLR', 0, 'C', true);
-            $this->Cell(65, 5, 'DESCRIPCION', 'TLR', 0, 'C', true);
             $this->Cell(16, 5, 'LOTE', 'TLR', 0, 'C', true);
+            $this->Cell(65, 5, 'DESCRIPCION', 'TLR', 0, 'C', true);
             $this->Cell(68, 5, '<--- CANTIDAD --->', 1, 0, 'C', true);
             $this->Cell(88, 5, "<--- $tituloSec --->", 1, 0, 'C', true);
             $this->Cell(22, 5, 'PROM', 'TLR', 1, 'C', true);
@@ -63,8 +63,8 @@ class ReporteStockPdf extends FPDF
             // Fila 2 (Sub Columnas)
             $this->SetFillColor(37, 99, 235); 
             $this->Cell(18, 5, '', 'BLR', 0, 'C', true);
-            $this->Cell(65, 5, '', 'BLR', 0, 'C', true);
             $this->Cell(16, 5, '', 'BLR', 0, 'C', true);
+            $this->Cell(65, 5, '', 'BLR', 0, 'C', true);
             // Cantidad (4x17 = 68)
             $this->Cell(17, 5, 'Inicio', 1, 0, 'R', true);
             $this->Cell(17, 5, 'Entrada', 1, 0, 'R', true);
@@ -82,8 +82,8 @@ class ReporteStockPdf extends FPDF
             // Total 277mm
             $cols = [
                 ['CÓDIGO', 25],
-                ['DESCRIPCIÓN', 100],
                 ['LOTE', 20],
+                ['DESCRIPCIÓN', 100],
                 ['STOCK UNIDADES', 44],
                 ['STOCK VALORADO', 44],
                 ['PRECIO PROM.', 44]
@@ -94,8 +94,8 @@ class ReporteStockPdf extends FPDF
             // UNIDADES - Total 277mm
             $cols = [
                 ['CÓDIGO', 20],
-                ['DESCRIPCIÓN', 60],
                 ['LOTE', 18],
+                ['DESCRIPCIÓN', 60],
                 ['INICIO', 26],
                 ['ENTRADA', 26],
                 ['CONSUMO', 26],
@@ -239,9 +239,10 @@ class ReporteStockPdf extends FPDF
 
             if ($formato === 'VALOR' || $formato === 'PESO') {
                 $this->Cell(18, 5.5, $item['codigo'], 1, 0, 'C', $fill);
-                $this->Cell(65, 5.5, $desc, 1, 0, 'L', $fill);
                 $this->SetFont('Arial', 'B', 7.5);
                 $this->Cell(16, 5.5, $loteTexto, 1, 0, 'C', $fill);
+                $this->SetFont('Arial', '', 7.5);
+                $this->Cell(65, 5.5, $desc, 1, 0, 'L', $fill);
 
                 $printCell(17, $item['inicio_u'], 55, 65, 81);
                 $printCell(17, $item['entrada_u'], 37, 99, 235);
@@ -273,9 +274,10 @@ class ReporteStockPdf extends FPDF
 
             } elseif ($formato === 'RESUMEN') {
                 $this->Cell(25, 5.5, $item['codigo'], 1, 0, 'C', $fill);
-                $this->Cell(100, 5.5, $desc, 1, 0, 'L', $fill);
                 $this->SetFont('Arial', 'B', 7.5);
                 $this->Cell(20, 5.5, $loteTexto, 1, 0, 'C', $fill);
+                $this->SetFont('Arial', '', 7.5);
+                $this->Cell(100, 5.5, $desc, 1, 0, 'L', $fill);
 
                 $printCell(44, $item['stock_u'], 15, 23, 42, 'B');
                 $printCell(44, $item['stock_v'], 15, 23, 42, 'B');
@@ -293,9 +295,10 @@ class ReporteStockPdf extends FPDF
 
             } else {
                 $this->Cell(20, 5.5, $item['codigo'], 1, 0, 'C', $fill);
-                $this->Cell(60, 5.5, $desc, 1, 0, 'L', $fill);
                 $this->SetFont('Arial', 'B', 7.5);
                 $this->Cell(18, 5.5, $loteTexto, 1, 0, 'C', $fill);
+                $this->SetFont('Arial', '', 7.5);
+                $this->Cell(60, 5.5, $desc, 1, 0, 'L', $fill);
 
                 $printCell(26, $item['inicio_u'], 55, 65, 81);
                 $printCell(26, $item['entrada_u'], 37, 99, 235);

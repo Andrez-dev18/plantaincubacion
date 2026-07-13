@@ -153,9 +153,9 @@ class ReporteStockExcel
             // Cabecera superior combinada
             $sheet->setCellValue('A8', 'CODIGO');
             $sheet->mergeCells('A8:A9');
-            $sheet->setCellValue('B8', 'DESCRIPCION');
+            $sheet->setCellValue('B8', 'LOTE');
             $sheet->mergeCells('B8:B9');
-            $sheet->setCellValue('C8', 'LOTE');
+            $sheet->setCellValue('C8', 'DESCRIPCION');
             $sheet->mergeCells('C8:C9');
 
             $sheet->setCellValue('D8', '<--- CANTIDAD --->');
@@ -190,8 +190,8 @@ class ReporteStockExcel
             $maxCol = 'F';
             $headers = [
                 'A' => 'CÓDIGO',
-                'B' => 'DESCRIPCIÓN',
-                'C' => 'LOTE',
+                'B' => 'LOTE',
+                'C' => 'DESCRIPCIÓN',
                 'D' => 'STOCK UNIDADES',
                 'E' => 'STOCK VALORADO',
                 'F' => 'PRECIO PROM.'
@@ -205,8 +205,8 @@ class ReporteStockExcel
             $maxCol = 'J';
             $headers = [
                 'A' => 'CÓDIGO',
-                'B' => 'DESCRIPCIÓN',
-                'C' => 'LOTE',
+                'B' => 'LOTE',
+                'C' => 'DESCRIPCIÓN',
                 'D' => 'INICIO',
                 'E' => 'ENTRADA',
                 'F' => 'CONSUMO',
@@ -361,8 +361,8 @@ class ReporteStockExcel
 
                 // Escribir fila de detalle
                 $sheet->setCellValue('A' . $currentRow, $item['codigo']);
-                $sheet->setCellValue('B' . $currentRow, $item['descripcion']);
-                $sheet->setCellValueExplicit('C' . $currentRow, $loteTexto, PHPExcel_Cell_DataType::TYPE_STRING);
+                $sheet->setCellValueExplicit('B' . $currentRow, $loteTexto, PHPExcel_Cell_DataType::TYPE_STRING);
+                $sheet->setCellValue('C' . $currentRow, $item['descripcion']);
 
                 if ($formato === 'VALOR' || $formato === 'PESO') {
                     $sheet->setCellValue('D' . $currentRow, (float)$item['inicio_u']);
@@ -376,8 +376,8 @@ class ReporteStockExcel
                     $sheet->setCellValue('L' . $currentRow, (float)$promedio);
 
                     $sheet->getStyle('A' . $currentRow)->applyFromArray($styleDataCenter);
-                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataLeft);
-                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataLeft);
                     $sheet->getStyle('D' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('E' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('F' . $currentRow)->applyFromArray($styleDataRight);
@@ -408,8 +408,8 @@ class ReporteStockExcel
                     $sheet->setCellValue('F' . $currentRow, (float)$item['precio_promedio']);
 
                     $sheet->getStyle('A' . $currentRow)->applyFromArray($styleDataCenter);
-                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataLeft);
-                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataLeft);
                     $sheet->getStyle('D' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('E' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('F' . $currentRow)->applyFromArray($styleDataRight);
@@ -433,8 +433,8 @@ class ReporteStockExcel
                     $sheet->setCellValue('J' . $currentRow, 0.00); // Alcance
 
                     $sheet->getStyle('A' . $currentRow)->applyFromArray($styleDataCenter);
-                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataLeft);
-                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('B' . $currentRow)->applyFromArray($styleDataCenter);
+                    $sheet->getStyle('C' . $currentRow)->applyFromArray($styleDataLeft);
                     $sheet->getStyle('D' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('E' . $currentRow)->applyFromArray($styleDataRight);
                     $sheet->getStyle('F' . $currentRow)->applyFromArray($styleDataRight);
@@ -473,8 +473,8 @@ class ReporteStockExcel
         // Anchos de columna
         $widths = [
             'A' => 15,
-            'B' => 35,
-            'C' => 15,
+            'B' => 15,
+            'C' => 35,
             'D' => 16,
             'E' => 16,
             'F' => 16,

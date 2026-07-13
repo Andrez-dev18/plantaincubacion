@@ -204,8 +204,8 @@ class ReporteStockController {
             thead.innerHTML = `
                 <tr>
                     <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">Codigo</th>
-                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-left align-middle">Descripcion</th>
                     <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-center align-middle">Lote</th>
+                    <th rowspan="2" class="px-3 py-2 bg-blue-700 border-b border-gray-300 text-left align-middle">Descripcion</th>
                     <th colspan="4" class="px-3 py-1 bg-blue-800 border-b border-l border-gray-300 text-center tracking-widest"><--- CANTIDAD ---></th>
                     <th colspan="5" class="px-3 py-1 bg-blue-900 border-b border-l border-gray-300 text-center tracking-widest"><--- ${tituloSeccion} ---></th>
                 </tr>
@@ -225,8 +225,8 @@ class ReporteStockController {
             thead.innerHTML = `
                 <tr>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Codigo</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Lote</th>
+                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Stock Unidade</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Stock Valorado</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Prec</th>
@@ -236,8 +236,8 @@ class ReporteStockController {
             thead.innerHTML = `
                 <tr>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Codigo</th>
-                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-center">Lote</th>
+                    <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-left">Descripcion</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Inicio</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Entrada</th>
                     <th class="px-3 py-2.5 bg-blue-700 border-b border-gray-300 text-right">Consumo</th>
@@ -367,8 +367,8 @@ class ReporteStockController {
             if (formato === 'VALOR' || formato === 'PESO') {
                 tr.innerHTML = `
                     <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 text-right border-l border-gray-100 ${colorVal(item.inicio_u, '')}">${formatNum(item.inicio_u, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.entrada_u, 'text-blue-700 font-medium')}">${formatNum(item.entrada_u, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.salida_u, 'text-red-600 font-medium')}">${formatNum(item.salida_u, 2)}</td>
@@ -383,8 +383,8 @@ class ReporteStockController {
                 const promFormat = (parseFloat(item.stock_u) === 0 && parseFloat(item.precio_promedio) === 0) ? '' : formatNum(item.precio_promedio, 2);
                 tr.innerHTML = `
                     <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.stock_u, 'font-bold text-gray-900')}">${formatNum(item.stock_u, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.stock_v, 'font-bold text-gray-900')}">${formatNum(item.stock_v, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.precio_promedio, 'text-gray-500')}">${promFormat}</td>
@@ -392,8 +392,8 @@ class ReporteStockController {
             } else {
                 tr.innerHTML = `
                     <td class="px-3 py-2 font-mono text-center font-semibold ${hasNegative ? 'text-gray-900' : 'text-gray-700'}">${item.codigo}</td>
-                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 font-mono text-center font-semibold text-purple-700">${loteTexto}</td>
+                    <td class="px-3 py-2 max-w-sm truncate" title="${item.descripcion}">${item.descripcion}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.inicio_u, '')}">${formatNum(item.inicio_u, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.entrada_u, 'text-blue-700 font-medium')}">${formatNum(item.entrada_u, 2)}</td>
                     <td class="px-3 py-2 text-right ${colorVal(item.salida_u, 'text-red-600 font-medium')}">${formatNum(item.salida_u, 2)}</td>
