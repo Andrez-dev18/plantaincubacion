@@ -139,6 +139,12 @@ try {
     $listaGuiaElectronicaRoutes = require_once __DIR__ . '/../routes/lista-guia-electronica.routes.php';
     $listaGuiaElectronicaRoutes($container);
 
+    // ========================================
+    // MÓDULO: CONFIGURACIÓN DE APIS
+    // ========================================
+    $configApiRoutes = require_once __DIR__ . '/../routes/config-api.php';
+    $configApiRoutes($container);
+
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
     // require_once __DIR__ . '/../routes/lotes.php';

@@ -24,6 +24,7 @@ try {
     require_once __DIR__ . '/repositories/ReporteKardexRepository.php';
     require_once __DIR__ . '/repositories/GuiaElectronicaRepository.php';
     require_once __DIR__ . '/repositories/ListaGuiaElectronicaRepository.php';
+    require_once __DIR__ . '/repositories/ConfigApiRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
@@ -43,6 +44,7 @@ try {
     require_once __DIR__ . '/services/ReporteKardexService.php';
     require_once __DIR__ . '/services/GuiaElectronicaService.php';
     require_once __DIR__ . '/services/ListaGuiaElectronicaService.php';
+    require_once __DIR__ . '/services/ConfigApiService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
@@ -62,6 +64,7 @@ try {
     require_once __DIR__ . '/controllers/ReporteKardexController.php';
     require_once __DIR__ . '/controllers/GuiaElectronicaController.php';
     require_once __DIR__ . '/controllers/ListaGuiaElectronicaController.php';
+    require_once __DIR__ . '/controllers/ConfigApiController.php';
 
     // 1. Crear conexión
     $db = Database::getInstance()->getConnection();
@@ -79,6 +82,7 @@ try {
     $movimientoAlmacenRepository = new MovimientoAlmacenRepository($db);
     $guiaElectronicaRepository = new GuiaElectronicaRepository($db);
     $listaGuiaElectronicaRepository = new ListaGuiaElectronicaRepository($db);
+    $configApiRepository = new ConfigApiRepository($db);
 
     // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
@@ -97,6 +101,7 @@ try {
     $reporteKardexService = new ReporteKardexService($db);
     $guiaElectronicaService = new GuiaElectronicaService($db);
     $listaGuiaElectronicaService = new ListaGuiaElectronicaService($db);
+    $configApiService = new ConfigApiService($configApiRepository);
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
@@ -115,6 +120,7 @@ try {
     $reporteKardexController = new ReporteKardexController($db);
     $guiaElectronicaController = new GuiaElectronicaController($db);
     $listaGuiaElectronicaController = new ListaGuiaElectronicaController($db);
+    $configApiController = new ConfigApiController($configApiService);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -137,6 +143,7 @@ try {
             'reporteKardex' => $reporteKardexController,
             'guiaElectronica' => $guiaElectronicaController,
             'listaGuiaElectronica' => $listaGuiaElectronicaController,
+            'configApi' => $configApiController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -153,6 +160,7 @@ try {
             'movimientoAlmacen' => $movimientoAlmacenService,
             'guiaElectronica' => $guiaElectronicaService,
             'listaGuiaElectronica' => $listaGuiaElectronicaService,
+            'configApi' => $configApiService,
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
@@ -170,7 +178,8 @@ try {
             'reporteStock' => new ReporteStockRepository($db),
             'reporteKardex' => new ReporteKardexRepository($db),
             'guiaElectronica' => $guiaElectronicaRepository,
-            'listaGuiaElectronica' => $listaGuiaElectronicaRepository
+            'listaGuiaElectronica' => $listaGuiaElectronicaRepository,
+            'configApi' => $configApiRepository
         ]
     ];
 } catch (Exception $e) {
