@@ -49,11 +49,7 @@ class ListaGuiaElectronicaController {
             numero: null
         };
 
-        this._debouncedSearch = this._debounce(() => {
-            if (this.dataTable) {
-                this.dataTable.search(this.el.searchInput?.value || '').draw();
-            }
-        }, 350);
+        this.searchTimeout = null;
     }
 
     async init() {
@@ -97,7 +93,14 @@ class ListaGuiaElectronicaController {
         });
 
         // Buscador general (RUC o Razón Social) con debounce
-        this.el.searchInput?.addEventListener('input', () => this._debouncedSearch());
+        this.el.searchInput?.addEventListener('input', () => {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                if (this.dataTable) {
+                    this.dataTable.search(this.el.searchInput.value || '').draw();
+                }
+            }, 800);
+        });
 
         // Cambio rápido de almacén
         this.el.filterAlmacenOrigen?.addEventListener('change', () => {
@@ -120,6 +123,8 @@ class ListaGuiaElectronicaController {
                 this._abrirModalDetalle(treg, serie, numero);
             } else if (action === 'imprimir') {
                 this._imprimirGuia(treg);
+            } else if (action === 'eliminar') {
+                this._eliminarGuia(treg, serie, numero);
             }
         });
 
@@ -185,9 +190,11 @@ class ListaGuiaElectronicaController {
 
         this.dataTable = $('#tablaListaGuias').DataTable({
             serverSide: true,
+            dom: 'ltrip',
             processing: true,
             searching: true,
             pageLength: 10,
+            searchDelay: 800,
             lengthMenu: [10, 25, 50, 100],
             ajax: {
                 url: this.service.base + '/listar',
@@ -262,6 +269,11 @@ class ListaGuiaElectronicaController {
                     render: (data) => this._formatDecimal(data)
                 },
                 { 
+                    data: 'usuario_registro', 
+                    className: 'px-4 py-3 text-left font-mono text-slate-700',
+                    render: (data) => this._escapeHtml(data || '-')
+                },
+                { 
                     data: null, 
                     className: 'px-4 py-3 text-center',
                     orderable: false,
@@ -282,8 +294,19 @@ class ListaGuiaElectronicaController {
                                     title="Imprimir Guía">
                                     <i class="fas fa-print"></i>
                                 </button>
+                                
                             </div>
                         `;
+                        /*
+                        btn eliminar
+                        <button class="action-btn action-delete" data-action="eliminar" 
+                                    data-treg="${this._escapeHtml(row.treg)}" 
+                                    data-serie="${this._escapeHtml(actionSerie)}" 
+                                    data-numero="${this._escapeHtml(actionNumero)}" 
+                                    title="Eliminar Guía">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                        */
                     }
                 }
             ],
@@ -315,6 +338,47 @@ class ListaGuiaElectronicaController {
 
         const url = this.service.getImprimirPdfUrl(treg);
         window.open(url, '_blank', 'noopener');
+    }
+
+    async _eliminarGuia(treg, serie, numero) {
+        if (!treg) {
+            window.SwalHelpers?.showWarning('Identificador de registro de guía no válido para eliminar.');
+            return;
+        }
+
+        const docIdentificador = `${serie || ''}-${numero || ''}`;
+        
+        const confirm = await window.Swal.fire({
+            title: '¿Está seguro de eliminar?',
+            text: `Se eliminará la Guía de Remisión ${docIdentificador} y todos sus registros y detalles asociados de forma segura. Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            this._setLoading(true);
+            const response = await this.service.deleteGuia(treg);
+            
+            if (response && response.success) {
+                window.Swal.fire('Eliminado', response.message || 'La guía ha sido eliminada correctamente.', 'success');
+                if (this.dataTable) {
+                    this.dataTable.ajax.reload();
+                }
+            } else {
+                throw new Error(response?.message || 'No se pudo eliminar la guía.');
+            }
+        } catch (error) {
+            console.error('Error al eliminar la guía:', error);
+            window.Swal.fire('Error', error.message || 'Ocurrió un error al intentar eliminar la guía.', 'error');
+        } finally {
+            this._setLoading(false);
+        }
     }
 
     async _abrirModalDetalle(treg, serie, numero) {

@@ -36,4 +36,12 @@ class ListaGuiaElectronicaService
     {
         return $this->repo->obtenerGuiaPorTreg($treg);
     }
+
+    /**
+     * Elimina una guía por su código de registro treg
+     */
+    public function eliminarGuia(string $treg): bool
+    {
+        return $this->repo->eliminarGuia($treg);
+    }
 }

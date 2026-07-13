@@ -102,6 +102,45 @@ class ListaGuiaElectronicaController
     }
 
     /**
+     * Elimina una guía de remisión electrónica
+     */
+    public function eliminarGuia()
+    {
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $treg = $_GET['treg'] ?? null;
+
+            if (empty($treg)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+                $treg = $input['treg'] ?? null;
+            }
+
+            if (empty($treg)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'El registro de la guía (treg) es obligatorio.'
+                ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+                exit;
+            }
+
+            $resultado = $this->service->eliminarGuia($treg);
+
+            echo json_encode([
+                'success' => $resultado,
+                'message' => 'Guía de remisión eliminada correctamente.'
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al eliminar la guía: ' . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
      * Genera y descarga el reporte PDF de la guía de remisión electrónica
      */
     public function descargarPDF()

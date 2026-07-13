@@ -15,7 +15,12 @@ class ListaGuiaElectronicaRepository
     public function listarGuias(?string $search = null, ?string $almacen = null, ?string $desde = null, ?string $hasta = null, ?string $serie = null, ?string $numero = null, ?int $start = null, ?int $length = null): array
     {
         // 1. Total records without filters (only base condition)
-        $sqlTotal = "SELECT COUNT(g.treg) FROM guia g WHERE LEFT(g.tcodtra, 1) = 'S'";
+        $sqlTotal = "SELECT COUNT(g.treg) FROM guia g 
+                     WHERE LEFT(g.tcodtra, 1) = 'S'
+                       AND g.tdoc = '09'
+                       AND g.tserie IS NOT NULL AND g.tserie != ''
+                       AND g.tnumfac IS NOT NULL AND g.tnumfac != '' AND g.tnumfac != '0'
+                       AND g.tprocli IS NOT NULL AND g.tprocli != '' AND g.tprocli != '00000000'";
         $stmtTotal = $this->db->prepare($sqlTotal);
         $stmtTotal->execute();
         $recordsTotal = (int)$stmtTotal->fetchColumn();
@@ -24,7 +29,11 @@ class ListaGuiaElectronicaRepository
         $sqlBase = " FROM guia g
                      LEFT JOIN ccte c ON g.tprocli = c.codigo
                      LEFT JOIN alma a ON g.talm = a.codalm
-                     WHERE LEFT(g.tcodtra, 1) = 'S'";
+                     WHERE LEFT(g.tcodtra, 1) = 'S'
+                       AND g.tdoc = '09'
+                       AND g.tserie IS NOT NULL AND g.tserie != ''
+                       AND g.tnumfac IS NOT NULL AND g.tnumfac != '' AND g.tnumfac != '0'
+                       AND g.tprocli IS NOT NULL AND g.tprocli != '' AND g.tprocli != '00000000'";
 
         $where = "";
         $params = [];
@@ -55,8 +64,9 @@ class ListaGuiaElectronicaRepository
         }
 
         if ($search !== null && trim($search) !== '') {
-            $where .= " AND (g.tprocli LIKE ? OR c.nombre LIKE ? OR g.tserie LIKE ? OR g.tnumfac LIKE ?)";
+            $where .= " AND (g.tprocli LIKE ? OR c.nombre LIKE ? OR g.tserie LIKE ? OR g.tnumfac LIKE ? OR g.tuser LIKE ?)";
             $term = '%' . trim($search) . '%';
+            $params[] = $term;
             $params[] = $term;
             $params[] = $term;
             $params[] = $term;
@@ -81,7 +91,8 @@ class ListaGuiaElectronicaRepository
                         g.tprocli AS cliente_ruc, g.tprocli AS tprocli,
                         COALESCE(c.nombre, g.tdesmot_traslado) AS cliente_razon_social, COALESCE(c.nombre, g.tdesmot_traslado) AS nombre,
                         ROUND(g.tcanttot, 0) AS bultos, ROUND(g.tcanttot, 0) AS tcanttot,
-                        ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot"
+                        ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot,
+                        g.tuser AS usuario_registro, g.tuser AS tuser"
                     . $sqlBase . $where
                     . " ORDER BY g.tfectra DESC, g.tnumfac DESC";
 
@@ -185,5 +196,63 @@ class ListaGuiaElectronicaRepository
         $stmt->execute([$treg]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Elimina una guía de remisión electrónica y todos sus registros relacionados
+     * de forma segura, sin afectar otros registros.
+     */
+    public function eliminarGuia(string $treg): bool
+    {
+        $this->db->beginTransaction();
+        try {
+            // 1. Obtener los datos clave del documento usando el treg
+            $sql = "SELECT tdoc, tserie, tnumfac, tprocli FROM guia WHERE treg = ? LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$treg]);
+            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$doc) {
+                throw new Exception("No se encontró la guía de remisión con el ID de registro (treg) proporcionado.");
+            }
+
+            $tdoc = trim((string)$doc['tdoc']);
+            $tserie = trim((string)$doc['tserie']);
+            $tnumfac = trim((string)$doc['tnumfac']);
+            $tprocli = trim((string)$doc['tprocli']);
+
+            // Validación de seguridad crítica para evitar borrados masivos accidentales
+            if ($tdoc === '' || $tserie === '' || $tnumfac === '' || $tprocli === '') {
+                throw new Exception("Datos clave del documento incompletos. No se puede proceder con la eliminación segura.");
+            }
+
+            // 2. Eliminar de imov (Detalle de Guías / Movimientos de Almacén)
+            $sqlImov = "DELETE FROM imov WHERE tdoc = ? AND tserie = ? AND tnumfac = ? AND tprocli = ?";
+            $stmtImov = $this->db->prepare($sqlImov);
+            $stmtImov->execute([$tdoc, $tserie, $tnumfac, $tprocli]);
+
+            // 3. Eliminar de guia (Cabecera de Guías de Remisión)
+            $sqlGuia = "DELETE FROM guia WHERE tdoc = ? AND tserie = ? AND tnumfac = ? AND tprocli = ?";
+            $stmtGuia = $this->db->prepare($sqlGuia);
+            $stmtGuia->execute([$tdoc, $tserie, $tnumfac, $tprocli]);
+
+            // 4. Eliminar de movi_zonas (Detalle de Movimientos de Zona / Granja)
+            $sqlMoviZonas = "DELETE FROM movi_zonas WHERE tdoc = ? AND tserie = ? AND tnumfac = ? AND tprocli = ?";
+            $stmtMoviZonas = $this->db->prepare($sqlMoviZonas);
+            $stmtMoviZonas->execute([$tdoc, $tserie, $tnumfac, $tprocli]);
+
+            // 5. Eliminar de cabe_zonas (Cabecera de Movimientos de Zona / Granja)
+            $sqlCabeZonas = "DELETE FROM cabe_zonas WHERE tdoc = ? AND tserie = ? AND tnumfac = ? AND tprocli = ?";
+            $stmtCabeZonas = $this->db->prepare($sqlCabeZonas);
+            $stmtCabeZonas->execute([$tdoc, $tserie, $tnumfac, $tprocli]);
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 }

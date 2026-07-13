@@ -45,6 +45,13 @@ class ListaGuiaElectronicaService extends Service {
     getImprimirPdfUrl(treg) {
         return `/plantaincubacion/backend/index.php/api/lista-guia-electronica/pdf?treg=${encodeURIComponent(treg)}`;
     }
+
+    /**
+     * Elimina una guía de remisión por su treg
+     */
+    deleteGuia(treg) {
+        return Http.delete('/plantaincubacion/backend/index.php/api/lista-guia-electronica/eliminar', { treg });
+    }
 }
 
 window.ListaGuiaElectronicaService = ListaGuiaElectronicaService;
