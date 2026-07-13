@@ -132,6 +132,36 @@ class ReporteStockController {
         document.getElementById('btnLimpiarFiltros')?.addEventListener('click', () => this.limpiarFiltros());
         document.getElementById('btnExportarPDF')?.addEventListener('click', () => this.exportarPDF());
         document.getElementById('btnExportarExcel')?.addEventListener('click', () => this.exportarExcel());
+        this.setupFullScreen();
+    }
+
+    setupFullScreen() {
+        const btnFullScreen = document.getElementById('btnFullScreen');
+        const contenedorTabla = document.getElementById('contenedorTabla');
+
+        if (!btnFullScreen || !contenedorTabla) return;
+
+        btnFullScreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                contenedorTabla.requestFullscreen().catch(err => {
+                    console.error(`Error al intentar activar pantalla completa: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement === contenedorTabla) {
+                btnFullScreen.innerHTML = '<i class="fas fa-compress"></i> <span>Salir Pantalla Completa</span>';
+                btnFullScreen.classList.remove('bg-blue-50', 'text-blue-700', 'hover:bg-blue-100', 'border-blue-200');
+                btnFullScreen.classList.add('bg-red-50', 'text-red-700', 'hover:bg-red-100', 'border-red-200');
+            } else {
+                btnFullScreen.innerHTML = '<i class="fas fa-expand"></i> <span>Pantalla Completa</span>';
+                btnFullScreen.classList.remove('bg-red-50', 'text-red-700', 'hover:bg-red-100', 'border-red-200');
+                btnFullScreen.classList.add('bg-blue-50', 'text-blue-700', 'hover:bg-blue-100', 'border-blue-200');
+            }
+        });
     }
 
     async aplicarFiltros() {
