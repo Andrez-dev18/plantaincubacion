@@ -274,6 +274,7 @@ class GuiaElectronicaController {
         const selectMotivo = document.getElementById('motivoTraslado');
         const contenedorMotivoOtros = document.getElementById('contenedorMotivoOtros');
         const inputMotivoOtros = document.getElementById('motivoTrasladoOtros');
+        
         if (selectMotivo) {
             selectMotivo.addEventListener('change', () => {
                 const motivoVal = selectMotivo.value;
@@ -291,18 +292,23 @@ class GuiaElectronicaController {
                     }
                 }
 
-                // Lógica de auto-completado de Cliente
+                // --- LÓGICA CORREGIDA DE AUTO-COMPLETADO DE CLIENTE ---
                 const motivosExcluidos = ['01', '14', '18', '09', '13'];
                 const inputClienteRuc = document.getElementById('clienteRuc');
                 const inputClienteNombre = document.getElementById('clienteNombre');
 
                 if (motivoVal && !motivosExcluidos.includes(motivoVal)) {
+                    // Si el motivo exige que sea la Granja (Ej: Traslado entre almacenes), lo forzamos
                     if (inputClienteRuc) inputClienteRuc.value = '20419158462';
                     if (inputClienteNombre) inputClienteNombre.value = 'GRANJA RINCONADA DEL SUR S.A.';
                 } else if (motivosExcluidos.includes(motivoVal)) {
-                    if (inputClienteRuc) inputClienteRuc.value = '';
-                    if (inputClienteNombre) inputClienteNombre.value = '';
+                    // Si el motivo permite a terceros, SOLO borramos si el valor actual es el de la Granja
+                    if (inputClienteRuc && inputClienteRuc.value === '20419158462') {
+                        inputClienteRuc.value = '';
+                        if (inputClienteNombre) inputClienteNombre.value = '';
+                    }
                 }
+                // ------------------------------------------------------
             });
         }
 

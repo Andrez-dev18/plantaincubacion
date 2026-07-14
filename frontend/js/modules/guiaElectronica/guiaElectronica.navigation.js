@@ -139,7 +139,7 @@ class GuiaElectronicaNavigation {
         const textFieldsWithSpaces = [
             'puntoPartida', 'puntoLlegada', 'observaciones', 
             'pedidosRef', 'nomConductor', 'nomTransportista', 
-            'clienteNombre', 'inputArtDescri'
+            'clienteNombre', 'inputArtDescri', 'motivoTrasladoOtros'
         ];
         if (textFieldsWithSpaces.includes(id)) {
             return true;
@@ -150,7 +150,8 @@ class GuiaElectronicaNavigation {
             lowerId.includes('observ') || 
             lowerId.includes('partida') || 
             lowerId.includes('llegada') ||
-            lowerId.includes('descri')) {
+            lowerId.includes('descri') ||
+            lowerId.includes('motivo')) {
             return true;
         }
         return false;
