@@ -385,12 +385,11 @@ class GuiaElectronicaController {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     e.stopPropagation();
-                    const inputUnd = document.getElementById('inputArtUnd');
-                    const undVal = inputUnd ? inputUnd.value.toUpperCase() : '';
-                    if (undVal === 'KGS') {
-                        document.getElementById('inputArtPeso').focus();
-                    } else {
-                        document.getElementById('inputArtCencos').focus();
+                    // Ahora siempre enviará el foco al peso para cumplir con SUNAT
+                    const inputPeso = document.getElementById('inputArtPeso');
+                    if (inputPeso) {
+                        inputPeso.focus();
+                        inputPeso.select();
                     }
                 }
             });
@@ -1274,9 +1273,7 @@ class GuiaElectronicaController {
                 });
                 return;
             }
-        } else {
-            finalPesoVal = 0;
-        }
+        } 
 
         // Formato de detalle adicional si empieza con PL
         let detalleAdicional = '';
