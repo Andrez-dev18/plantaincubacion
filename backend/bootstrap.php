@@ -101,7 +101,7 @@ try {
     $reporteKardexService = new ReporteKardexService($db);
     $guiaElectronicaService = new GuiaElectronicaService($db);
     $listaGuiaElectronicaService = new ListaGuiaElectronicaService($db);
-    $configApiService = new ConfigApiService($configApiRepository);
+    $configApiService = new ConfigApiService($db);
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
@@ -120,7 +120,7 @@ try {
     $reporteKardexController = new ReporteKardexController($db);
     $guiaElectronicaController = new GuiaElectronicaController($db);
     $listaGuiaElectronicaController = new ListaGuiaElectronicaController($db);
-    $configApiController = new ConfigApiController($configApiService);
+    $configApiController = new ConfigApiController($db);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [

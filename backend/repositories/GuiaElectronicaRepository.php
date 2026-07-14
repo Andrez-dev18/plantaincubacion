@@ -826,4 +826,23 @@ class GuiaElectronicaRepository
             throw $e;
         }
     }
+
+    /**
+     * Actualiza la cabecera de la guía con la respuesta de SUNAT/NubeFact
+     */
+    public function actualizarRespuestaNubeFact(string $treg, string $hash, string $url)
+    {
+        $sql = "UPDATE guia 
+                SET rsp_nubefact = :url, 
+                    qr_nubefact = :hash 
+                WHERE treg = :treg";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':url' => $url,
+            ':hash' => $hash,
+            ':treg' => $treg
+        ]);
+    }
+
 }

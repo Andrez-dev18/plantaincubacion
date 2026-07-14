@@ -101,4 +101,10 @@ return function ($container) {
         $controller->guardarGuia();
         exit;
     }
+
+    // GET /api/guia-electronica/consultar
+    if ($method === 'GET' && $uri === '/api/guia-electronica/consultar') {
+        $controller->consultarGuia();
+        exit;
+    }
 };

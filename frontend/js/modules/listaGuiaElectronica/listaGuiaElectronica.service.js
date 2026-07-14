@@ -52,6 +52,13 @@ class ListaGuiaElectronicaService extends Service {
     deleteGuia(treg) {
         return Http.delete('/plantaincubacion/backend/index.php/api/lista-guia-electronica/eliminar', { treg });
     }
+
+    /**
+     * Consulta el estado de una guía de remisión electrónica en SUNAT/NubeFact
+     */
+    consultarGuia(serie, numero, treg) {
+        return Http.get(`${this.base}/consultar`, { serie, numero, treg });
+    }
 }
 
 window.ListaGuiaElectronicaService = ListaGuiaElectronicaService;

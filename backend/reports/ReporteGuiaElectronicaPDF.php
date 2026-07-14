@@ -287,7 +287,7 @@ class PDFGuia extends FPDF
         $this->Ln(3);
         $y_actual = $this->GetY();
 
-        // 4. CONSTRUCCIÓN DE LA CADENA QR
+        // 4A. CONSTRUCCIÓN DEL QR 1 (ORIGINAL CON PIPES - IZQUIERDA)
         $ruc_empresa = '20419158462';
         $tipo_documento = '09';
         $serie = $d['serie'] ?? '';
@@ -298,10 +298,24 @@ class PDFGuia extends FPDF
         $tipo_doc_tercero = '6';
         $ruc_transportista = $d['transp_ruc'] ?? '';
 
-        $cadena_qr = "$ruc_empresa|$tipo_documento|$serie|$numero|$igv|$total|$fecha_emision|$tipo_doc_tercero|$ruc_transportista";
+        $cadena_qr_original = "$ruc_empresa|$tipo_documento|$serie|$numero|$igv|$total|$fecha_emision|$tipo_doc_tercero|$ruc_transportista";
+        $ruta_qr_temp_1 = __DIR__ . '/../libraries/img/temp_qr1_' . $serie . '_' . $numero . '.png';
+        QRcode::png($cadena_qr_original, $ruta_qr_temp_1, QR_ECLEVEL_L, 3, 1);
 
-        $ruta_qr_temp = __DIR__ . '/../libraries/img/temp_qr_' . $serie . '_' . $numero . '.png';
-        QRcode::png($cadena_qr, $ruta_qr_temp, QR_ECLEVEL_L, 3, 1);
+        // 4B. CONSTRUCCIÓN DEL QR 2 (URL NUBEFACT/SUNAT - DERECHA)
+        if (!empty($d['qr_nubefact']) && $d['qr_nubefact'] !== 'Pendiente' && $d['qr_nubefact'] !== '(NULL)') {
+            $cadena_qr_nubefact = $d['qr_nubefact'];
+        } else {
+            $cadena_qr_nubefact = 'Documento en proceso de validacion SUNAT';
+        }
+        $ruta_qr_temp_2 = __DIR__ . '/../libraries/img/temp_qr2_' . $serie . '_' . $numero . '.png';
+        $mostrar_qr_derecho = false;
+
+        // Solo generamos el QR derecho si existe información y es una URL válida (empieza con http)
+        if (!empty($d['qr_nubefact']) && strpos(trim($d['qr_nubefact']), 'http') === 0) {
+            QRcode::png(trim($d['qr_nubefact']), $ruta_qr_temp_2, QR_ECLEVEL_L, 3, 1);
+            $mostrar_qr_derecho = true;
+        }
 
         // 5. DIBUJAR LOS CUADROS DEL PIE DE PÁGINA
         $this->SetDrawColor(149, 149, 149);
@@ -333,12 +347,18 @@ class PDFGuia extends FPDF
         $this->SetFont('Arial', '', 7.5);
         $this->Cell(126, 4, utf8_decode('Autorizado mediante Resolución de Intendencia No.034-005-0005315'), 0, 1, 'C');
 
-        // 6. INSERTAR LA IMAGEN QR Y ELIMINAR EL TEMPORAL
-        if (file_exists($ruta_qr_temp)) {
-            // QR cuadrado (18x18) y centrado dentro de la caja (X=16, Y=y_actual+3)
-            $this->Image($ruta_qr_temp, 16, $y_actual + 3, 18, 18, 'PNG');
-            // Eliminamos el archivo físico temporal
-            unlink($ruta_qr_temp);
+        // 6. INSERTAR LAS IMÁGENES QR Y ELIMINAR LOS TEMPORALES
+        if (file_exists($ruta_qr_temp_1)) {
+            // QR Izquierdo (X=16)
+            $this->Image($ruta_qr_temp_1, 16, $y_actual + 3, 18, 18, 'PNG');
+            unlink($ruta_qr_temp_1);
+        }
+
+        // Solo insertamos la imagen si pasó la validación de URL
+        if ($mostrar_qr_derecho && file_exists($ruta_qr_temp_2)) {
+            // QR Derecho (X=176)
+            $this->Image($ruta_qr_temp_2, 176, $y_actual + 3, 18, 18, 'PNG');
+            unlink($ruta_qr_temp_2);
         }
 
         // 7. RESTAURAR SALTO DE PÁGINA AUTOMÁTICO

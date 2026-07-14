@@ -125,6 +125,8 @@ class ListaGuiaElectronicaController {
                 this._imprimirGuia(treg);
             } else if (action === 'eliminar') {
                 this._eliminarGuia(treg, serie, numero);
+            } else if (action === 'consultar') {
+                this._consultarGuia(serie, numero, treg);
             }
         });
 
@@ -294,7 +296,13 @@ class ListaGuiaElectronicaController {
                                     title="Imprimir Guía">
                                     <i class="fas fa-print"></i>
                                 </button>
-                                
+                                <button class="action-btn action-consultar" data-action="consultar" 
+                                    data-treg="${this._escapeHtml(row.treg)}"
+                                    data-serie="${this._escapeHtml(actionSerie)}" 
+                                    data-numero="${this._escapeHtml(actionNumero)}" 
+                                    title="Consultar Estado SUNAT/NubeFact">
+                                    <i class="fas fa-cloud"></i>
+                                </button>
                             </div>
                         `;
                         /*
@@ -473,6 +481,108 @@ class ListaGuiaElectronicaController {
             console.error('Error al cargar el detalle de la guía:', error);
             window.SwalHelpers?.showError(error.message || 'No se pudo cargar la información de detalle.');
             this._cerrarModalDetalle();
+        }
+    }
+
+    async _consultarGuia(serie, numero, treg) {
+        if (!serie || !numero) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Parámetros Incompletos',
+                text: 'La serie y el número son requeridos para la consulta.'
+            });
+            return;
+        }
+
+        try {
+            window.Swal.fire({
+                title: 'Consultando SUNAT/NubeFact',
+                html: `Consultando estado de la Guía <b>${this._escapeHtml(serie)}-${this._escapeHtml(numero)}</b>...<br><br><small>Esto puede tardar unos segundos.</small>`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    window.Swal.showLoading();
+                }
+            });
+
+            const response = await this.service.consultarGuia(serie, numero, treg);
+
+            if (response && response.errors) {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Consulta',
+                    text: response.errors
+                });
+                return;
+            }
+
+            if (response && response.aceptada_por_sunat === true) {
+                // Extraer el hash de Sunat desde la cadena de código QR
+                const qr = response.cadena_para_codigo_qr || '';
+                const parts = qr.split('|');
+                // En el formato estándar de SUNAT de 10 columnas, el hash está en el índice 9 (décimo elemento)
+                const hash = parts.length > 9 ? parts[9] : 'No disponible en cadena QR';
+                const sunatDescription = response.sunat_description || 'La guía ha sido aceptada por SUNAT.';
+                const pdfUrl = response.enlace_del_pdf || null;
+
+                let htmlContent = `
+                    <div class="text-left space-y-3 font-sans">
+                        <p class="text-sm text-green-700 bg-green-50 p-2.5 rounded-lg border border-green-200">
+                            <strong class="font-bold text-green-800"><i class="fas fa-check-circle mr-1"></i> Estado:</strong> ACEPTADA POR SUNAT
+                        </p>
+                        <p class="text-xs text-slate-600">
+                            <strong>Mensaje SUNAT:</strong> ${this._escapeHtml(sunatDescription)}
+                        </p>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 font-mono text-xs break-all">
+                            <strong>HASH SUNAT:</strong><br>
+                            <span class="text-blue-700 font-bold select-all">${this._escapeHtml(hash)}</span>
+                        </div>
+                    </div>
+                `;
+
+                const confirmOptions = {
+                    icon: 'success',
+                    title: `Guía Aceptada (${serie}-${numero})`,
+                    html: htmlContent,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-file-pdf mr-1"></i> Ver PDF Oficial',
+                    cancelButtonText: 'Cerrar',
+                    confirmButtonColor: '#ea1b0c', // Naranja para PDF
+                    cancelButtonColor: '#6b7280'
+                };
+
+                if (!pdfUrl) {
+                    confirmOptions.showCancelButton = false;
+                    confirmOptions.confirmButtonText = 'Aceptar';
+                    confirmOptions.confirmButtonColor = '#2563eb';
+                }
+
+                const result = await window.Swal.fire(confirmOptions);
+
+                if (result.isConfirmed && pdfUrl) {
+                    window.open(pdfUrl, '_blank', 'noopener');
+                }
+            } else if (response && response.aceptada_por_sunat === false) {
+                const sunatDescription = response.sunat_description || 'El envío fue recibido pero SUNAT aún está procesándolo.';
+                window.Swal.fire({
+                    icon: 'info',
+                    title: `SUNAT Procesando (${serie}-${numero})`,
+                    text: sunatDescription
+                });
+            } else {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Estado Desconocido',
+                    text: response?.message || response?.sunat_description || 'La respuesta de NubeFact no indica un estado claro.'
+                });
+            }
+
+        } catch (error) {
+            console.error('Error al consultar la guía:', error);
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error de Conexión',
+                text: error.message || 'No se pudo comunicar con el servidor para consultar el estado.'
+            });
         }
     }
 

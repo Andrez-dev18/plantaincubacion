@@ -18,6 +18,7 @@ class ListaGuiaElectronicaRepository
         $sqlTotal = "SELECT COUNT(g.treg) FROM guia g 
                      WHERE LEFT(g.tcodtra, 1) = 'S'
                        AND g.tdoc = '09'
+                       AND g.mark = 'JE1' 
                        AND g.tserie IS NOT NULL AND g.tserie != ''
                        AND g.tnumfac IS NOT NULL AND g.tnumfac != '' AND g.tnumfac != '0'
                        AND g.tprocli IS NOT NULL AND g.tprocli != '' AND g.tprocli != '00000000'";
@@ -31,6 +32,7 @@ class ListaGuiaElectronicaRepository
                      LEFT JOIN alma a ON g.talm = a.codalm
                      WHERE LEFT(g.tcodtra, 1) = 'S'
                        AND g.tdoc = '09'
+                       AND g.mark = 'JE1'
                        AND g.tserie IS NOT NULL AND g.tserie != ''
                        AND g.tnumfac IS NOT NULL AND g.tnumfac != '' AND g.tnumfac != '0'
                        AND g.tprocli IS NOT NULL AND g.tprocli != '' AND g.tprocli != '00000000'";
@@ -94,7 +96,7 @@ class ListaGuiaElectronicaRepository
                         ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot,
                         g.tuser AS usuario_registro, g.tuser AS tuser"
                     . $sqlBase . $where
-                    . " ORDER BY g.tfectra DESC, g.tnumfac DESC";
+                    . " ORDER BY g.tfectra DESC, g.tserie ASC, CAST(g.tnumfac AS UNSIGNED) DESC";
 
         if ($start !== null && $length !== null) {
             $sqlData .= " LIMIT ?, ?";
@@ -144,7 +146,7 @@ class ListaGuiaElectronicaRepository
                     i.tdet_adicional AS observacion
                 FROM imov i
                 LEFT JOIN mitm m ON i.tcodigo = m.codigo
-                WHERE i.treg = ?
+                WHERE i.treg = ? AND i.mark = 'JE1'
                 ORDER BY i.count ASC";
 
         $stmt = $this->db->prepare($sql);
@@ -179,7 +181,9 @@ class ListaGuiaElectronicaRepository
                     ch.nombre AS cond_nombre,
                     ch.licencia AS cond_licencia,
                     c_ori.direcc AS punto_partida,
-                    c_des.direcc AS punto_llegada
+                    c_des.direcc AS punto_llegada,
+                    g.qr_nubefact AS qr_nubefact,
+                    g.rsp_nubefact AS rsp_nubefact
                 FROM guia g
                 LEFT JOIN ccte c ON g.tprocli = c.codigo
                 LEFT JOIN alma a ON g.talm = a.codalm
@@ -190,7 +194,7 @@ class ListaGuiaElectronicaRepository
                 LEFT JOIN dchofer ch ON g.tcod_conductor = ch.dni
                 LEFT JOIN ccte c_ori ON g.tcli_origen = c_ori.codigo
                 LEFT JOIN ccte c_des ON g.tcli_destino = c_des.codigo
-                WHERE g.treg = ? AND LEFT(g.tcodtra, 1) = 'S'";
+                WHERE g.treg = ? AND LEFT(g.tcodtra, 1) = 'S' AND g.mark = 'JE1'";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$treg]);

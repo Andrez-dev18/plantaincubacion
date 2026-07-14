@@ -81,4 +81,9 @@ class GuiaElectronicaService
     {
         return $this->repo->guardarGuia($cabecera, $detalle);
     }
+
+    public function actualizarRespuestaNubeFact(string $treg, string $hash, string $url)
+    {
+        $this->repo->actualizarRespuestaNubeFact($treg, $hash, $url);
+    }
 }

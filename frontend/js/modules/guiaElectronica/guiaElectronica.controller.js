@@ -1081,6 +1081,7 @@ class GuiaElectronicaController {
             const response = await this.guiaService.getDireccionCliente(codigo);
             if (response && response.success && response.data) {
                 puntoPartida.value = response.data.direcc || '';
+                this.ubigeoPartidaLocal = response.data.ubigeo || '';
                 if (nombreClienteOrigen) {
                     nombreClienteOrigen.textContent = response.data.nombre || '';
                     nombreClienteOrigen.title = response.data.nombre || '';
@@ -1120,6 +1121,7 @@ class GuiaElectronicaController {
             const response = await this.guiaService.getDireccionCliente(codigo);
             if (response && response.success && response.data) {
                 puntoLlegada.value = response.data.direcc || '';
+                this.ubigeoLlegadaLocal = response.data.ubigeo || '';
                 if (nombreClienteDestino) {
                     nombreClienteDestino.textContent = response.data.nombre || '';
                     nombreClienteDestino.title = response.data.nombre || '';
@@ -1490,7 +1492,7 @@ class GuiaElectronicaController {
             return;
         }
 
-        // Recolectar valores de los campos obligatorios de cabecera
+        // ... (Tu código de recolección de variables y validaciones se mantiene IGUAL) ...
         const valSerie = document.getElementById('serie')?.value?.trim() || '';
         const valClienteRuc = document.getElementById('clienteRuc')?.value?.trim() || '';
         const valMotivoTraslado = document.getElementById('motivoTraslado')?.value?.trim() || '';
@@ -1501,7 +1503,6 @@ class GuiaElectronicaController {
         const valPuntoLlegada = document.getElementById('puntoLlegada')?.value?.trim() || '';
         const valTipoTransporte = document.getElementById('tipoTransporte')?.value?.trim() || '';
 
-        // Validación de campos obligatorios
         if (!valSerie || !valClienteRuc || !valMotivoTraslado || !valCodTransportista || !valCodConductor || !valPlacaP || !valPuntoPartida || !valPuntoLlegada || !valTipoTransporte) {
             window.Swal.fire({
                 icon: 'warning',
@@ -1511,7 +1512,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // Obtener valores para las demás validaciones
         const fechaEmisionVal = document.getElementById('fechaEmision')?.value || '';
         const fechaTrasladoVal = document.getElementById('fechaTraslado')?.value || '';
         const tipoTransporteVal = valTipoTransporte;
@@ -1519,8 +1519,6 @@ class GuiaElectronicaController {
         const motivoTrasladoOtrosVal = document.getElementById('motivoTrasladoOtros')?.value || '';
         const clienteRucVal = valClienteRuc;
 
-        // Validaciones de Guardado (usar Swal.fire y hacer return si fallan)
-        // 1. Fechas: Validar que fechaTraslado NO sea menor a fechaEmision.
         if (fechaTrasladoVal && fechaEmisionVal && fechaTrasladoVal < fechaEmisionVal) {
             window.Swal.fire({
                 icon: 'warning',
@@ -1530,7 +1528,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // 2. Tipo Transporte: Si tipoTransporte es '02' (Privado), detener y mostrar alerta
         if (tipoTransporteVal === '02') {
             window.Swal.fire({
                 icon: 'warning',
@@ -1540,7 +1537,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // 3. Obligatoriedad Motivo '13': Si motivoTraslado es '13', validar que motivoTrasladoOtros no esté vacío.
         if (motivoTrasladoVal === '13' && !motivoTrasladoOtrosVal.trim()) {
             window.Swal.fire({
                 icon: 'warning',
@@ -1550,8 +1546,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // 4. Lógica de Cliente (Granja Rinconada = '20419158462')
-        // - Si el motivo es '18' o '09': El clienteRuc NO puede ser '20419158462'.
         if ((motivoTrasladoVal === '18' || motivoTrasladoVal === '09') && clienteRucVal === '20419158462') {
             window.Swal.fire({
                 icon: 'warning',
@@ -1561,7 +1555,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // - Si el motivo NO es '01', '14', '18', '09' ni '13': El clienteRuc DEBE ser obligatoriamente '20419158462'.
         const motivosExcluidos = ['01', '14', '18', '09', '13'];
         if (!motivosExcluidos.includes(motivoTrasladoVal) && clienteRucVal !== '20419158462') {
             window.Swal.fire({
@@ -1572,7 +1565,6 @@ class GuiaElectronicaController {
             return;
         }
 
-        // Confirmación con opciones de Guardar e Imprimir o Solo Guardar
         const confirm = await window.Swal.fire({
             title: '¿Confirmar guardado?',
             text: 'Seleccione una opción para guardar la guía en la base de datos.',
@@ -1588,19 +1580,19 @@ class GuiaElectronicaController {
 
         if (confirm.isDismissed) return;
         const imprimirAlGuardar = confirm.isConfirmed;
+        // NUEVO: Definir la acción en texto para enviarla al backend
+        const accionSeleccionada = imprimirAlGuardar ? 'imprimir' : 'guardar';
 
-        // Abrir pestaña vacía inmediatamente si se eligió imprimir para evitar bloqueo de popup
         let pdfWindow = null;
         if (imprimirAlGuardar) {
             pdfWindow = window.open('', '_blank');
             if (pdfWindow) {
-                pdfWindow.document.write('<html><head><title>Generando PDF...</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#4b5563;background-color:#f9fafb;"><div style="text-align:center;"><h2>Generando PDF de la Guía...</h2><p>Espere un momento, por favor.</p></div></body></html>');
+                pdfWindow.document.write('<html><head><title>Generando PDF...</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#4b5563;background-color:#f9fafb;"><div style="text-align:center;"><h2>Generando PDF de la Guía...</h2><p>Conectando con SUNAT/NubeFact, espere un momento por favor.</p></div></body></html>');
                 pdfWindow.document.close();
             }
         }
 
-        // Recolectar datos de cabecera
-        const transaccion = document.getElementById('transaccion')?.value || ''; // S440 o S400
+        const transaccion = document.getElementById('transaccion')?.value || ''; 
         const zonaOrigen = document.getElementById('zonaOrigen')?.value || '';
         const zonaDestino = document.getElementById('zonaDestino')?.value || '';
         const clienteRuc = clienteRucVal;
@@ -1610,6 +1602,9 @@ class GuiaElectronicaController {
         const fechaTraslado = fechaTrasladoVal;
         const observaciones = document.getElementById('observaciones')?.value || '';
         const codTransportista = valCodTransportista;
+        const nombreTransportista = document.getElementById('nomTransportista')?.value?.trim() || '';
+        const nombreConductor = document.getElementById('nomConductor')?.value?.trim() || '';
+        const licenciaConductor = document.getElementById('licenciaCond')?.value?.trim() || '';
         const codConductor = valCodConductor;
         const placaP = valPlacaP;
         const placaR = document.getElementById('placaR')?.value || '';
@@ -1619,7 +1614,6 @@ class GuiaElectronicaController {
         const motivoTraslado = motivoTrasladoVal;
         const motivoTrasladoOtros = motivoTrasladoOtrosVal;
         
-        // Totales calculados en la grilla
         const lblTotalCantidad = document.getElementById('lblTotalCantidad')?.textContent || '0';
         const lblTotalPeso = document.getElementById('lblTotalPeso')?.textContent || '0';
         const totalCantidad = parseFloat(lblTotalCantidad) || 0;
@@ -1637,7 +1631,10 @@ class GuiaElectronicaController {
                 fechaTraslado,
                 observaciones,
                 codTransportista,
+                nombreTransportista,
                 codConductor,
+                nombreConductor,     
+                licenciaConductor,   
                 placaP,
                 placaR,
                 clienteOrigen,
@@ -1646,44 +1643,78 @@ class GuiaElectronicaController {
                 motivoTraslado,
                 motivoTrasladoOtros,
                 totalCantidad,
-                totalPeso
+                totalPeso,
+                puntoPartida: valPuntoPartida,
+                puntoLlegada: valPuntoLlegada,
+                ubigeoPartida: this.ubigeoPartidaLocal || '',
+                ubigeoLlegada: this.ubigeoLlegadaLocal || ''
             },
-            detalle: this.detalleItems
+            detalle: this.detalleItems,
+            accion: accionSeleccionada 
         };
 
         try {
             window.Swal.fire({
-                title: 'Guardando...',
-                text: 'Espere por favor',
+                title: 'Procesando Guía',
+                html: 'Guardando localmente y conectando con NubeFact...<br><br><small>Esto puede tomar unos segundos.</small>',
                 allowOutsideClick: false,
                 didOpen: () => {
                     window.Swal.showLoading();
                 }
             });
 
+            // Llamada al backend
             const response = await this.guiaService.guardarGuia(payload);
 
             if (response && response.success) {
-                // Si el usuario eligió Guardar e Imprimir, redireccionar la ventana abierta al endpoint del PDF
-                if (pdfWindow && response.treg) {
-                    const printUrl = `/plantaincubacion/backend/index.php/api/lista-guia-electronica/pdf?treg=${encodeURIComponent(response.treg)}`;
-                    pdfWindow.location.href = printUrl;
+                
+                // --- NUEVA LÓGICA DE MANEJO DE NUBEFACT ---
+                let mensajeExito = 'La guía ha sido guardada correctamente en el sistema local.';
+                let urlPdfFinal = null;
+
+                // Analizar la respuesta de NubeFact si existe
+                if (response.nubefact) {
+                    if (response.nubefact.errors || response.nubefact.sunat_description) {
+                         // NubeFact o SUNAT arrojaron un error (Ej: Guía ya existe, RUC inválido, etc.)
+                         const errorMsg = response.nubefact.errors || response.nubefact.sunat_description;
+                         mensajeExito = `Guardado local OK.<br><br><b style="color:red;">Error SUNAT/NubeFact:</b> ${errorMsg}`;
+                    } 
+                    else if (response.nubefact.enlace_del_pdf) {
+                         // NubeFact aprobó y generó el PDF oficial
+                         urlPdfFinal = response.nubefact.enlace_del_pdf;
+                         mensajeExito = `Guardado local OK y aceptado por SUNAT.`;
+                    }
+                    else if (response.nubefact.aceptada_por_sunat === false) {
+                         // NubeFact recibió pero SUNAT aún está procesando
+                         mensajeExito = `Guardado local OK.<br>Enviado a NubeFact. <b>SUNAT procesando...</b>`;
+                    }
+                }
+
+                // Manejo de la ventana de impresión
+                if (imprimirAlGuardar && pdfWindow && response.treg) {
+                    // Si NubeFact dio link, usamos ese. Si no, usamos nuestro FPDF clonado como respaldo.
+                    if (urlPdfFinal) {
+                        pdfWindow.location.href = urlPdfFinal;
+                    } else {
+                        const printUrl = `/plantaincubacion/backend/index.php/api/lista-guia-electronica/pdf?treg=${encodeURIComponent(response.treg)}`;
+                        pdfWindow.location.href = printUrl;
+                    }
                 } else if (pdfWindow) {
                     pdfWindow.close();
                 }
 
+                // Mostrar la alerta final al usuario
                 await window.Swal.fire({
-                    icon: 'success',
-                    title: '¡Guardado!',
-                    text: response.message || 'La guía ha sido guardada correctamente.'
+                    icon: (response.nubefact && (response.nubefact.errors || response.nubefact.sunat_description)) ? 'warning' : 'success',
+                    title: 'Resultado del Proceso',
+                    html: mensajeExito
                 });
                 
-                // Limpiar todo tras guardar exitosamente
+                // ... (El código de limpieza de campos se mantiene IGUAL) ...
                 this.detalleItems = [];
                 this.renderizarGrid();
                 this.calcularTotales();
                 
-                // Limpiar cabecera
                 const inputsToClear = [
                     'codTransportista', 'nomTransportista',
                     'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
@@ -1695,7 +1726,6 @@ class GuiaElectronicaController {
                     if (el) el.value = '';
                 });
 
-                // Limpiar etiquetas/leyendas
                 const labelsToClear = [
                     'nombreClienteOrigen', 'nombreClienteDestino',
                     'lblStockCantLote', 'lblStockPesoLote'
@@ -1708,19 +1738,16 @@ class GuiaElectronicaController {
                     }
                 });
 
-                // Reset de series/correlativo
                 const selectSerie = document.getElementById('serie');
                 if (selectSerie) selectSerie.value = '';
                 this.actualizarCamposSerie();
 
-                // Limpiar motivo traslado
                 const selectMotivo = document.getElementById('motivoTraslado');
                 if (selectMotivo) {
                     selectMotivo.value = '';
                     selectMotivo.dispatchEvent(new Event('change'));
                 }
 
-                // Foco al inicio
                 document.getElementById('tipoEnvioAlmacen')?.focus();
             } else {
                 if (pdfWindow) pdfWindow.close();

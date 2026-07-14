@@ -10,8 +10,8 @@ require_once __DIR__ . '/../services/ConfigApiService.php';
 class ConfigApiController {
     private $service;
 
-    public function __construct($configApiService) {
-        $this->service = $configApiService;
+    public function __construct($db) {
+        $this->service = new ConfigApiService($db);
     }
 
     /**

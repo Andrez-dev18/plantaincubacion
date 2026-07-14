@@ -121,4 +121,20 @@ class ConfigApiRepository {
             throw new Exception("Error al eliminar la API: " . $e->getMessage());
         }
     }
+
+    /**
+     * Obtener credenciales completas (Ruta y Token) para uso interno del Backend
+     */
+    public function obtenerCredencialesNubeFact() {
+        try {
+            // Ajusta el 'nom' o 'id' según cómo lo hayas guardado en tu BD
+            $sql = "SELECT ruta, token FROM config_api WHERE id = 1 LIMIT 1"; 
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener credenciales API: " . $e->getMessage());
+            return null;
+        }
+    }
 }

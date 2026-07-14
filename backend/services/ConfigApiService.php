@@ -10,8 +10,8 @@ require_once __DIR__ . '/../repositories/ConfigApiRepository.php';
 class ConfigApiService {
     private $repo;
 
-    public function __construct($configApiRepository) {
-        $this->repo = $configApiRepository;
+    public function __construct($db) {
+        $this->repo = new ConfigApiRepository($db);
     }
 
     /**
@@ -30,6 +30,21 @@ class ConfigApiService {
             return [
                 'success' => false,
                 'message' => 'Error al listar las APIs: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function obtenerCredencialesNubeFact(){
+        try {
+            $credenciales = $this->repo->obtenerCredencialesNubeFact();
+            return [
+                'success' => true,
+                'data' => $credenciales
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al obtener credenciales: ' . $e->getMessage()
             ];
         }
     }
