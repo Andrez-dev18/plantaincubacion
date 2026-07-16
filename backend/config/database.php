@@ -27,7 +27,7 @@ class Database {
 
     // --- Credenciales DESARROLLO (remoto) ---
     private $host     = "200.48.160.2";
-    private $db_name  = "grs_picamana";
+    private $db_name  = "ciajoya";
     private $username = "rinconada";
     private $password = "MrCls078e5ou";
 
