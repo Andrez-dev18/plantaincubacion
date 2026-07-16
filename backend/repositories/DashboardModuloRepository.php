@@ -32,7 +32,7 @@ class DashboardModuloRepository {
                     m.tipo_param,
                     m.titulo,
                     m.orden
-                  FROM usuarios_L u 
+                  FROM usuario u 
                   INNER JOIN adm_usuario_rol_pic ur ON u.codigo = ur.codigo AND u.epre = ur.epre
                   INNER JOIN adm_rol_pic r ON ur.cod_rol = r.cod_rol
                   INNER JOIN adm_rol_progr_modulo_pic rpm ON r.id = rpm.id_rol
@@ -40,7 +40,7 @@ class DashboardModuloRepository {
                   WHERE u.codigo = :usuarioCodigo 
                     AND u.epre = :epre 
                     AND m.id_programa = :idPrograma 
-                    AND u.activo = 1
+                    AND u.estado = 'A'
                     AND r.activo = 1
                   ORDER BY m.parent_cod, m.orden";
 

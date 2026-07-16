@@ -34,14 +34,14 @@ class UsuarioRepository {
      * Retorna datos del usuario (sin roles, se obtienen por separado)
      */
     public function loginConRol($username, $password) {
-        $sql = "SELECT ul.codigo as id_usuario, ul.codigo as username, ul.nombre as nombre_completo,
-                   ul.activo as estado
-            FROM usuarios_L ul
+        $sql = "SELECT u.codigo as id_usuario, u.codigo as username, u.nombre as nombre_completo,
+                   CASE WHEN u.estado = 'A' THEN 1 ELSE 0 END as estado
+            FROM usuario u
             CROSS JOIN conempre c
             WHERE c.epre = 'RS'
-            AND ul.codigo = ?
-            AND ul.password = LEFT(AES_ENCRYPT(?, c.enom), 8)
-            AND ul.activo = 1";
+            AND u.codigo = ?
+            AND u.password = LEFT(AES_ENCRYPT(?, c.enom), 8)
+            AND u.estado = 'A'";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $username, PDO::PARAM_STR);
@@ -322,10 +322,10 @@ class UsuarioRepository {
     public function getUsuariosServerSide($start, $length, $searchValue, $orderColumn, $orderDir)
     {
         // Índices basados en la vista HTML (0: #, 1: Codigo, 2: Nombre, 3: Roles, 4: Estado, 5: Ultimo acceso)
-        $columnasBd = ['u.codigo', 'u.codigo', 'u.nombre', 'nombres_roles', 'u.activo', 'u.ultimo_acceso'];
+        $columnasBd = ['u.codigo', 'u.codigo', 'u.nombre', 'nombres_roles', 'u.estado', 'u.ultimo_acceso'];
         $campoOrden = $columnasBd[$orderColumn] ?? 'u.codigo';
 
-        $sqlBase = "FROM usuarios_L u ";
+        $sqlBase = "FROM usuario u ";
         $params = [];
 
         // Filtro de búsqueda
@@ -342,21 +342,21 @@ class UsuarioRepository {
         $recordsFiltered = $stmtFiltro->fetchColumn();
 
         // Conteo total
-        $stmtTotal = $this->conn->query("SELECT COUNT(*) FROM usuarios_L");
+        $stmtTotal = $this->conn->query("SELECT COUNT(*) FROM usuario");
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Consulta de datos con JOIN a tus tablas limpias (_pic)
         $sqlData = "SELECT 
                         u.codigo, 
                         u.nombre, 
-                        u.activo, 
+                        CASE WHEN u.estado = 'A' THEN 1 ELSE 0 END AS activo, 
                         u.ultimo_acceso,
                         IFNULL(GROUP_CONCAT(r.nom_rol ORDER BY r.nom_rol SEPARATOR '||'), '') AS nombres_roles
                     " . $sqlBase . "
                     LEFT JOIN adm_usuario_rol_pic ur ON ur.codigo = u.codigo AND ur.epre = 'RS'
                     LEFT JOIN adm_rol_pic r ON r.cod_rol = ur.cod_rol AND r.id_programa = '1' AND r.activo = 1
                     " . $whereSql . "
-                    GROUP BY u.codigo, u.nombre, u.activo, u.ultimo_acceso
+                    GROUP BY u.codigo, u.nombre, u.estado, u.ultimo_acceso
                     ORDER BY $campoOrden $orderDir 
                     LIMIT :start, :length";
 
@@ -383,7 +383,7 @@ class UsuarioRepository {
     // ─────────────────────────────────────────────────────────────────────
     public function obtenerPorCodigo($codigo)
     {
-        $sql = "SELECT codigo, nombre, activo FROM usuarios_L WHERE codigo = :codigo LIMIT 1";
+        $sql = "SELECT codigo, nombre, ruc, CASE WHEN estado = 'A' THEN 1 ELSE 0 END as activo FROM usuario WHERE codigo = :codigo LIMIT 1";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':codigo' => $codigo]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -394,22 +394,26 @@ class UsuarioRepository {
     // ─────────────────────────────────────────────────────────────────────
     public function guardar($datos, $isEdit = false)
     {
+        $ruc = !empty($datos['ruc']) ? $datos['ruc'] : null;
+
         if ($isEdit) {
-            // EDITAR (Solo actualiza nombre, no toca contraseña)
-            $sql = "UPDATE usuarios_L SET nombre = :nombre WHERE codigo = :codigo";
+            // EDITAR (Solo actualiza nombre y RUC, no toca contraseña)
+            $sql = "UPDATE usuario SET nombre = :nombre, ruc = :ruc WHERE codigo = :codigo";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':nombre', $datos['nombre']);
+            $stmt->bindParam(':ruc', $ruc);
             $stmt->bindParam(':codigo', $datos['codigo']);
             return $stmt->execute();
         } else {
             // CREAR (Inserta con contraseña encriptada AES mediante conempre)
-            $sql = "INSERT INTO usuarios_L (codigo, nombre, password, epre, activo, fecha_registro) 
-                    SELECT :codigo, :nombre, LEFT(AES_ENCRYPT(:password, c.enom), 8), 'RS', 1, NOW() 
+            $sql = "INSERT INTO usuario (codigo, nombre, ruc, password, epre, estado, reduser, fecha_registro) 
+                    SELECT :codigo, :nombre, :ruc, LEFT(AES_ENCRYPT(:password, c.enom), 8), 'RS', 'A', :codigo, NOW() 
                     FROM conempre c WHERE c.epre = 'RS' LIMIT 1";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':codigo', $datos['codigo']);
             $stmt->bindParam(':nombre', $datos['nombre']);
+            $stmt->bindParam(':ruc', $ruc);
             $stmt->bindParam(':password', $datos['password']);
             return $stmt->execute();
         }
@@ -420,15 +424,15 @@ class UsuarioRepository {
     // ─────────────────────────────────────────────────────────────────────
     public function toggleEstado($codigo)
     {
-        // Cambia 1 a 0, y 0 a 1
-        $sql = "UPDATE usuarios_L SET activo = IF(activo = 1, 0, 1) WHERE codigo = :codigo";
+        // Cambia 'A' a 'I', y cualquier otra cosa (o 'I') a 'A'
+        $sql = "UPDATE usuario SET estado = IF(estado = 'A', 'I', 'A') WHERE codigo = :codigo";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([':codigo' => $codigo]);
     }
 
     public function adminResetPassword($codigo, $newPassword)
     {
-        $sql = "UPDATE usuarios_L u
+        $sql = "UPDATE usuario u
                 JOIN conempre c ON c.epre = 'RS'
                 SET u.password = LEFT(AES_ENCRYPT(:newPassword, c.enom), 8)
                 WHERE u.codigo = :codigo";

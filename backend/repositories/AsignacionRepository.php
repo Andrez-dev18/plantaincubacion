@@ -13,7 +13,7 @@ class AsignacionRepository
     // 1. DataTables: Trae usuarios locales (usuarios_L) + los nombres de los roles que tienen en Planta Incubación (Programa 1)
     public function getUsuariosRolesDataTable($start, $length, $searchValue, $epre = 'RS')
     {
-        $sqlBase = "FROM usuarios_L u WHERE u.activo = 1";
+        $sqlBase = "FROM usuario u WHERE u.estado = 'A'";
         $params = [];
 
         if (!empty($searchValue)) {
@@ -28,7 +28,7 @@ class AsignacionRepository
         $recordsFiltered = $stmtFiltro->fetchColumn();
 
         // Conteo total
-        $stmtTotal = $this->conn->query("SELECT COUNT(codigo) FROM usuarios_L WHERE activo = 1");
+        $stmtTotal = $this->conn->query("SELECT COUNT(codigo) FROM usuario WHERE estado = 'A'");
         $recordsTotal = $stmtTotal->fetchColumn();
 
         $sqlData = "SELECT u.codigo, u.nombre,

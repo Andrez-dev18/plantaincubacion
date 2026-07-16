@@ -160,6 +160,7 @@ class GestionUsuariosController {
             if (response.success && response.data) {
                 inputCodigo.value = response.data.codigo || '';
                 document.getElementById('user_nombre').value = response.data.nombre || '';
+                document.getElementById('user_ruc').value = response.data.ruc || '';
             } else {
                 Swal.fire('Error', 'No se pudieron cargar los datos del usuario.', 'error');
                 return;
@@ -172,6 +173,7 @@ class GestionUsuariosController {
             inputCodigo.readOnly = false;
             inputCodigo.classList.remove('bg-gray-100', 'cursor-not-allowed');
             inputPassword.setAttribute('required', 'required');
+            document.getElementById('user_ruc').value = '';
         }
 
         modal.classList.remove('hidden');
@@ -200,6 +202,7 @@ class GestionUsuariosController {
             is_edit: isEdit ? '1' : '0',
             codigo: document.getElementById('user_codigo').value.trim(),
             nombre: document.getElementById('user_nombre').value.trim(),
+            ruc: document.getElementById('user_ruc').value.trim(),
             password: document.getElementById('user_password').value
         };
 
