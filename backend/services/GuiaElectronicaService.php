@@ -77,9 +77,9 @@ class GuiaElectronicaService
         return $this->repo->obtenerGalponesPorCencos($cencos);
     }
 
-    public function guardarGuia(array $cabecera, array $detalle): string
+    public function guardarGuia(array $cabecera, array $detalle, ?string $editTreg = null): string
     {
-        return $this->repo->guardarGuia($cabecera, $detalle);
+        return $this->repo->guardarGuia($cabecera, $detalle, $editTreg);
     }
 
     public function actualizarRespuestaNubeFact(string $treg, string $hash, string $url)

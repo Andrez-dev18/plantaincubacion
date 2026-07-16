@@ -13,6 +13,8 @@ class GuiaElectronicaController {
         // Arreglo en memoria para los ítems de la grilla
         this.detalleItems = [];
         this.stockMaximoPermitido = 0;
+        //Bandera para saber si estamos editando
+        this.tregEditando = null;
         window.guiaController = this;
     }
 
@@ -65,6 +67,217 @@ class GuiaElectronicaController {
                 initialFocus.focus();
             }
         }, 150);
+
+        //Detectar si venimos a editar una guía
+        const urlParams = new URLSearchParams(window.location.search);
+        const tregParam = urlParams.get('treg');
+        if (tregParam) {
+            this.cargarDatosEdicion(tregParam);
+        }
+    }
+
+    async cargarDatosEdicion(treg) {
+        try {
+            window.Swal.fire({
+                title: 'Cargando Guía...',
+                html: 'Recuperando datos para edición.',
+                allowOutsideClick: false,
+                didOpen: () => { window.Swal.showLoading(); }
+            });
+
+            // Reutilizamos el endpoint que ya tienes en el backend para ver el detalle
+            // (Asegúrate de que tu GuiaElectronicaService tenga este método fetch apuntando a tu backend)
+            const response = await this.guiaService.getDetalleGuia({ treg });
+
+            if (!response || !response.success) {
+                throw new Error('No se pudo obtener la información de la guía.');
+            }
+
+            const cab = response.data.cabecera;
+            const items = response.data.detalle;
+
+            this.tregEditando = treg; // Guardamos el ID para cuando le demos al botón Guardar
+
+            // 1. Llenar Radio Buttons (Transacción)
+            if (cab.transaccion === 'S440') document.getElementById('tipoEnvioAlmacen').click();
+            if (cab.transaccion === 'S400') document.getElementById('tipoEnvioGranja').click();
+
+            // 2. Fechas
+            let fEmision = cab.fecha_emision || '';
+            let fTraslado = cab.fecha_traslado || cab.fecha_emision || '';
+            
+            const inputFechaEmision = document.getElementById('fechaEmision');
+            
+            // Evaluamos directamente sin crear variables que choquen con el paso 11
+            const esRechazada = (cab.rsp_nubefact || '').includes('Rechazado') || (cab.qr_nubefact || '').includes('Documento no existe');
+
+            if (esRechazada) {
+                // 1. Desbloquear el campo de fecha de emisión para guías rechazadas
+                if (inputFechaEmision) {
+                    inputFechaEmision.removeAttribute('readonly');
+                    inputFechaEmision.classList.remove('bg-slate-100', 'cursor-not-allowed', 'opacity-75');
+                    inputFechaEmision.classList.add('bg-white');
+                }
+
+                // 2. Validar regla de SUNAT (Máximo 1 día de antigüedad)
+                const hoy = new Date();
+                const limiteSunat = new Date();
+                limiteSunat.setDate(hoy.getDate() - 1);
+                limiteSunat.setHours(0, 0, 0, 0);
+
+                const fechaDoc = new Date(fEmision + 'T00:00:00');
+
+                // Si la fecha es más antigua que ayer, la autocorregimos a hoy
+                if (fechaDoc < limiteSunat) {
+                    const y = hoy.getFullYear();
+                    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+                    const d = String(hoy.getDate()).padStart(2, '0');
+                    const fechaHoy = `${y}-${m}-${d}`;
+
+                    fEmision = fechaHoy;
+                    // Si el traslado también quedó en el pasado, lo igualamos a hoy
+                    if (new Date(fTraslado + 'T00:00:00') < hoy) {
+                        fTraslado = fechaHoy;
+                    }
+                }
+            }
+
+            if (inputFechaEmision) inputFechaEmision.value = fEmision;
+            const inputFechaTraslado = document.getElementById('fechaTraslado');
+            if (inputFechaTraslado) inputFechaTraslado.value = fTraslado;
+
+            // 3. Almacenes y Cliente Origen/Destino
+            const selectOrigen = document.getElementById('zonaOrigen');
+            const selectDestino = document.getElementById('zonaDestino');
+
+            if (selectOrigen) {
+                selectOrigen.value = cab.almacen_origen || '';
+                // No disparamos 'change' aquí para evitar que sobrescriba el clienteOrigen que viene de la BD
+            }
+            if (selectDestino) {
+                selectDestino.value = cab.almacen_destino || '';
+            }
+
+            document.getElementById('clienteOrigen').value = cab.cli_origen || '';
+            document.getElementById('clienteDestino').value = cab.cli_destino || '';
+
+            // Disparamos la carga de nombres de cliente origen/destino por si acaso
+            if (cab.cli_origen) this.cargarDireccionClienteOrigen(cab.cli_origen);
+            if (cab.cli_destino) this.cargarDireccionClienteDestino(cab.cli_destino);
+
+            // 4. Serie y Correlativo
+            // Como las series dependen del almacén, las cargamos y luego seteamos el valor
+            await this.cargarSeriesAlmacenCliente();
+            document.getElementById('serie').value = cab.serie || '';
+            this.actualizarCamposSerie(); // Actualiza la descripción
+            document.getElementById('numeroGuia').value = cab.numero || ''; // Forzamos el número original
+
+            // 5. Cliente SUNAT
+            document.getElementById('clienteRuc').value = cab.cliente_ruc || '';
+            document.getElementById('clienteNombre').value = cab.cliente_razon_social || '';
+
+            // 6. Transporte
+            document.getElementById('tipoTransporte').value = cab.tipo_transporte || '';
+            document.getElementById('codTransportista').value = cab.transp_ruc || '';
+            document.getElementById('nomTransportista').value = cab.transp_nombre || '';
+            document.getElementById('placaP').value = cab.vehiculo_placa || '';
+            document.getElementById('placaR').value = cab.vehiculo_placa2 || '';
+
+            document.getElementById('codConductor').value = cab.cond_dni || '';
+            document.getElementById('nomConductor').value = cab.cond_nombre || '';
+            document.getElementById('licenciaCond').value = cab.cond_licencia || '';
+
+            // 7. Motivo de Traslado
+            const selectMotivo = document.getElementById('motivoTraslado');
+            selectMotivo.value = cab.motivo_traslado_cod || '';
+            selectMotivo.dispatchEvent(new Event('change')); // Dispara la lógica de mostrar/ocultar "Otros" y "DAM/DS"
+            if (cab.motivo_traslado_cod === '13') {
+                document.getElementById('motivoTrasladoOtros').value = cab.motivo_traslado_otros || '';
+            } else if (cab.motivo_traslado_cod === '08' || cab.motivo_traslado_cod === '09') {
+                const inputDamDs = document.getElementById('codigoDamDs');
+                if (inputDamDs) {
+                    inputDamDs.value = cab.motivo_traslado_otros || '';
+                }
+            }
+
+            // 8. Direcciones y Otros
+            document.getElementById('puntoPartida').value = cab.punto_partida || '';
+            document.getElementById('puntoLlegada').value = cab.punto_llegada || '';
+
+            let obs = cab.observacion || '';
+            if (obs.trim() === '-') obs = '';
+            document.getElementById('observaciones').value = obs;
+
+            // 9. Llenar la Grilla de Productos
+            this.detalleItems = [];
+            items.forEach(item => {
+                this.detalleItems.push({
+                    codigo: item.codigo || '',
+                    descripcion: item.descripcion || '',
+                    lote: item.lote || '00000000',
+                    unidad: item.unidad || 'UND',
+                    cantidad: parseFloat(item.cantidad) || 0,
+                    peso: parseFloat(item.peso) || 0,
+                    cencos: item.cencos || '',
+                    galpon: item.galpon || '',
+                    observacion: item.observacion || '',
+                    detalleAdicional: item.detalle_adicional || ''
+                });
+            });
+
+            this.renderizarGrid();
+            this.calcularTotales();
+
+            // --- CORRECCIÓN: CERRAR MODAL DE CARGA ---
+            window.Swal.close();
+
+            // 11. Alertar al usuario sobre el estado de la guía
+            const estadoNubeFact = cab.rsp_nubefact || '';
+            const errorGuardado = cab.qr_nubefact || 'Error desconocido';
+
+            if (estadoNubeFact.includes('Rechazado') || errorGuardado.includes('Documento no existe')) {
+
+                let sugerencia = 'Por favor, corrige el error devuelto por SUNAT/NubeFact y vuelve a guardar:';
+
+                // Si el error es "Documento no existe", le explicamos al usuario qué significa
+                if (errorGuardado.includes('Documento no existe')) {
+                    sugerencia = 'Esta guía no está registrada en SUNAT. Esto suele ocurrir cuando la guía tuvo un error de validación inicial (ej. un RUC o Ubigeo incorrecto) y fue rechazada inmediatamente. Por favor, revisa detalladamente todos los datos y vuelve a enviarla.';
+                }
+
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Guía No Válida',
+                    html: `
+                        <p class="text-sm text-slate-600 mb-3 text-left">${sugerencia}</p>
+                        <div class="bg-red-50 text-red-700 p-3 rounded-lg border border-red-200 text-xs font-mono text-left shadow-inner">
+                            Mensaje del Servidor: <b>${this._escapeHtml(errorGuardado)}</b>
+                        </div>
+                    `,
+                    confirmButtonText: '<i class="fas fa-wrench mr-1"></i> Entendido, revisaré los datos',
+                    confirmButtonColor: '#dc2626'
+                });
+            } else {
+                // Si es una guía normal o en proceso
+                window.Swal.fire({
+                    icon: 'success',
+                    title: 'Modo Edición',
+                    text: `Editando Guía ${cab.serie}-${cab.numero}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+
+        } catch (error) {
+            console.error('Error al cargar datos para edición:', error);
+            // Asegurar que se cierre el loading si hay un error
+            if (window.Swal.isLoading()) window.Swal.close();
+
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error de Carga',
+                text: error.message || 'No se pudo cargar la guía para editarla.'
+            });
+        }
     }
 
     setupEventListeners() {
@@ -212,14 +425,14 @@ class GuiaElectronicaController {
                     e.stopPropagation();
                     this.agregarItemGrid();
                     actionInput.value = ''; // Limpiar cajita
-                } 
+                }
                 else if (key === 'c') {
                     e.preventDefault();
                     e.stopPropagation();
                     actionInput.value = ''; // Limpiar cajita
                     const inputCodigo = document.getElementById('inputArtCodigo');
                     if (inputCodigo) inputCodigo.focus();
-                } 
+                }
                 else if (key === 'a') {
                     e.preventDefault();
                     e.stopPropagation();
@@ -274,11 +487,14 @@ class GuiaElectronicaController {
         const selectMotivo = document.getElementById('motivoTraslado');
         const contenedorMotivoOtros = document.getElementById('contenedorMotivoOtros');
         const inputMotivoOtros = document.getElementById('motivoTrasladoOtros');
-        
+        const contenedorDamDs = document.getElementById('contenedorDamDs');
+        const inputDamDs = document.getElementById('codigoDamDs');
+
         if (selectMotivo) {
             selectMotivo.addEventListener('change', () => {
                 const motivoVal = selectMotivo.value;
 
+                // Mostrar/ocultar "Otros"
                 if (motivoVal === '13') {
                     if (contenedorMotivoOtros) {
                         contenedorMotivoOtros.style.display = 'block';
@@ -292,18 +508,33 @@ class GuiaElectronicaController {
                     }
                 }
 
+                // Mostrar/ocultar DAM / DS para importación (08) ó exportación (09)
+                if (motivoVal === '08' || motivoVal === '09') {
+                    if (contenedorDamDs) {
+                        contenedorDamDs.style.display = 'block';
+                    }
+                } else {
+                    if (contenedorDamDs) {
+                        contenedorDamDs.style.display = 'none';
+                    }
+                    if (inputDamDs) {
+                        inputDamDs.value = '';
+                    }
+                }
+
                 // --- LÓGICA CORREGIDA DE AUTO-COMPLETADO DE CLIENTE ---
                 const motivosExcluidos = ['01', '14', '18', '09', '13'];
                 const inputClienteRuc = document.getElementById('clienteRuc');
                 const inputClienteNombre = document.getElementById('clienteNombre');
 
+                const RUC_AUTOCOMPLETAR = '10735245436'; // Cambiar a '20419158462' en prod
+                const NOMBRE_AUTOCOMPLETAR = 'CUTIPA PEREZ GUSTAVO OSCAR'; // Cambiar a 'GRANJA RINCONADA...' en prod
+
                 if (motivoVal && !motivosExcluidos.includes(motivoVal)) {
-                    // Si el motivo exige que sea la Granja (Ej: Traslado entre almacenes), lo forzamos
-                    if (inputClienteRuc) inputClienteRuc.value = '20419158462';
-                    if (inputClienteNombre) inputClienteNombre.value = 'GRANJA RINCONADA DEL SUR S.A.';
+                    if (inputClienteRuc) inputClienteRuc.value = RUC_AUTOCOMPLETAR;
+                    if (inputClienteNombre) inputClienteNombre.value = NOMBRE_AUTOCOMPLETAR;
                 } else if (motivosExcluidos.includes(motivoVal)) {
-                    // Si el motivo permite a terceros, SOLO borramos si el valor actual es el de la Granja
-                    if (inputClienteRuc && inputClienteRuc.value === '20419158462') {
+                    if (inputClienteRuc && inputClienteRuc.value === RUC_AUTOCOMPLETAR) {
                         inputClienteRuc.value = '';
                         if (inputClienteNombre) inputClienteNombre.value = '';
                     }
@@ -656,7 +887,7 @@ class GuiaElectronicaController {
         try {
             // Obtener los datos usando la función fetchData de la configuración
             const results = await config.fetchData(this.guiaService, query);
-            
+
             let data = [];
             if (results && results.success && Array.isArray(results.data)) {
                 data = results.data;
@@ -667,7 +898,7 @@ class GuiaElectronicaController {
             // Filtrar localmente si el resultado contiene múltiples registros para hallar coincidencia exacta
             if (data.length > 1 && query) {
                 const queryUpper = query.trim().toUpperCase();
-                
+
                 // 1. Intentar coincidencia exacta en código, placa o lote
                 const exactMatches = data.filter(item => {
                     const code = (item.codigo || item.placa || item.lote || '').toString().toUpperCase();
@@ -967,7 +1198,7 @@ class GuiaElectronicaController {
                         didOpen: (modalElement) => {
                             const firstBtn = modalElement.querySelector('.btn-seleccionar-lote');
                             if (firstBtn) firstBtn.focus();
-                            
+
                             const buttons = modalElement.querySelectorAll('.btn-seleccionar-lote');
                             buttons.forEach(btn => {
                                 btn.addEventListener('click', (e) => {
@@ -1273,7 +1504,7 @@ class GuiaElectronicaController {
                 });
                 return;
             }
-        } 
+        }
 
         // Formato de detalle adicional si empieza con PL
         let detalleAdicional = '';
@@ -1495,7 +1726,7 @@ class GuiaElectronicaController {
             return;
         }
 
-        // ... (Tu código de recolección de variables y validaciones se mantiene IGUAL) ...
+        // recolección de variables y validaciones
         const valSerie = document.getElementById('serie')?.value?.trim() || '';
         const valClienteRuc = document.getElementById('clienteRuc')?.value?.trim() || '';
         const valMotivoTraslado = document.getElementById('motivoTraslado')?.value?.trim() || '';
@@ -1558,12 +1789,14 @@ class GuiaElectronicaController {
             return;
         }
 
+        const RUC_MI_EMPRESA = '10735245436'; 
+        
         const motivosExcluidos = ['01', '14', '18', '09', '13'];
-        if (!motivosExcluidos.includes(motivoTrasladoVal) && clienteRucVal !== '20419158462') {
+        if (!motivosExcluidos.includes(motivoTrasladoVal) && clienteRucVal !== RUC_MI_EMPRESA) {
             window.Swal.fire({
                 icon: 'warning',
                 title: 'Cliente incorrecto',
-                text: 'Para el motivo de traslado seleccionado, el cliente debe ser obligatoriamente Granja Rinconada.'
+                text: 'Para el motivo de traslado seleccionado, el cliente debe ser obligatoriamente tu propia empresa.'
             });
             return;
         }
@@ -1595,7 +1828,7 @@ class GuiaElectronicaController {
             }
         }
 
-        const transaccion = document.getElementById('transaccion')?.value || ''; 
+        const transaccion = document.getElementById('transaccion')?.value || '';
         const zonaOrigen = document.getElementById('zonaOrigen')?.value || '';
         const zonaDestino = document.getElementById('zonaDestino')?.value || '';
         const clienteRuc = clienteRucVal;
@@ -1616,13 +1849,15 @@ class GuiaElectronicaController {
         const tipoTransporte = tipoTransporteVal;
         const motivoTraslado = motivoTrasladoVal;
         const motivoTrasladoOtros = motivoTrasladoOtrosVal;
-        
+        const codigoDamDsVal = document.getElementById('codigoDamDs')?.value || '';
+
         const lblTotalCantidad = document.getElementById('lblTotalCantidad')?.textContent || '0';
         const lblTotalPeso = document.getElementById('lblTotalPeso')?.textContent || '0';
         const totalCantidad = parseFloat(lblTotalCantidad) || 0;
         const totalPeso = parseFloat(lblTotalPeso) || 0;
 
         const payload = {
+            edit_treg: this.tregEditando,
             cabecera: {
                 transaccion,
                 zonaOrigen,
@@ -1632,12 +1867,13 @@ class GuiaElectronicaController {
                 numeroGuia,
                 fechaEmision,
                 fechaTraslado,
+                codigoDamDs: codigoDamDsVal,
                 observaciones,
                 codTransportista,
                 nombreTransportista,
                 codConductor,
-                nombreConductor,     
-                licenciaConductor,   
+                nombreConductor,
+                licenciaConductor,
                 placaP,
                 placaR,
                 clienteOrigen,
@@ -1653,7 +1889,7 @@ class GuiaElectronicaController {
                 ubigeoLlegada: this.ubigeoLlegadaLocal || ''
             },
             detalle: this.detalleItems,
-            accion: accionSeleccionada 
+            accion: accionSeleccionada
         };
 
         try {
@@ -1670,26 +1906,28 @@ class GuiaElectronicaController {
             const response = await this.guiaService.guardarGuia(payload);
 
             if (response && response.success) {
-                
+
                 // --- NUEVA LÓGICA DE MANEJO DE NUBEFACT ---
                 let mensajeExito = 'La guía ha sido guardada correctamente en el sistema local.';
                 let urlPdfFinal = null;
+                let huboErrorNubefact = false;
 
                 // Analizar la respuesta de NubeFact si existe
                 if (response.nubefact) {
-                    if (response.nubefact.errors || response.nubefact.sunat_description) {
-                         // NubeFact o SUNAT arrojaron un error (Ej: Guía ya existe, RUC inválido, etc.)
-                         const errorMsg = response.nubefact.errors || response.nubefact.sunat_description;
-                         mensajeExito = `Guardado local OK.<br><br><b style="color:red;">Error SUNAT/NubeFact:</b> ${errorMsg}`;
-                    } 
+                    // Detectamos si es un rechazo o error de validación
+                    if (response.nubefact.errors || (response.nubefact.sunat_description && response.nubefact.sunat_description.toLowerCase().includes('rechazado'))) {
+                        const errorMsg = response.nubefact.errors || response.nubefact.sunat_description;
+                        mensajeExito = `Guardado local OK.<br><br><b style="color:red;">Error SUNAT/NubeFact:</b> ${errorMsg}`;
+                        huboErrorNubefact = true;
+                    }
                     else if (response.nubefact.enlace_del_pdf) {
-                         // NubeFact aprobó y generó el PDF oficial
-                         urlPdfFinal = response.nubefact.enlace_del_pdf;
-                         mensajeExito = `Guardado local OK y aceptado por SUNAT.`;
+                        // NubeFact aprobó y generó el PDF oficial
+                        urlPdfFinal = response.nubefact.enlace_del_pdf;
+                        mensajeExito = `Guardado local OK y aceptado por SUNAT.`;
                     }
                     else if (response.nubefact.aceptada_por_sunat === false) {
-                         // NubeFact recibió pero SUNAT aún está procesando
-                         mensajeExito = `Guardado local OK.<br>Enviado a NubeFact. <b>SUNAT procesando...</b>`;
+                        // NubeFact recibió pero SUNAT aún está procesando
+                        mensajeExito = `Guardado local OK.<br>Enviado a NubeFact. <b>SUNAT procesando...</b>`;
                     }
                 }
 
@@ -1708,50 +1946,60 @@ class GuiaElectronicaController {
 
                 // Mostrar la alerta final al usuario
                 await window.Swal.fire({
-                    icon: (response.nubefact && (response.nubefact.errors || response.nubefact.sunat_description)) ? 'warning' : 'success',
+                    icon: huboErrorNubefact ? 'warning' : 'success',
                     title: 'Resultado del Proceso',
                     html: mensajeExito
                 });
-                
-                // ... (El código de limpieza de campos se mantiene IGUAL) ...
-                this.detalleItems = [];
-                this.renderizarGrid();
-                this.calcularTotales();
-                
-                const inputsToClear = [
-                    'codTransportista', 'nomTransportista',
-                    'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
-                    'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada',
-                    'tipoTransporte', 'zonaOrigen', 'zonaDestino'
-                ];
-                inputsToClear.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = '';
-                });
 
-                const labelsToClear = [
-                    'nombreClienteOrigen', 'nombreClienteDestino',
-                    'lblStockCantLote', 'lblStockPesoLote'
-                ];
-                labelsToClear.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.textContent = '';
-                        el.title = '';
+                // --- DECISIÓN INTELIGENTE DE LIMPIEZA ---
+                if (huboErrorNubefact) {
+                    // Si hubo error, NO limpiamos la pantalla para que el usuario pueda corregir el dato.
+                    // Pero seteamos el ID de edición para que el siguiente "Guardar" reemplace la guía local y no la duplique.
+                    this.tregEditando = response.treg;
+                } else {
+                    // Si todo salió bien, limpiamos como siempre para hacer una nueva guía.
+                    this.tregEditando = null;
+
+                    this.detalleItems = [];
+                    this.renderizarGrid();
+                    this.calcularTotales();
+
+                    const inputsToClear = [
+                        'codTransportista', 'nomTransportista',
+                        'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
+                        'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada',
+                        'tipoTransporte', 'zonaOrigen', 'zonaDestino', 'codigoDamDs'
+                    ];
+                    inputsToClear.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = '';
+                    });
+
+                    const labelsToClear = [
+                        'nombreClienteOrigen', 'nombreClienteDestino',
+                        'lblStockCantLote', 'lblStockPesoLote'
+                    ];
+                    labelsToClear.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.textContent = '';
+                            el.title = '';
+                        }
+                    });
+
+                    const selectSerie = document.getElementById('serie');
+                    if (selectSerie) selectSerie.value = '';
+                    this.actualizarCamposSerie();
+
+                    const selectMotivo = document.getElementById('motivoTraslado');
+                    if (selectMotivo) {
+                        selectMotivo.value = '';
+                        selectMotivo.dispatchEvent(new Event('change'));
                     }
-                });
 
-                const selectSerie = document.getElementById('serie');
-                if (selectSerie) selectSerie.value = '';
-                this.actualizarCamposSerie();
-
-                const selectMotivo = document.getElementById('motivoTraslado');
-                if (selectMotivo) {
-                    selectMotivo.value = '';
-                    selectMotivo.dispatchEvent(new Event('change'));
+                    document.getElementById('tipoEnvioAlmacen')?.focus();
                 }
 
-                document.getElementById('tipoEnvioAlmacen')?.focus();
             } else {
                 if (pdfWindow) pdfWindow.close();
                 window.Swal.fire({
@@ -1763,12 +2011,32 @@ class GuiaElectronicaController {
         } catch (error) {
             if (pdfWindow) pdfWindow.close();
             console.error("Error al guardar la guía:", error);
+            
+            // Intentar extraer el mensaje real del backend si la librería HTTP lo capturó
+            let mensajeMostrar = 'No se pudo conectar con el servidor para guardar la guía.';
+            
+            if (error && error.message) {
+                // Si el backend mandó el mensaje en la excepción y el frontend lo parseó
+                mensajeMostrar = error.message;
+            } else if (error && typeof error === 'string') {
+                mensajeMostrar = error;
+            }
+
             window.Swal.fire({
                 icon: 'error',
-                title: 'Error de red',
-                text: 'No se pudo conectar con el servidor para guardar la guía.'
+                title: 'Operación Denegada',
+                text: mensajeMostrar
             });
         }
+    }
+
+    _escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
     }
 }
 

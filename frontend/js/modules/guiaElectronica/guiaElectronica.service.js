@@ -89,6 +89,10 @@ class GuiaElectronicaService extends Service {
     guardarGuia(payload) {
         return Http.post(`${this.base}/guardar`, payload);
     }
+
+    getDetalleGuia(params = {}) {
+        return Http.get('/plantaincubacion/backend/index.php/api/lista-guia-electronica/detalle', params);
+    }
 }
 
 window.GuiaElectronicaService = GuiaElectronicaService;

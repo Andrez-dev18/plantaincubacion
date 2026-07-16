@@ -127,6 +127,8 @@ class ListaGuiaElectronicaController {
                 this._eliminarGuia(treg, serie, numero);
             } else if (action === 'consultar') {
                 this._consultarGuia(serie, numero, treg);
+            } else if (action === 'editar') {
+                this._editarGuia(treg);
             }
         });
 
@@ -291,6 +293,12 @@ class ListaGuiaElectronicaController {
                                     title="Ver detalle">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                <!-- NUEVO BOTÓN DE EDITAR -->
+                                <button class="action-btn bg-yellow-500 text-white hover:bg-yellow-600 transition-colors" data-action="editar" 
+                                    data-treg="${this._escapeHtml(row.treg)}" 
+                                    title="Editar y Reenviar Guía">
+                                    <i class="fas fa-edit"></i>
+                                </button>
                                 <button class="action-btn action-pdf" data-action="imprimir" 
                                     data-treg="${this._escapeHtml(row.treg)}" 
                                     title="Imprimir Guía">
@@ -336,6 +344,14 @@ class ListaGuiaElectronicaController {
         if (this.el.loadingMessage) {
             this.el.loadingMessage.style.display = isLoading ? 'flex' : 'none';
         }
+    }
+
+    _editarGuia(treg) {
+        if (!treg) {
+            window.SwalHelpers?.showWarning('Identificador de registro de guía no válido para editar.');
+            return;
+        }
+        window.location.href = `guiaElectronica.html?treg=${encodeURIComponent(treg)}`;
     }
 
     _imprimirGuia(treg) {

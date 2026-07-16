@@ -344,8 +344,10 @@ class GuiaElectronicaController
 
             $cabecera = $input['cabecera'] ?? null;
             $detalle = $input['detalle'] ?? null;
-            // Recibimos la acción desde el frontend ('imprimir' o 'guardar')
             $accion = $input['accion'] ?? 'guardar';
+
+            // --- NUEVO: Capturamos el ID de edición si existe ---
+            $editTreg = $input['edit_treg'] ?? null;
 
             if (!$cabecera || !$detalle || !is_array($detalle)) {
                 throw new Exception("La cabecera o el detalle están incompletos.");
@@ -356,8 +358,8 @@ class GuiaElectronicaController
             }
             $cabecera['tuser'] = $_SESSION['usuario'] ?? $_SESSION['username'] ?? 'SYS';
 
-            // 1. Guardar en la Base de Datos Local
-            $treg = $this->service->guardarGuia($cabecera, $detalle);
+            // --- NUEVO: Pasamos el tercer parámetro ($editTreg) al servicio ---
+            $treg = $this->service->guardarGuia($cabecera, $detalle, $editTreg);
 
             // 2. Lógica de envío a NubeFact
             $respuesta_nubefact = null;
@@ -367,23 +369,26 @@ class GuiaElectronicaController
 
                 if ($respuesta_servicio['success'] && !empty($respuesta_servicio['data']['ruta']) && !empty($respuesta_servicio['data']['token'])) {
                     $credenciales = $respuesta_servicio['data'];
-                    
+
                     // 1. Envías la petición a NubeFact
                     $respuesta_nubefact = $this->enviarNubeFact($cabecera, $detalle, $credenciales);
-                    
-                    // --- NUEVO: GUARDAR LA RESPUESTA EN LA BD ---
+
+                    // GUARDAR LA RESPUESTA EN LA BD
                     if ($respuesta_nubefact && !isset($respuesta_nubefact['error'])) {
-                        
                         $hash_qr = $respuesta_nubefact['cadena_para_codigo_qr'] ?? 'Pendiente';
-                        
-                        // Emulamos el sistema antiguo: Si ya la aceptó es "Verdadero", si no, "Procesando"
+
+                        // Emulamos el sistema antiguo
                         $estado_legacy = (isset($respuesta_nubefact['aceptada_por_sunat']) && $respuesta_nubefact['aceptada_por_sunat'] === true) ? 'Verdadero' : 'Procesando en SUNAT';
-                        
+
+                        // Si NubeFact arrojó un error de validación, guardamos el error para que el frontend lo lea
+                        if (isset($respuesta_nubefact['errors'])) {
+                            $estado_legacy = 'Rechazado';
+                            $hash_qr = $respuesta_nubefact['errors'];
+                        }
+
                         // Actualizamos la base de datos usando el treg
                         $this->service->actualizarRespuestaNubeFact($treg, $hash_qr, $estado_legacy);
                     }
-                    // --------------------------------------------
-
                 } else {
                     $respuesta_nubefact = ["error" => "No se encontraron credenciales de NubeFact en la BD."];
                 }
@@ -442,6 +447,17 @@ class GuiaElectronicaController
             "items" => []
         ];
 
+        $motivo = explode(' |', $cabecera['motivoTraslado'])[0] ?? "04";
+        $codigoDamDs = trim($cabecera['codigoDamDs'] ?? '');
+        
+        if (($motivo === '08' || $motivo === '09') && !empty($codigoDamDs)) {
+            // 1. REGLA CABECERA: NubeFact no usa arreglos para documentos aduaneros.
+            // Exige que el código (50 o 52) vaya suelto en la raíz del JSON.
+            $tipoDocRel = (strpos(strtoupper($codigoDamDs), 'DS') !== false || strpos($codigoDamDs, '-18-') !== false) ? '52' : '50';
+            
+            $guia_json["documento_relacionado_codigo"] = $tipoDocRel;
+        }
+
         // La placa del vehículo siempre va, sin importar el tipo de transporte
         $guia_json["transportista_placa_numero"] = $placa;
 
@@ -452,18 +468,16 @@ class GuiaElectronicaController
             $guia_json["transportista_documento_numero"] = $cabecera['codTransportista'];
             $guia_json["transportista_denominacion"] = !empty($cabecera['nombreTransportista']) ? $cabecera['nombreTransportista'] : '-';
 
-            // SOLUCIÓN: Enviar el bloque completo del conductor para que NubeFact acepte la Licencia
             if (!empty($cabecera['codConductor'])) {
                 $guia_json["conductor_documento_tipo"] = "1"; // 1 = DNI
                 $guia_json["conductor_documento_numero"] = $cabecera['codConductor'];
                 $guia_json["conductor_nombre"] = !empty($cabecera['nombreConductor']) ? $cabecera['nombreConductor'] : '-';
                 $guia_json["conductor_apellidos"] = "-";
-                
+
                 if (!empty($cabecera['licenciaConductor'])) {
                     $guia_json["conductor_numero_licencia"] = $cabecera['licenciaConductor'];
                 }
             }
-
         } else {
             // TRANSPORTE PRIVADO
             $guia_json["conductor_documento_tipo"] = "1";
@@ -478,12 +492,49 @@ class GuiaElectronicaController
 
         // Armar el detalle de productos
         foreach ($detalle as $item) {
-            $guia_json["items"][] = [
-                "unidad_de_medida" => "NIU",
+            // 1. Traductor de Unidades (Catálogo 65 SUNAT para Aduanas vs Catálogo 03 para Nacional)
+            $unidadLocal = strtoupper(trim($item['unidad'] ?? 'UND'));
+            $unidadSunat = 'NIU'; // Por defecto para nacionales (Catálogo 03)
+            
+            if ($motivo === '08' || $motivo === '09') {
+                // Reglas estrictas para Importación/Exportación (CATÁLOGO 65 DE ADUANAS)
+                if ($unidadLocal === 'UND' || $unidadLocal === 'UNIDAD') {
+                    $unidadSunat = 'U'; // Unidad en Catálogo 65
+                } elseif ($unidadLocal === 'KGS' || $unidadLocal === 'KG') {
+                    $unidadSunat = 'KG'; // Kilogramos en Catálogo 65
+                } elseif ($unidadLocal === 'MTR' || $unidadLocal === 'MT') {
+                    $unidadSunat = 'M'; // Metros en Catálogo 65
+                } elseif ($unidadLocal === 'LTS' || $unidadLocal === 'LT') {
+                    $unidadSunat = 'L'; // Litros en Catálogo 65
+                } else {
+                    $unidadSunat = 'U'; // Fallback seguro para Aduanas
+                }
+            } else {
+                // Para traslados nacionales normales (CATÁLOGO 03)
+                // Forzamos 'NIU' porque NubeFact lo pide por defecto para productos
+                $unidadSunat = 'NIU';
+            }
+
+            $item_data = [
+                "unidad_de_medida" => $unidadSunat,
                 "codigo" => $item['codigo'],
                 "descripcion" => $item['descripcion'],
                 "cantidad" => (float)$item['cantidad']
             ];
+
+            // 2. REGLA DETALLE: 'codigo_dam' debe ir dentro de cada ítem
+            if (($motivo === '08' || $motivo === '09') && !empty($codigoDamDs)) {
+                $codigoAduanaItem = $codigoDamDs;
+                
+                // Si el usuario no digitó el slash de la serie aduanera (ej: "1/"), se lo agregamos automáticamente
+                if (strpos($codigoAduanaItem, '/') === false) {
+                    $codigoAduanaItem = '1/' . $codigoAduanaItem;
+                }
+                
+                $item_data["codigo_dam"] = $codigoAduanaItem;
+            }
+
+            $guia_json["items"][] = $item_data;
         }
 
         $json_payload = json_encode($guia_json, JSON_UNESCAPED_UNICODE);
@@ -557,12 +608,12 @@ class GuiaElectronicaController
                 // 1. CASO DE ÉXITO: Aceptada por SUNAT
                 if (isset($data_respuesta['aceptada_por_sunat']) && $data_respuesta['aceptada_por_sunat'] === true) {
                     $hash_qr = $data_respuesta['cadena_para_codigo_qr'] ?? null;
-                    
+
                     if ($hash_qr) {
                         // Guardamos "Verdadero" y el enlace/hash oficial
                         $this->service->actualizarRespuestaNubeFact($treg, $hash_qr, 'Verdadero');
                     }
-                } 
+                }
                 // 2. CASO DE ERROR DE VALIDACIÓN: NubeFact detecta un problema (ej. RUC inválido)
                 elseif (!empty($data_respuesta['errors'])) {
                     $error_detalle = $data_respuesta['errors'];
@@ -572,7 +623,7 @@ class GuiaElectronicaController
                 // 3. CASO DE RECHAZO SUNAT: NubeFact lo procesó, pero SUNAT lo rebotó
                 elseif (isset($data_respuesta['aceptada_por_sunat']) && $data_respuesta['aceptada_por_sunat'] === false && !empty($data_respuesta['sunat_description'])) {
                     $desc = $data_respuesta['sunat_description'];
-                    
+
                     // Verificamos si la descripción de SUNAT contiene palabras clave de fallo
                     if (stripos($desc, 'rechazad') !== false || stripos($desc, 'excepcion') !== false || stripos($desc, 'error') !== false) {
                         $this->service->actualizarRespuestaNubeFact($treg, $desc, 'Rechazado');

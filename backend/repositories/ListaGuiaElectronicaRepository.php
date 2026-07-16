@@ -143,7 +143,8 @@ class ListaGuiaElectronicaRepository
                     ROUND(i.tpeso, 2) AS peso,
                     i.tcencos AS cencos,
                     i.tgalpon AS galpon,
-                    i.tdet_adicional AS observacion
+                    i.tglosa AS observacion,
+                    i.tdet_adicional AS detalle_adicional
                 FROM imov i
                 LEFT JOIN mitm m ON i.tcodigo = m.codigo
                 WHERE i.treg = ? AND i.mark = 'JE1'
@@ -164,6 +165,12 @@ class ListaGuiaElectronicaRepository
                     g.tserie AS serie,
                     g.tnumfac AS numero,
                     g.talm AS almacen_origen,
+                    (SELECT i.talr FROM imov i WHERE i.treg = g.treg AND i.mark = 'JE1' LIMIT 1) AS almacen_destino,
+                    g.tcodtra AS transaccion,
+                    g.tcli_origen AS cli_origen,
+                    g.tcli_destino AS cli_destino,
+                    g.tmotivo_traslado AS motivo_traslado_cod,
+                    g.tplaca2 AS vehiculo_placa2,
                     g.tprocli AS cliente_ruc,
                     COALESCE(c.nombre, g.tdesmot_traslado) AS cliente_razon_social,
                     ROUND(g.tcanttot, 0) AS bultos,
@@ -183,7 +190,9 @@ class ListaGuiaElectronicaRepository
                     c_ori.direcc AS punto_partida,
                     c_des.direcc AS punto_llegada,
                     g.qr_nubefact AS qr_nubefact,
-                    g.rsp_nubefact AS rsp_nubefact
+                    g.rsp_nubefact AS rsp_nubefact,
+                    g.tglosa AS observacion,
+                    g.tdesmot_traslado AS motivo_traslado_otros
                 FROM guia g
                 LEFT JOIN ccte c ON g.tprocli = c.codigo
                 LEFT JOIN alma a ON g.talm = a.codalm
@@ -211,13 +220,19 @@ class ListaGuiaElectronicaRepository
         $this->db->beginTransaction();
         try {
             // 1. Obtener los datos clave del documento usando el treg
-            $sql = "SELECT tdoc, tserie, tnumfac, tprocli FROM guia WHERE treg = ? LIMIT 1";
+            $sql = "SELECT tdoc, tserie, tnumfac, tprocli, rsp_nubefact FROM guia WHERE treg = ? LIMIT 1";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$treg]);
             $doc = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$doc) {
                 throw new Exception("No se encontró la guía de remisión con el ID de registro (treg) proporcionado.");
+            }
+
+            // Validación de seguridad crítica: No permitir eliminar guías aceptadas por SUNAT
+            $rsp = trim((string)($doc['rsp_nubefact'] ?? ''));
+            if (strcasecmp($rsp, 'Verdadero') === 0) {
+                throw new Exception("No se puede eliminar una guía de remisión que ya ha sido aceptada por SUNAT.");
             }
 
             $tdoc = trim((string)$doc['tdoc']);

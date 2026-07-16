@@ -418,17 +418,50 @@ class GuiaElectronicaRepository
         return 0.0;
     }
 
-    public function guardarGuia(array $cabecera, array $detalle): string
+    public function guardarGuia(array $cabecera, array $detalle, ?string $editTreg = null): string
     {
+        $motivo = explode(' |', $cabecera['motivoTraslado'])[0] ?? "04";
+        if ($motivo === '08' || $motivo === '09') {
+            $cabecera['motivoTrasladoOtros'] = $cabecera['codigoDamDs'] ?? '';
+        }
+
         $this->db->beginTransaction();
         $tregCreado = '';
         try {
+            
+            // --- 2. NUEVA LÓGICA DE EDICIÓN: LIMPIAR REGISTROS LOCALES ANTERIORES ---
+            if (!empty($editTreg)) {
+                // Buscamos la serie, número y estado EXACTOS del registro original usando el ID de edición
+                $stmtOld = $this->db->prepare("SELECT tserie, tnumfac, tprocli, rsp_nubefact FROM guia WHERE treg = ? LIMIT 1");
+                $stmtOld->execute([$editTreg]);
+                $oldGuia = $stmtOld->fetch(PDO::FETCH_ASSOC);
+
+                if ($oldGuia) {
+                    // Validación crítica: No permitir modificar guías ya aceptadas por SUNAT
+                    $rsp = trim((string)($oldGuia['rsp_nubefact'] ?? ''));
+                    if (strcasecmp($rsp, 'Verdadero') === 0) {
+                        throw new Exception("No se puede editar ni volver a enviar una guía de remisión que ya ha sido aceptada por SUNAT.");
+                    }
+
+                    $serieBorrar = $oldGuia['tserie'];
+                    $numeroBorrar = $oldGuia['tnumfac'];
+                    $procliBorrar = $oldGuia['tprocli'];
+                    
+                    // Borramos usando los datos originales y cliente para no dejar guías "fantasmas" y evitar borrados accidentales
+                    $this->db->prepare("DELETE FROM guia WHERE tdoc='09' AND tserie=? AND tnumfac=? AND tprocli=?")->execute([$serieBorrar, $numeroBorrar, $procliBorrar]);
+                    $this->db->prepare("DELETE FROM imov WHERE tdoc='09' AND tserie=? AND tnumfac=? AND tprocli=?")->execute([$serieBorrar, $numeroBorrar, $procliBorrar]);
+                    $this->db->prepare("DELETE FROM cabe_zonas WHERE tdoc='09' AND tserie=? AND tnumfac=? AND tprocli=?")->execute([$serieBorrar, $numeroBorrar, $procliBorrar]);
+                    $this->db->prepare("DELETE FROM movi_zonas WHERE tdoc='09' AND tserie=? AND tnumfac=? AND tprocli=?")->execute([$serieBorrar, $numeroBorrar, $procliBorrar]);
+                }
+            }
+            // -------------------------------------------------------------------------
+
             $user = $cabecera['tuser'] ?? 'SYS';
             $fechaEmision = $cabecera['fechaEmision'];
             $fechaTraslado = $cabecera['fechaTraslado'];
             $anio = (int)date('Y', strtotime($fechaEmision));
 
-            $transaccion = strtoupper($cabecera['transaccion']); // S440 o S400
+            $transaccion = strtoupper($cabecera['transaccion']);
 
             if ($transaccion === 'S440') {
                 // ─────────────────────────────────────────────────────────────
