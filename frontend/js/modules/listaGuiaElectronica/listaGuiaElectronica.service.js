@@ -47,6 +47,13 @@ class ListaGuiaElectronicaService extends Service {
     }
 
     /**
+     * Retorna la URL del proxy para cargar PDFs externos (ej. NubeFact) evitando bloqueos de X-Frame-Options
+     */
+    getProxyPdfUrl(url) {
+        return `/plantaincubacion/backend/index.php/api/lista-guia-electronica/pdf-externo?url=${encodeURIComponent(url)}`;
+    }
+
+    /**
      * Elimina una guía de remisión por su treg
      */
     deleteGuia(treg) {

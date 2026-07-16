@@ -94,7 +94,8 @@ class ListaGuiaElectronicaRepository
                         COALESCE(c.nombre, g.tdesmot_traslado) AS cliente_razon_social, COALESCE(c.nombre, g.tdesmot_traslado) AS nombre,
                         ROUND(g.tcanttot, 0) AS bultos, ROUND(g.tcanttot, 0) AS tcanttot,
                         ROUND(g.tpesotot, 2) AS peso_total, ROUND(g.tpesotot, 2) AS tpesotot,
-                        g.tuser AS usuario_registro, g.tuser AS tuser"
+                        g.tuser AS usuario_registro, g.tuser AS tuser,
+                        g.rsp_nubefact AS estado"
                     . $sqlBase . $where
                     . " ORDER BY g.tfectra DESC, g.tserie ASC, CAST(g.tnumfac AS UNSIGNED) DESC";
 
@@ -121,6 +122,15 @@ class ListaGuiaElectronicaRepository
 
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Clean state field: if it contains a link (like http, https, www) or HTML tags, set it to "verdadero"
+        foreach ($rows as &$row) {
+            $est = isset($row['estado']) ? trim((string)$row['estado']) : '';
+            if (preg_match('/https?:\/\//i', $est) || stripos($est, 'www.') !== false || preg_match('/href/i', $est)) {
+                $row['estado'] = 'verdadero';
+            }
+        }
+        unset($row);
 
         return [
             'recordsTotal' => $recordsTotal,

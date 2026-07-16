@@ -45,6 +45,12 @@ return function ($container) {
         exit;
     }
 
+    // Registrar el PDF externo proxy
+    if ($method === 'GET' && ($uri === '/api/lista-guia-electronica/pdf-externo' || $uri === '/api/guia-electronica/pdf-externo')) {
+        $controller->proxyPDFExterno();
+        exit;
+    }
+
     // Registrar el borrado de la guía
     if ($method === 'DELETE' && ($uri === '/api/lista-guia-electronica/eliminar' || $uri === '/api/guia-electronica/eliminar')) {
         $controller->eliminarGuia();

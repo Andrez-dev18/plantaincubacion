@@ -40,7 +40,15 @@ class ListaGuiaElectronicaController {
             lblDetallePartida: document.getElementById('lblDetallePartida'),
             lblDetalleLlegada: document.getElementById('lblDetalleLlegada'),
             lblDetalleModalidad: document.getElementById('lblDetalleModalidad'),
-            lblDetalleTipoTransp: document.getElementById('lblDetalleTipoTransp')
+            lblDetalleTipoTransp: document.getElementById('lblDetalleTipoTransp'),
+
+            // Modal PDF
+            modalPdf: document.getElementById('modalPdfGuia'),
+            iframePdfViewer: document.getElementById('iframePdfViewer'),
+            btnCerrarModalPdfTop: document.getElementById('btnCerrarModalPdfTop'),
+            btnCerrarModalPdfBottom: document.getElementById('btnCerrarModalPdfBottom'),
+            btnImprimirPdfModal: document.getElementById('btnImprimirPdfModal'),
+            btnNuevaVentanaPdfModal: document.getElementById('btnNuevaVentanaPdfModal')
         };
 
         this.currentDetail = {
@@ -141,10 +149,45 @@ class ListaGuiaElectronicaController {
             }
         });
 
+        // Cerrar modal de PDF nativo
+        this.el.btnCerrarModalPdfTop?.addEventListener('click', () => this._cerrarModalPdf());
+        this.el.btnCerrarModalPdfBottom?.addEventListener('click', () => this._cerrarModalPdf());
+        this.el.modalPdf?.addEventListener('click', (event) => {
+            if (event.target === this.el.modalPdf) {
+                this._cerrarModalPdf();
+            }
+        });
+
+        // Botones del modal de PDF
+        this.el.btnImprimirPdfModal?.addEventListener('click', () => {
+            if (this.el.iframePdfViewer && this.el.iframePdfViewer.contentWindow) {
+                try {
+                    this.el.iframePdfViewer.contentWindow.focus();
+                    this.el.iframePdfViewer.contentWindow.print();
+                } catch (e) {
+                    console.error("No se pudo disparar print() directamente: ", e);
+                    if (this.currentPdfUrl) {
+                        window.open(this.currentPdfUrl, '_blank', 'noopener');
+                    }
+                }
+            }
+        });
+
+        this.el.btnNuevaVentanaPdfModal?.addEventListener('click', () => {
+            if (this.currentPdfUrl) {
+                window.open(this.currentPdfUrl, '_blank', 'noopener');
+            }
+        });
+
         // Tecla escape para cerrar modal
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && this.el.modalDetalle && !this.el.modalDetalle.classList.contains('hidden')) {
-                this._cerrarModalDetalle();
+            if (event.key === 'Escape') {
+                if (this.el.modalDetalle && !this.el.modalDetalle.classList.contains('hidden')) {
+                    this._cerrarModalDetalle();
+                }
+                if (this.el.modalPdf && !this.el.modalPdf.classList.contains('hidden')) {
+                    this._cerrarModalPdf();
+                }
             }
         });
     }
@@ -277,6 +320,22 @@ class ListaGuiaElectronicaController {
                     className: 'px-4 py-3 text-left font-mono text-slate-700',
                     render: (data) => this._escapeHtml(data || '-')
                 },
+                {
+                    data: 'estado',
+                    className: 'px-4 py-3 text-center',
+                    render: (data) => {
+                        const val = String(data || '').trim().toLowerCase();
+                        if (val === 'verdadero') {
+                            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 uppercase">Aceptado</span>`;
+                        } else if (val === 'en proceso' || val === 'en procesos') {
+                            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">En Proceso</span>`;
+                        } else if (val === 'rechazado') {
+                            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 uppercase">Rechazado</span>`;
+                        } else {
+                            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-800 uppercase">${this._escapeHtml(data || 'Pendiente')}</span>`;
+                        }
+                    }
+                },
                 { 
                     data: null, 
                     className: 'px-4 py-3 text-center',
@@ -310,6 +369,13 @@ class ListaGuiaElectronicaController {
                                     data-numero="${this._escapeHtml(actionNumero)}" 
                                     title="Consultar Estado SUNAT/NubeFact">
                                     <i class="fas fa-cloud"></i>
+                                </button>
+                                <button class="action-btn action-delete" data-action="eliminar" 
+                                    data-treg="${this._escapeHtml(row.treg)}" 
+                                    data-serie="${this._escapeHtml(actionSerie)}" 
+                                    data-numero="${this._escapeHtml(actionNumero)}" 
+                                    title="Eliminar Guía">
+                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         `;
@@ -361,7 +427,15 @@ class ListaGuiaElectronicaController {
         }
 
         const url = this.service.getImprimirPdfUrl(treg);
-        window.open(url, '_blank', 'noopener');
+        this.currentPdfUrl = url;
+
+        if (this.el.iframePdfViewer) {
+            this.el.iframePdfViewer.src = url;
+        }
+
+        if (this.el.modalPdf) {
+            this.el.modalPdf.classList.remove('hidden');
+        }
     }
 
     async _eliminarGuia(treg, serie, numero) {
@@ -575,7 +649,18 @@ class ListaGuiaElectronicaController {
                 const result = await window.Swal.fire(confirmOptions);
 
                 if (result.isConfirmed && pdfUrl) {
-                    window.open(pdfUrl, '_blank', 'noopener');
+                    const isExternal = pdfUrl.startsWith('http') && !pdfUrl.includes(window.location.host);
+                    const finalUrl = isExternal ? this.service.getProxyPdfUrl(pdfUrl) : pdfUrl;
+
+                    this.currentPdfUrl = pdfUrl; // Guardar URL original para abrirla externamente si se pulsa "Ver en otra ventana"
+
+                    if (this.el.iframePdfViewer) {
+                        this.el.iframePdfViewer.src = finalUrl;
+                    }
+
+                    if (this.el.modalPdf) {
+                        this.el.modalPdf.classList.remove('hidden');
+                    }
                 }
             } else if (response && response.aceptada_por_sunat === false) {
                 const sunatDescription = response.sunat_description || 'El envío fue recibido pero SUNAT aún está procesándolo.';
@@ -599,6 +684,10 @@ class ListaGuiaElectronicaController {
                 title: 'Error de Conexión',
                 text: error.message || 'No se pudo comunicar con el servidor para consultar el estado.'
             });
+        } finally {
+            if (this.dataTable) {
+                this.dataTable.ajax.reload(null, false);
+            }
         }
     }
 
@@ -606,6 +695,15 @@ class ListaGuiaElectronicaController {
         if (!this.el.modalDetalle) return;
         this.el.modalDetalle.classList.add('hidden');
         this.currentDetail = { treg: null, serie: null, numero: null };
+    }
+
+    _cerrarModalPdf() {
+        if (!this.el.modalPdf) return;
+        this.el.modalPdf.classList.add('hidden');
+        if (this.el.iframePdfViewer) {
+            this.el.iframePdfViewer.src = '';
+        }
+        this.currentPdfUrl = null;
     }
 
     // ── Helper Utilities ────────────────────────────────────────────────────

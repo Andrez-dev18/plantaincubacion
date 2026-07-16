@@ -223,6 +223,77 @@ class ListaGuiaElectronicaController
     }
 
     /**
+     * Descarga y sirve un PDF externo (evitando la restricción X-Frame-Options: sameorigin)
+     */
+    public function proxyPDFExterno()
+    {
+        try {
+            $url = $_GET['url'] ?? null;
+            if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'La URL del PDF externo es requerida e inválida.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // Permite nubefact.com, sunat.gob.pe o cualquier dominio que maneje los CPEs
+            if (stripos($url, 'nubefact.com') === false && stripos($url, 'sunat.gob.pe') === false) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No está permitido acceder a este dominio externo.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // Descargar el PDF usando stream context y fallback de cURL
+            $opts = [
+                'http' => [
+                    'method' => "GET",
+                    'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n"
+                ]
+            ];
+            $context = stream_context_create($opts);
+            $pdfContent = @file_get_contents($url, false, $context);
+
+            if ($pdfContent === false) {
+                if (function_exists('curl_init')) {
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    $pdfContent = curl_exec($ch);
+                    curl_close($ch);
+                }
+            }
+
+            if ($pdfContent === false || empty($pdfContent)) {
+                throw new Exception("No se pudo descargar el archivo PDF externo.");
+            }
+
+            // Responder con el PDF
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="guia_remision_sunat.pdf"');
+            echo $pdfContent;
+            exit;
+        } catch (Exception $e) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al proxyar el PDF: ' . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    /**
      * Utilidad para formatear fechas en el PDF
      */
     private function _formatFechaReporte($fecha)
