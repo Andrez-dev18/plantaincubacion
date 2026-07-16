@@ -208,6 +208,19 @@ class GuiaElectronicaController {
             if (obs.trim() === '-') obs = '';
             document.getElementById('observaciones').value = obs;
 
+            // --- NUEVO: CARGAR BULTOS Y PESO BRUTO ORIGINALES ---
+            const inputBultos = document.getElementById('numBultos');
+            const bultosDB = cab.bultos || cab.tcanttot || cab.totalCantidad || '';
+            if (inputBultos) {
+                inputBultos.value = bultosDB;
+            }
+
+            const inputPesoBruto = document.getElementById('pesoBrutoTotal');
+            const pesoDB = cab.peso_total || cab.tpesotot || cab.totalPeso || '';
+            if (inputPesoBruto) {
+                inputPesoBruto.value = pesoDB;
+            }
+
             // 9. Llenar la Grilla de Productos
             this.detalleItems = [];
             items.forEach(item => {
@@ -1673,13 +1686,14 @@ class GuiaElectronicaController {
 
         // Actualizar inputs de cabecera de SUNAT
         const numBultos = document.getElementById('numBultos');
-        if (numBultos) {
-            numBultos.value = totalCantidad > 0 ? Math.round(totalCantidad) : '';
+        // Solo auto-calcula si NO estamos editando una guía antigua (respetando la BD)
+        if (numBultos && !this.tregEditando) {
+            if (totalCantidad > 0) numBultos.value = Math.round(totalCantidad);
         }
 
         const pesoBrutoTotal = document.getElementById('pesoBrutoTotal');
-        if (pesoBrutoTotal) {
-            pesoBrutoTotal.value = totalPeso > 0 ? totalPeso.toFixed(2) : '';
+        if (pesoBrutoTotal && !this.tregEditando) {
+            if (totalPeso > 0) pesoBrutoTotal.value = totalPeso.toFixed(2);
         }
     }
 
@@ -1851,10 +1865,22 @@ class GuiaElectronicaController {
         const motivoTrasladoOtros = motivoTrasladoOtrosVal;
         const codigoDamDsVal = document.getElementById('codigoDamDs')?.value || '';
 
-        const lblTotalCantidad = document.getElementById('lblTotalCantidad')?.textContent || '0';
-        const lblTotalPeso = document.getElementById('lblTotalPeso')?.textContent || '0';
-        const totalCantidad = parseFloat(lblTotalCantidad) || 0;
-        const totalPeso = parseFloat(lblTotalPeso) || 0;
+        // --- CORRECCIÓN: CAPTURAR BULTOS Y PESO BRUTO DE LA CABECERA MANUAL ---
+        // Ignoramos la sumatoria de la grilla y respetamos lo que el usuario digitó (o pesó en balanza)
+        const inputBultos = document.getElementById('numBultos')?.value || '0';
+        const inputPesoBruto = document.getElementById('pesoBrutoTotal')?.value || '0';
+        
+        const totalCantidad = parseFloat(inputBultos) || 0; // Se guarda como tcanttot
+        const totalPeso = parseFloat(inputPesoBruto) || 0;  // Se guarda como tpesotot
+
+        if (totalCantidad <= 0 || totalPeso <= 0) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Datos de Transporte Incompletos',
+                text: 'El número de Bultos y el Peso Bruto Total son obligatorios y deben ser mayores a cero para enviar a SUNAT.'
+            });
+            return;
+        }
 
         const payload = {
             edit_treg: this.tregEditando,
@@ -1968,7 +1994,8 @@ class GuiaElectronicaController {
                         'codTransportista', 'nomTransportista',
                         'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
                         'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada',
-                        'tipoTransporte', 'zonaOrigen', 'zonaDestino', 'codigoDamDs'
+                        'tipoTransporte', 'zonaOrigen', 'zonaDestino', 'codigoDamDs',
+                        'numBultos', 'pesoBrutoTotal' // <-- AQUÍ AGREGAMOS ESTOS DOS
                     ];
                     inputsToClear.forEach(id => {
                         const el = document.getElementById(id);
