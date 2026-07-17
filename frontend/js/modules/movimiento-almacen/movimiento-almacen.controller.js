@@ -38,7 +38,7 @@ class MovimientoAlmacenController extends Component {
             formato: 'a4'
         };
 
-        this._draftKey = 'draft_movimiento_almacen_v1';
+        this._draftKey = 'movimiento-almacen';
         this._autoSaveDraft = this._debounce(() => this._guardarBorradorLocal(), 1500);
         this.filaSeleccionadaIndex = -1;
     }
@@ -3148,7 +3148,8 @@ class MovimientoAlmacenController extends Component {
             this._popupSuccess(`${res.data.mensaje} - Registro #${res.data.treg}`);
             guardadoExitoso = true;
 
-            sessionStorage.removeItem(this._draftKey);
+            this.service.eliminarBorrador(this._draftKey, this._obtenerUsuarioActual())
+                .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
 
             if (imprimirDespues) {
                 await this._imprimirMovimientoGuardado({
@@ -3195,7 +3196,8 @@ class MovimientoAlmacenController extends Component {
         this._renderGrid();
         this._actualizarTotales();
         
-        sessionStorage.removeItem(this._draftKey);
+        this.service.eliminarBorrador(this._draftKey, this._obtenerUsuarioActual())
+            .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
     }
 
     // ── Ver movimientos ───────────────────────────────────────────────────────
@@ -3609,7 +3611,8 @@ class MovimientoAlmacenController extends Component {
         }, 100);
 
         if (!isInit) {
-            sessionStorage.removeItem(this._draftKey);
+            this.service.eliminarBorrador(this._draftKey, this._obtenerUsuarioActual())
+                .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
         }
     }
 
@@ -3998,7 +4001,16 @@ class MovimientoAlmacenController extends Component {
 
     // ── GESTIÓN DE BORRADORES (SESSION STORAGE) ──────────────────────────────
 
-    _guardarBorradorLocal() {
+    _obtenerUsuarioActual() {
+        try {
+            const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+            return usuario.username || usuario.id_usuario || 'ADMIN';
+        } catch {
+            return 'ADMIN';
+        }
+    }
+
+    async _guardarBorradorLocal() {
         // No autoguardamos si estamos editando un movimiento ya existente
         if (this.modoEdicion || this.tregActual) return;
 
@@ -4017,25 +4029,53 @@ class MovimientoAlmacenController extends Component {
             tglosa: this._getFieldValue('tglosa', ''),
             detalle: this.detalle || []
         };
-        sessionStorage.setItem(this._draftKey, JSON.stringify(draft));
+
+        const usuario = this._obtenerUsuarioActual();
+        if (!usuario) return;
+
+        // Si no hay detalle, no guardamos en DB o si estaba guardado podríamos eliminarlo para limpiar
+        if (!draft.detalle || draft.detalle.length === 0) {
+            try {
+                await this.service.eliminarBorrador(this._draftKey, usuario);
+            } catch (e) {
+                console.error('Error al limpiar borrador vacío en DB:', e);
+            }
+            return;
+        }
+
+        const payload = {
+            id_programa: '1',
+            formulario: this._draftKey,
+            usuario: usuario,
+            json_data: draft
+        };
+
+        try {
+            await this.service.guardarBorrador(payload);
+        } catch (e) {
+            console.error('Error al guardar borrador en base de datos:', e);
+        }
     }
 
     async _verificarBorrador() {
-        const draftStr = sessionStorage.getItem(this._draftKey);
-        if (!draftStr) return;
-
         try {
-            const draft = JSON.parse(draftStr);
-            
-            if (!draft.detalle || draft.detalle.length === 0) {
-                sessionStorage.removeItem(this._draftKey);
+            const usuario = this._obtenerUsuarioActual();
+            if (!usuario) return;
+
+            const res = await this.service.obtenerBorrador(this._draftKey, usuario);
+            if (!res || !res.success || !res.data) return;
+
+            const draft = res.data.json_data;
+            if (!draft || !draft.detalle || draft.detalle.length === 0) {
+                // Limpiar preventivamente si no hay detalle en base de datos
+                await this.service.eliminarBorrador(this._draftKey, usuario);
                 return;
             }
 
             const isDark = document.body?.classList.contains('dark-mode');
             const result = await window.Swal.fire({
                 title: '¿Recuperar movimiento?',
-                text: 'Se encontró un registro no guardado en tu sesión anterior.',
+                text: 'Se encontró un registro no guardado en la base de datos para tu usuario.',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, recuperar',
@@ -4055,11 +4095,10 @@ class MovimientoAlmacenController extends Component {
                     window.Swal.fire({ title: 'Recuperado', text: 'La información ha sido restaurada.', icon: 'success', timer: 1500, showConfirmButton: false });
                 }
             } else {
-                sessionStorage.removeItem(this._draftKey);
+                await this.service.eliminarBorrador(this._draftKey, usuario);
             }
         } catch (e) {
-            console.error('Error procesando el borrador local:', e);
-            sessionStorage.removeItem(this._draftKey);
+            console.error('Error al verificar borrador en base de datos:', e);
         }
     }
 

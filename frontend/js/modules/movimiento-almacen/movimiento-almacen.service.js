@@ -70,4 +70,19 @@ class MovimientoAlmacenService extends Service {
         const q = new URLSearchParams(filtros).toString();
         return `${this.base}/reporte-kardex-pdf?${q}`;
     }
+
+    // ── Borradores (Base de Datos) ─────────────────────────────────────────────
+    obtenerBorrador(formulario, usuario) {
+        const params = new URLSearchParams({ id_programa: '1', formulario, usuario });
+        return Http.get(`/plantaincubacion/backend/index.php/api/borradores/obtener?${params.toString()}`);
+    }
+
+    guardarBorrador(payload) {
+        return Http.post(`/plantaincubacion/backend/index.php/api/borradores/guardar`, payload);
+    }
+
+    eliminarBorrador(formulario, usuario) {
+        const payload = { id_programa: '1', formulario, usuario };
+        return Http.post(`/plantaincubacion/backend/index.php/api/borradores/eliminar`, payload);
+    }
 }

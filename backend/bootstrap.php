@@ -25,6 +25,7 @@ try {
     require_once __DIR__ . '/repositories/GuiaElectronicaRepository.php';
     require_once __DIR__ . '/repositories/ListaGuiaElectronicaRepository.php';
     require_once __DIR__ . '/repositories/ConfigApiRepository.php';
+    require_once __DIR__ . '/repositories/BorradorRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
@@ -45,6 +46,7 @@ try {
     require_once __DIR__ . '/services/GuiaElectronicaService.php';
     require_once __DIR__ . '/services/ListaGuiaElectronicaService.php';
     require_once __DIR__ . '/services/ConfigApiService.php';
+    require_once __DIR__ . '/services/BorradorService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
@@ -65,6 +67,7 @@ try {
     require_once __DIR__ . '/controllers/GuiaElectronicaController.php';
     require_once __DIR__ . '/controllers/ListaGuiaElectronicaController.php';
     require_once __DIR__ . '/controllers/ConfigApiController.php';
+    require_once __DIR__ . '/controllers/BorradorController.php';
 
     // 1. Crear conexión
     $db = Database::getInstance()->getConnection();
@@ -83,6 +86,7 @@ try {
     $guiaElectronicaRepository = new GuiaElectronicaRepository($db);
     $listaGuiaElectronicaRepository = new ListaGuiaElectronicaRepository($db);
     $configApiRepository = new ConfigApiRepository($db);
+    $borradorRepository = new BorradorRepository($db);
 
     // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
@@ -102,6 +106,7 @@ try {
     $guiaElectronicaService = new GuiaElectronicaService($db);
     $listaGuiaElectronicaService = new ListaGuiaElectronicaService($db);
     $configApiService = new ConfigApiService($db);
+    $borradorService = new BorradorService($db);
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
@@ -121,6 +126,7 @@ try {
     $guiaElectronicaController = new GuiaElectronicaController($db);
     $listaGuiaElectronicaController = new ListaGuiaElectronicaController($db);
     $configApiController = new ConfigApiController($db);
+    $borradorController = new BorradorController($db);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -144,6 +150,7 @@ try {
             'guiaElectronica' => $guiaElectronicaController,
             'listaGuiaElectronica' => $listaGuiaElectronicaController,
             'configApi' => $configApiController,
+            'borrador' => $borradorController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -161,6 +168,7 @@ try {
             'guiaElectronica' => $guiaElectronicaService,
             'listaGuiaElectronica' => $listaGuiaElectronicaService,
             'configApi' => $configApiService,
+            'borrador' => $borradorService,
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
@@ -179,7 +187,8 @@ try {
             'reporteKardex' => new ReporteKardexRepository($db),
             'guiaElectronica' => $guiaElectronicaRepository,
             'listaGuiaElectronica' => $listaGuiaElectronicaRepository,
-            'configApi' => $configApiRepository
+            'configApi' => $configApiRepository,
+            'borrador' => $borradorRepository
         ]
     ];
 } catch (Exception $e) {

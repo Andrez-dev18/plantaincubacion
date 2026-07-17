@@ -145,6 +145,12 @@ try {
     $configApiRoutes = require_once __DIR__ . '/../routes/config-api.php';
     $configApiRoutes($container);
 
+    // ========================================
+    // MÓDULO: BORRADORES
+    // ========================================
+    $borradorRoutes = require_once __DIR__ . '/../routes/borrador.routes.php';
+    $borradorRoutes($container);
+
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
     // require_once __DIR__ . '/../routes/lotes.php';
