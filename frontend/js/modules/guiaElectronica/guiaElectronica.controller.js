@@ -15,6 +15,8 @@ class GuiaElectronicaController {
         this.stockMaximoPermitido = 0;
         //Bandera para saber si estamos editando
         this.tregEditando = null;
+        this._draftKey = 'guia-electronica';
+        this._autoSaveDraftTimer = null;
         window.guiaController = this;
     }
 
@@ -73,6 +75,8 @@ class GuiaElectronicaController {
         const tregParam = urlParams.get('treg');
         if (tregParam) {
             this.cargarDatosEdicion(tregParam);
+        } else {
+            setTimeout(() => this.verificarBorrador(), 600);
         }
     }
 
@@ -297,6 +301,8 @@ class GuiaElectronicaController {
         const form = document.getElementById('formGuiaRemision');
         if (form) {
             form.addEventListener('submit', (e) => e.preventDefault());
+            form.addEventListener('input', () => this.autoSaveDraft());
+            form.addEventListener('change', () => this.autoSaveDraft());
         }
 
         // Configurar los triggers dinámicos de búsqueda (F1 para abrir modal, Enter para buscar/autocompletar rápido)
@@ -1608,6 +1614,8 @@ class GuiaElectronicaController {
 
             tbody.appendChild(tr);
         });
+
+        this.autoSaveDraft();
     }
 
     eliminarItemGrid(index) {
@@ -1983,8 +1991,10 @@ class GuiaElectronicaController {
                     // Pero seteamos el ID de edición para que el siguiente "Guardar" reemplace la guía local y no la duplique.
                     this.tregEditando = response.treg;
                 } else {
-                    // Si todo salió bien, limpiamos como siempre para hacer una nueva guía.
+                    // Si todo salió bien, limpiamos como siempre para hacer una nueva guía y eliminamos el borrador.
                     this.tregEditando = null;
+                    this.guiaService.eliminarBorrador(this._draftKey, this._obtenerUsuarioActual())
+                        .catch(e => console.error('Error al eliminar borrador:', e));
 
                     this.detalleItems = [];
                     this.renderizarGrid();
@@ -2064,6 +2074,189 @@ class GuiaElectronicaController {
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
+    }
+
+    _obtenerUsuarioActual() {
+        try {
+            const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+            return usuario.username || usuario.id_usuario || 'ADMIN';
+        } catch {
+            return 'ADMIN';
+        }
+    }
+
+    autoSaveDraft() {
+        clearTimeout(this._autoSaveDraftTimer);
+        this._autoSaveDraftTimer = setTimeout(() => this.guardarBorradorLocal(), 1500);
+    }
+
+    async guardarBorradorLocal() {
+        // No autoguardamos si estamos editando una guía ya grabada
+        if (this.tregEditando) return;
+
+        const draft = {
+            tipoEnvio: document.getElementById('tipoEnvioAlmacen')?.checked ? 'almacen' : 'granja',
+            transaccion: document.getElementById('transaccion')?.value || '',
+            zonaOrigen: document.getElementById('zonaOrigen')?.value || '',
+            zonaDestino: document.getElementById('zonaDestino')?.value || '',
+            clienteRuc: document.getElementById('clienteRuc')?.value || '',
+            clienteNombre: document.getElementById('clienteNombre')?.value || '',
+            serie: document.getElementById('serie')?.value || '',
+            numeroGuia: document.getElementById('numeroGuia')?.value || '',
+            fechaEmision: document.getElementById('fechaEmision')?.value || '',
+            fechaTraslado: document.getElementById('fechaTraslado')?.value || '',
+            codigoDamDs: document.getElementById('codigoDamDs')?.value || '',
+            observaciones: document.getElementById('observaciones')?.value || '',
+            codTransportista: document.getElementById('codTransportista')?.value || '',
+            nomTransportista: document.getElementById('nomTransportista')?.value || '',
+            codConductor: document.getElementById('codConductor')?.value || '',
+            nomConductor: document.getElementById('nomConductor')?.value || '',
+            licenciaCond: document.getElementById('licenciaCond')?.value || '',
+            placaP: document.getElementById('placaP')?.value || '',
+            placaR: document.getElementById('placaR')?.value || '',
+            clienteOrigen: document.getElementById('clienteOrigen')?.value || '',
+            clienteDestino: document.getElementById('clienteDestino')?.value || '',
+            tipoTransporte: document.getElementById('tipoTransporte')?.value || '',
+            motivoTraslado: document.getElementById('motivoTraslado')?.value || '',
+            motivoTrasladoOtros: document.getElementById('motivoTrasladoOtros')?.value || '',
+            numBultos: document.getElementById('numBultos')?.value || '',
+            pesoBrutoTotal: document.getElementById('pesoBrutoTotal')?.value || '',
+            puntoPartida: document.getElementById('puntoPartida')?.value || '',
+            puntoLlegada: document.getElementById('puntoLlegada')?.value || '',
+            ubigeoPartidaLocal: this.ubigeoPartidaLocal || '',
+            ubigeoLlegadaLocal: this.ubigeoLlegadaLocal || '',
+            detalleItems: this.detalleItems || []
+        };
+
+        const usuario = this._obtenerUsuarioActual();
+        if (!usuario) return;
+
+        // Si no hay ítems en el detalle, borramos el borrador preventivamente de la base de datos
+        if (!draft.detalleItems || draft.detalleItems.length === 0) {
+            try {
+                await this.guiaService.eliminarBorrador(this._draftKey, usuario);
+            } catch (e) {
+                console.error('Error al limpiar borrador vacío en DB:', e);
+            }
+            return;
+        }
+
+        const payload = {
+            id_programa: '1',
+            formulario: this._draftKey,
+            usuario: usuario,
+            json_data: draft
+        };
+
+        try {
+            await this.guiaService.guardarBorrador(payload);
+        } catch (e) {
+            console.error('Error al guardar borrador de guía en base de datos:', e);
+        }
+    }
+
+    async verificarBorrador() {
+        try {
+            const usuario = this._obtenerUsuarioActual();
+            if (!usuario) return;
+
+            const res = await this.guiaService.obtenerBorrador(this._draftKey, usuario);
+            if (!res || !res.success || !res.data) return;
+
+            const draft = res.data.json_data;
+            if (!draft || !draft.detalleItems || draft.detalleItems.length === 0) {
+                await this.guiaService.eliminarBorrador(this._draftKey, usuario);
+                return;
+            }
+
+            const isDark = document.body?.classList.contains('dark-mode');
+            const result = await window.Swal.fire({
+                title: '¿Recuperar guía de remisión?',
+                text: 'Se encontró un registro no guardado en la base de datos para tu usuario.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, recuperar',
+                cancelButtonText: 'No, descartar',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#10b981', 
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                await this.restaurarBorrador(draft);
+                if (window.SwalHelpers?.showSuccess) {
+                    window.SwalHelpers.showSuccess('La guía ha sido restaurada.');
+                } else {
+                    window.Swal.fire({ title: 'Recuperada', text: 'La información ha sido restaurada.', icon: 'success', timer: 1500, showConfirmButton: false });
+                }
+            } else {
+                await this.guiaService.eliminarBorrador(this._draftKey, usuario);
+            }
+        } catch (e) {
+            console.error('Error al verificar borrador de guía en base de datos:', e);
+        }
+    }
+
+    async restaurarBorrador(draft) {
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val || '';
+        };
+
+        if (draft.tipoEnvio === 'granja') {
+            const rbGranja = document.getElementById('tipoEnvioGranja');
+            if (rbGranja) rbGranja.checked = true;
+        } else {
+            const rbAlmacen = document.getElementById('tipoEnvioAlmacen');
+            if (rbAlmacen) rbAlmacen.checked = true;
+        }
+
+        setVal('transaccion', draft.transaccion);
+        setVal('zonaOrigen', draft.zonaOrigen);
+        setVal('zonaDestino', draft.zonaDestino);
+        setVal('clienteRuc', draft.clienteRuc);
+        setVal('clienteNombre', draft.clienteNombre);
+        setVal('serie', draft.serie);
+        setVal('numeroGuia', draft.numeroGuia);
+        setVal('fechaEmision', draft.fechaEmision);
+        setVal('fechaTraslado', draft.fechaTraslado);
+        setVal('codigoDamDs', draft.codigoDamDs);
+        setVal('observaciones', draft.observaciones);
+        setVal('codTransportista', draft.codTransportista);
+        setVal('nomTransportista', draft.nomTransportista);
+        setVal('codConductor', draft.codConductor);
+        setVal('nomConductor', draft.nomConductor);
+        setVal('licenciaCond', draft.licenciaCond);
+        setVal('placaP', draft.placaP);
+        setVal('placaR', draft.placaR);
+        setVal('clienteOrigen', draft.clienteOrigen);
+        setVal('clienteDestino', draft.clienteDestino);
+        setVal('tipoTransporte', draft.tipoTransporte);
+        setVal('motivoTraslado', draft.motivoTraslado);
+        setVal('motivoTrasladoOtros', draft.motivoTrasladoOtros);
+        setVal('numBultos', draft.numBultos);
+        setVal('pesoBrutoTotal', draft.pesoBrutoTotal);
+        setVal('puntoPartida', draft.puntoPartida);
+        setVal('puntoLlegada', draft.puntoLlegada);
+
+        this.ubigeoPartidaLocal = draft.ubigeoPartidaLocal || '';
+        this.ubigeoLlegadaLocal = draft.ubigeoLlegadaLocal || '';
+
+        this.detalleItems = draft.detalleItems || [];
+        this.renderizarGrid();
+        this.calcularTotales();
+
+        // Disparar lógica de UI necesaria
+        this.setupEventTipoEnvio();
+
+        // Disparar eventos change en los selects para refrescar visibilidad de campos relacionados
+        const elementsToChange = ['motivoTraslado', 'tipoTransporte', 'zonaOrigen', 'zonaDestino'];
+        elementsToChange.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.dispatchEvent(new Event('change'));
+        });
     }
 }
 

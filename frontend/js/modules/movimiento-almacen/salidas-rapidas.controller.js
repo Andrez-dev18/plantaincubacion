@@ -21,8 +21,9 @@ const SalidasRapidas = (() => {
     let _listaFiltradaKb = [];   // snapshot de filas visibles para nav teclado
     let _selKbIdx = -1;   // fila activa en panel derecho (teclado)
 
-    const DRAFT_KEY = 'draft_salidas_rapidas_v1';
+    const DRAFT_KEY = 'salidas-rapidas';
     let _draftTimer = null;
+    const _service = new MovimientoAlmacenService();
 
     // ─────────────────────────────────────────────────────────────────
     // INIT
@@ -126,12 +127,23 @@ const SalidasRapidas = (() => {
     // ─────────────────────────────────────────────────────────────────
     // GESTIÓN DE BORRADORES (SESSION STORAGE)
     // ─────────────────────────────────────────────────────────────────
+    function _obtenerUsuarioActual() {
+        try {
+            const uStr = sessionStorage.getItem('usuario');
+            if (uStr) {
+                const uObj = JSON.parse(uStr);
+                return uObj.username || uObj.usuario || uObj.user || 'ADMIN';
+            }
+        } catch (e) { }
+        return 'ADMIN';
+    }
+
     function _autoSaveDraft() {
         clearTimeout(_draftTimer);
         _draftTimer = setTimeout(_guardarBorrador, 1000);
     }
 
-    function _guardarBorrador() {
+    async function _guardarBorrador() {
         const data = {
             alma: document.getElementById('sr-alma')?.value || '',
             tipo: document.querySelector('input[name="sr-tipo"]:checked')?.value || 'S003',
@@ -140,24 +152,52 @@ const SalidasRapidas = (() => {
             nombre: document.getElementById('sr-nombre')?.value || '',
             seleccion: _seleccion
         };
-        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+
+        const usuario = _obtenerUsuarioActual();
+        if (!usuario) return;
+
+        // Si no hay productos seleccionados, no guardamos en DB o lo eliminamos si ya existía
+        if (!data.seleccion || data.seleccion.length === 0) {
+            try {
+                await _service.eliminarBorrador(DRAFT_KEY, usuario);
+            } catch (e) {
+                console.error('Error al limpiar borrador vacío de salidas rápidas en DB:', e);
+            }
+            return;
+        }
+
+        const payload = {
+            id_programa: '1',
+            formulario: DRAFT_KEY,
+            usuario: usuario,
+            json_data: data
+        };
+
+        try {
+            await _service.guardarBorrador(payload);
+        } catch (e) {
+            console.error('Error al guardar borrador de salidas rápidas en base de datos:', e);
+        }
     }
 
     async function _verificarBorrador() {
-        const draftStr = sessionStorage.getItem(DRAFT_KEY);
-        if (!draftStr) return;
-
         try {
-            const draft = JSON.parse(draftStr);
-            if (!draft.seleccion || draft.seleccion.length === 0) {
-                sessionStorage.removeItem(DRAFT_KEY);
+            const usuario = _obtenerUsuarioActual();
+            if (!usuario) return;
+
+            const res = await _service.obtenerBorrador(DRAFT_KEY, usuario);
+            if (!res || !res.success || !res.data) return;
+
+            const draft = res.data.json_data;
+            if (!draft || !draft.seleccion || draft.seleccion.length === 0) {
+                await _service.eliminarBorrador(DRAFT_KEY, usuario);
                 return;
             }
 
             const isDark = document.body?.classList.contains('dark-mode');
             const result = await window.Swal.fire({
                 title: '¿Recuperar salida rápida?',
-                text: 'Se encontró un borrador no guardado en tu sesión anterior.',
+                text: 'Se encontró un borrador no guardado en la base de datos para tu usuario.',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, recuperar',
@@ -173,10 +213,10 @@ const SalidasRapidas = (() => {
                 _restaurarBorrador(draft);
                 if (window.SwalHelpers?.showSuccess) window.SwalHelpers.showSuccess('La salida ha sido restaurada.');
             } else {
-                sessionStorage.removeItem(DRAFT_KEY);
+                await _service.eliminarBorrador(DRAFT_KEY, usuario);
             }
         } catch (e) {
-            sessionStorage.removeItem(DRAFT_KEY);
+            console.error('Error al verificar borrador de salidas rápidas en base de datos:', e);
         }
     }
 
@@ -494,7 +534,8 @@ const SalidasRapidas = (() => {
         clearTimeout(_draftTimer);
 
         // 2. Eliminamos el borrador por completo del navegador
-        sessionStorage.removeItem(DRAFT_KEY);
+        _service.eliminarBorrador(DRAFT_KEY, _obtenerUsuarioActual())
+            .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
     }
 
     function _actualizarTotal() {
@@ -775,7 +816,8 @@ const SalidasRapidas = (() => {
         if (r1) { r1.checked = true; cambiarTipo('S003'); }
         await _obtenerNuevoReg();
 
-        sessionStorage.removeItem(DRAFT_KEY);
+        _service.eliminarBorrador(DRAFT_KEY, _obtenerUsuarioActual())
+            .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -913,7 +955,8 @@ const SalidasRapidas = (() => {
 
                 await nuevo();
 
-                sessionStorage.removeItem(DRAFT_KEY);
+                _service.eliminarBorrador(DRAFT_KEY, _obtenerUsuarioActual())
+                    .catch(e => console.error('Error al eliminar borrador de base de datos:', e));
 
                 // ── 2. PROCESO TERMINADO: CERRAMOS EL LOADING Y PARAMOS EL SPINNER ──
                 Swal.close();

@@ -93,6 +93,21 @@ class GuiaElectronicaService extends Service {
     getDetalleGuia(params = {}) {
         return Http.get('/plantaincubacion/backend/index.php/api/lista-guia-electronica/detalle', params);
     }
+
+    // ── Borradores (Base de Datos) ─────────────────────────────────────────────
+    obtenerBorrador(formulario, usuario) {
+        const params = new URLSearchParams({ id_programa: '1', formulario, usuario });
+        return Http.get(`/plantaincubacion/backend/index.php/api/borradores/obtener?${params.toString()}`);
+    }
+
+    guardarBorrador(payload) {
+        return Http.post(`/plantaincubacion/backend/index.php/api/borradores/guardar`, payload);
+    }
+
+    eliminarBorrador(formulario, usuario) {
+        const payload = { id_programa: '1', formulario, usuario };
+        return Http.post(`/plantaincubacion/backend/index.php/api/borradores/eliminar`, payload);
+    }
 }
 
 window.GuiaElectronicaService = GuiaElectronicaService;
