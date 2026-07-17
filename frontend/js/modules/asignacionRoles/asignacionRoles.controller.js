@@ -54,8 +54,8 @@ class AsignacionController {
                     className: 'text-center',
                     render: (data, type, row, meta) => meta.row + meta.settings._iDisplayStart + 1
                 },
-                { data: 'codigo', className: 'text-center uppercase' },
-                { data: 'nombre', className: 'text-left uppercase' },
+                { data: 'codigo', className: 'text-center' },
+                { data: 'nombre', className: 'text-left' },
                 {
                     data: 'roles_asignados',
                     className: 'text-left',
