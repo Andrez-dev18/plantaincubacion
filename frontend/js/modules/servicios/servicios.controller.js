@@ -1,0 +1,237 @@
+/**
+ * ServiciosController — Orquestador del módulo de Servicios
+ */
+class ServiciosController {
+    constructor() {
+        this.service = new ServiciosService();
+        this.dataTableGestion = null;
+    }
+
+    async init() {
+        this.setupEventListeners();
+        await this.renderizarTablaServicios();
+    }
+
+    setupEventListeners() {
+        // Botón "Nuevo Registro" (Disparador del Modal)
+        document.getElementById('btnNuevo')?.addEventListener('click', () => this.abrirModalServicio());
+
+        // Cancelar y cerrar Modal Servicio
+        document.getElementById('btnCerrarModalServicio')?.addEventListener('click', () => this.cerrarModalServicio());
+        document.getElementById('btnCancelarServicio')?.addEventListener('click', () => this.cerrarModalServicio());
+
+        // Intercepción del Submit del Formulario Principal (Crear/Editar)
+        document.getElementById('formServicio')?.addEventListener('submit', (e) => this.guardarFormServicio(e));
+    }
+
+    async renderizarTablaServicios() {
+        const tableElement = $('#dataTableServicios');
+        if (!tableElement.length) return;
+
+        if ($.fn.DataTable.isDataTable(tableElement)) {
+            tableElement.DataTable().clear().destroy();
+        }
+
+        this.dataTableGestion = tableElement.DataTable({
+            processing: true,
+            serverSide: true, // Habilitar paginación del servidor
+            ajax: (dataRequests, callback) => {
+                const pageSize = dataRequests.length || 25;
+                const page = Math.floor((dataRequests.start || 0) / pageSize) + 1;
+                const q = dataRequests.search?.value || '';
+
+                this.service.getServicios({ q: q, page: page, pageSize: pageSize })
+                    .then(response => {
+                        if (response.success && response.data) {
+                            callback({
+                                draw: dataRequests.draw,
+                                recordsTotal: response.total || 0,
+                                recordsFiltered: response.total || 0,
+                                data: response.data
+                            });
+                        } else {
+                            callback({ draw: dataRequests.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error al cargar la tabla:", error);
+                        callback({ draw: dataRequests.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+                    });
+            },
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: (data, type, row, meta) => meta.row + meta.settings._iDisplayStart + 1
+                },
+                { data: 'codi', className: 'text-center font-semibold font-mono' },
+                { data: 'descri', className: 'text-left' },
+                { data: 'funcio', className: 'text-left font-mono' },
+                { data: 'natu_1', className: 'text-left font-mono' },
+                { data: 'natu_2', className: 'text-center font-mono' },
+                { data: 'grupo', className: 'text-center' },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: (data, type, row) => `
+                        <div class="flex gap-2 justify-center">
+                            <button type="button" class="btn-editar-servicio bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Servicio" data-codi="${row.codi}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn-eliminar-servicio bg-orange-100 hover:bg-orange-200 text-orange-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Servicio" data-codi="${row.codi}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `
+                }
+            ],
+            scrollX: true,
+            responsive: false,
+            pageLength: 10,
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }
+        });
+
+        // Configuración de delegación de clicks mediante jQuery
+        const self = this;
+        tableElement.off('click', '.btn-editar-servicio').on('click', '.btn-editar-servicio', function () {
+            self.abrirModalServicio($(this).attr('data-codi'));
+        });
+        tableElement.off('click', '.btn-eliminar-servicio').on('click', '.btn-eliminar-servicio', function () {
+            self.eliminarServicio($(this).attr('data-codi'));
+        });
+    }
+
+    async abrirModalServicio(codi = null) {
+        const modal = document.getElementById('modalServicio');
+        const form = document.getElementById('formServicio');
+        const title = document.getElementById('modalServicioTitle');
+        const inputIsEdit = document.getElementById('servicio_is_edit');
+        const inputCodi = document.getElementById('sCodi');
+
+        form.reset();
+
+        if (codi) {
+            // MODO EDICIÓN
+            inputIsEdit.value = 'true';
+            title.innerHTML = '<i class="fas fa-edit text-blue-600 mr-2"></i> Editar Servicio';
+            inputCodi.readOnly = true;
+            inputCodi.classList.add('bg-gray-100', 'cursor-not-allowed');
+
+            // Cargar datos del servicio
+            const response = await this.service.obtenerServicio(codi);
+            if (response.success && response.data) {
+                inputCodi.value = response.data.codi || '';
+                document.getElementById('sDescri').value = response.data.descri || '';
+                document.getElementById('sFuncio').value = response.data.funcio || '';
+                document.getElementById('sNatu1').value = response.data.natu_1 || '';
+                document.getElementById('sNatu2').value = response.data.natu_2 || '';
+                document.getElementById('sCtanue').value = response.data.ctanue || '';
+                document.getElementById('sGrupo').value = response.data.grupo || '';
+                document.getElementById('sTipo').value = response.data.tipo || '';
+                document.getElementById('sBien').value = response.data.bien || '';
+                document.getElementById('sPorc').value = response.data.porc || '';
+                document.getElementById('sMonto').value = response.data.monto || '';
+                document.getElementById('sIgv').value = response.data.igv || '';
+            } else {
+                Swal.fire('Error', 'No se pudieron cargar los datos del servicio.', 'error');
+                return;
+            }
+        } else {
+            // MODO CREACIÓN
+            inputIsEdit.value = 'false';
+            title.innerHTML = '<i class="fas fa-plus text-green-600 mr-2"></i> Nuevo Servicio';
+            inputCodi.readOnly = false;
+            inputCodi.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+    }
+
+    cerrarModalServicio() {
+        const modal = document.getElementById('modalServicio');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+        document.getElementById('formServicio').reset();
+    }
+
+    async guardarFormServicio(e) {
+        e.preventDefault();
+
+        const btnGuardar = document.getElementById('btnGuardarServicio');
+        const textoOriginal = btnGuardar.innerHTML;
+        btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        btnGuardar.disabled = true;
+
+        const isEdit = document.getElementById('servicio_is_edit').value === 'true';
+
+        const payload = {
+            is_edit: isEdit,
+            codi: document.getElementById('sCodi').value.trim(),
+            descri: document.getElementById('sDescri').value.trim(),
+            funcio: document.getElementById('sFuncio').value.trim(),
+            natu_1: document.getElementById('sNatu1').value.trim(),
+            natu_2: document.getElementById('sNatu2').value.trim(),
+            ctanue: document.getElementById('sCtanue').value.trim(),
+            grupo: document.getElementById('sGrupo').value.trim(),
+            tipo: document.getElementById('sTipo').value.trim(),
+            bien: document.getElementById('sBien').value.trim(),
+            porc: parseFloat(document.getElementById('sPorc').value) || 0,
+            monto: parseFloat(document.getElementById('sMonto').value) || 0,
+            igv: parseFloat(document.getElementById('sIgv').value) || 0
+        };
+
+        try {
+            const response = await this.service.guardarServicio(payload);
+            if (response.success) {
+                Swal.fire({ icon: 'success', title: '¡Éxito!', text: response.message, timer: 1500, showConfirmButton: false });
+                this.cerrarModalServicio();
+                if (this.dataTableGestion) this.dataTableGestion.ajax.reload(null, false);
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', error.message || 'Hubo un problema de conexión.', 'error');
+        } finally {
+            btnGuardar.innerHTML = textoOriginal;
+            btnGuardar.disabled = false;
+        }
+    }
+
+    eliminarServicio(codi) {
+        Swal.fire({
+            title: `¿Deseas eliminar este servicio?`,
+            text: `Esta acción no se puede deshacer y eliminará el servicio ${codi} permanentemente.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: `Sí, eliminar`,
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await this.service.eliminarServicio(codi);
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Servicio eliminado', timer: 1500, showConfirmButton: false });
+                        if (this.dataTableGestion) this.dataTableGestion.ajax.reload(null, false);
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', e.message || 'No se pudo procesar la solicitud.', 'error');
+                }
+            }
+        });
+    }
+}
+
+// Inicializar el controlador global
+window.serviciosController = new ServiciosController();
+document.addEventListener('DOMContentLoaded', () => {
+    window.serviciosController.init();
+});

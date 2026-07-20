@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Contribuyentes</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="../assets/icons/fontawesome/css/all.min.css">
+
+    <!-- Estilos compartidos -->
+    <link rel="stylesheet" href="../assets/css/dashboard-styles.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-style.css">
+    <link rel="stylesheet" href="../assets/css/dashboard-responsive.css">
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div class="container mx-auto px-4 py-6">
+
+        <!-- Acciones -->
+        <section class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-tools text-purple-600"></i>
+                Acciones
+            </h2>
+            <div class="flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex flex-wrap gap-3">
+                    <button id="btnNuevo"
+                        class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow btn-hover-scale">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Registro
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla -->
+        <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-table text-purple-600"></i>
+                Registros De Contribuyentes
+            </h2>
+
+            <div class="table-scroll overflow-x-auto">
+                <table class="min-w-full" id="dataTableContribuyentes">
+                    <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">#</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Codigo</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Nombre</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">RUC</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">DIRECCION</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">CLI./PROV.</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">ESTADO</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-gray-500">Cargando datos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal Contribuyente -->
+    <div id="modalContribuyente"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 transition-opacity"
+        style="display: none; overflow-y: auto;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 transform transition-all">
+
+            <div class="bg-blue-800 p-4 rounded-t-2xl flex justify-between items-center">
+                <h3 id="modalContribuyenteTitle" class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-id-card"></i> Nuevo Contribuyente
+                </h3>
+                <button type="button" id="btnCerrarModalContribuyente"
+                    class="text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Contenido del Formulario con Scrollbar Vertical -->
+            <div class="p-6 max-h-[70vh] overflow-y-auto">
+                <form id="formContribuyente" class="space-y-6">
+                    <input type="hidden" id="contribuyente_is_edit" name="is_edit" value="false">
+                    <input type="hidden" id="contribuyente_act_ivo" name="act_ivo" value="A">
+
+                    <!-- Sección 1: Datos generales -->
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h4 class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wider border-b border-gray-200 pb-2">
+                            <i class="fas fa-id-card text-blue-600 mr-1"></i> Datos generales
+                        </h4>
+                        <div class="grid grid-cols-12 gap-3">
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Código *</label>
+                                <input type="text" id="fCodigo" required maxlength="11" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none uppercase font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Persona</label>
+                                <select id="fPersona" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                                    <option value=""></option>
+                                    <option value="J">J — Jurídica</option>
+                                    <option value="N">N — Natural</option>
+                                </select>
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Tipo documento</label>
+                                <input type="text" id="fTipodoc" maxlength="8" placeholder="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">tdocid</label>
+                                <input type="text" id="fTdocid" maxlength="3" placeholder="DNI/RUC" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none uppercase text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Nro. formulario</label>
+                                <input type="number" id="fFormulario" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">DNI (LE)</label>
+                                <input type="text" id="fLe" maxlength="10" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Nro. doc. (ndocid)</label>
+                                <input type="text" id="fNdocid" maxlength="12" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                                <input type="text" id="fNombre" required maxlength="100" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            
+                            <div class="col-span-12 md:col-span-8">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                                <input type="text" id="fDirecc" maxlength="150" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+                                <input type="text" id="fTelefo" maxlength="15" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Ubigeo</label>
+                                <input type="text" id="fUbigeo" maxlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Departamento</label>
+                                <input type="text" id="fDeparta" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Provincia</label>
+                                <input type="text" id="fProvincia" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Distrito</label>
+                                <input type="text" id="fDistrito" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Mercado</label>
+                                <input type="text" id="fCodmer" maxlength="3" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cód. vendedor</label>
+                                <input type="text" id="fCodven" maxlength="11" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Fax</label>
+                                <input type="text" id="fFax" maxlength="15" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">País</label>
+                                <input type="text" id="fPais" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Contacto</label>
+                                <input type="text" id="fContacto" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cód. corporativo / RUC</label>
+                                <input type="text" id="fRuc" maxlength="11" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Z. postal</label>
+                                <input type="text" id="fZpos" maxlength="3" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Clie. / Prov.</label>
+                                <input type="text" id="fClpr" maxlength="2" placeholder="C/P" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none uppercase text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Estado (SUNAT)</label>
+                                <input type="text" id="fEstadoRuc" maxlength="255" placeholder="ACTIVO" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Condición (SUNAT)</label>
+                                <input type="text" id="fCondicionRuc" maxlength="255" placeholder="HABIDO" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Clasificación y detracción -->
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h4 class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wider border-b border-gray-200 pb-2">
+                            <i class="fas fa-tags text-blue-600 mr-1"></i> Clasificación y detracción
+                        </h4>
+                        <div class="grid grid-cols-12 gap-3">
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Ruta</label>
+                                <input type="text" id="fRuta" maxlength="8" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-5">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                                <input type="email" id="fEmail" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Canal</label>
+                                <input type="text" id="fCanal" maxlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Tipo cliente</label>
+                                <input type="text" id="fTipocli" maxlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Giro</label>
+                                <input type="text" id="fGiro" maxlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-5">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">D.I. rep. legal</label>
+                                <input type="text" id="fNomrep" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cód. repre.</label>
+                                <input type="text" id="fCodrep" maxlength="8" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Retención S/N</label>
+                                <select id="fReten" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                                    <option value=""></option>
+                                    <option value="S">S</option>
+                                    <option value="N">N</option>
+                                </select>
+                            </div>
+
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Ub. CRPTA</label>
+                                <input type="text" id="fUbcarp" maxlength="6" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Secuencia</label>
+                                <input type="number" id="fSecuencia" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Brevete</label>
+                                <input type="text" id="fBrevete" maxlength="11" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-5">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cuenta de detracción</label>
+                                <input type="text" id="fCtaDetra" maxlength="11" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm font-mono bg-white">
+                            </div>
+
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">% detracción</label>
+                                <input type="text" id="fModelo" maxlength="50" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Días para vencimiento / condición (copa)</label>
+                                <input type="text" id="fCopa" maxlength="4" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-3">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Transportista (Placa)</label>
+                                <input type="text" id="fPlaca" maxlength="7" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none uppercase text-sm font-mono bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Cuentas bancarias -->
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-2">
+                        <h4 class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wider border-b border-gray-200 pb-2">
+                            <i class="fas fa-university text-blue-600 mr-1"></i> Cuentas bancarias
+                        </h4>
+                        <div class="grid grid-cols-12 gap-3">
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Tipo de cuenta bancaria</label>
+                                <select id="fTipoprod" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white">
+                                    <option value=""></option>
+                                    <option value="A">A — Ahorros (14 dígitos)</option>
+                                    <option value="C">C — Corriente (13 dígitos)</option>
+                                    <option value="B">B — Corriente (20 dígitos)</option>
+                                </select>
+                            </div>
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cta. ahorros S/</label>
+                                <input type="text" id="fCtaAhorros" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-4">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cta. corriente S/</label>
+                                <input type="text" id="fCtaCorrientes" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cta. ahorros US$</label>
+                                <input type="text" id="fCtaAhorroD" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                            <div class="col-span-12 md:col-span-6">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Cta. corriente US$</label>
+                                <input type="text" id="fCtaCorrienteD" maxlength="20" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 outline-none font-mono text-sm bg-white">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Botones de Acción fijos en el pie de página del modal -->
+            <div class="flex justify-end gap-3 p-4 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button type="button" id="btnCancelarContribuyente"
+                    class="px-6 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" form="formContribuyente" id="btnGuardarContribuyente"
+                    class="px-6 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold shadow transition-colors flex items-center gap-2">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+        style="display: none;">
+        <div class="bg-white p-6 rounded-xl shadow-2xl">
+            <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-2"></i>
+            <p class="text-gray-700">Cargando...</p>
+        </div>
+    </div>
+
+    <!-- Scripts de Librerías -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Scripts de Lógica Integrada -->
+    <script src="../js/config/config.js"></script>
+    <script src="../js/core/Http.js"></script>
+    <script src="../js/core/Service.js"></script>
+    <script src="../js/modules/contribuyentes/contribuyentes.service.js"></script>
+    <script src="../js/modules/contribuyentes/contribuyentes.controller.js"></script>
+</body>
+</html>

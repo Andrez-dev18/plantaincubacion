@@ -26,6 +26,10 @@ try {
     require_once __DIR__ . '/repositories/ListaGuiaElectronicaRepository.php';
     require_once __DIR__ . '/repositories/ConfigApiRepository.php';
     require_once __DIR__ . '/repositories/BorradorRepository.php';
+    require_once __DIR__ . '/repositories/EmpresaRepository.php';
+    require_once __DIR__ . '/repositories/ServiciosRepository.php';
+    require_once __DIR__ . '/repositories/ArticulosRepository.php';
+    require_once __DIR__ . '/repositories/ContribuyentesRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
@@ -47,6 +51,10 @@ try {
     require_once __DIR__ . '/services/ListaGuiaElectronicaService.php';
     require_once __DIR__ . '/services/ConfigApiService.php';
     require_once __DIR__ . '/services/BorradorService.php';
+    require_once __DIR__ . '/services/EmpresaService.php';
+    require_once __DIR__ . '/services/ServiciosService.php';
+    require_once __DIR__ . '/services/ArticulosService.php';
+    require_once __DIR__ . '/services/ContribuyentesService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
@@ -68,6 +76,10 @@ try {
     require_once __DIR__ . '/controllers/ListaGuiaElectronicaController.php';
     require_once __DIR__ . '/controllers/ConfigApiController.php';
     require_once __DIR__ . '/controllers/BorradorController.php';
+    require_once __DIR__ . '/controllers/EmpresaController.php';
+    require_once __DIR__ . '/controllers/ServiciosController.php';
+    require_once __DIR__ . '/controllers/ArticulosController.php';
+    require_once __DIR__ . '/controllers/ContribuyentesController.php';
 
     // 1. Crear conexión
     $db = Database::getInstance()->getConnection();
@@ -87,6 +99,10 @@ try {
     $listaGuiaElectronicaRepository = new ListaGuiaElectronicaRepository($db);
     $configApiRepository = new ConfigApiRepository($db);
     $borradorRepository = new BorradorRepository($db);
+    $empresaRepository = new EmpresaRepository($db);
+    $serviciosRepository = new ServiciosRepository($db);
+    $articulosRepository = new ArticulosRepository($db);
+    $contribuyentesRepository = new ContribuyentesRepository($db);
 
     // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
@@ -107,6 +123,10 @@ try {
     $listaGuiaElectronicaService = new ListaGuiaElectronicaService($db);
     $configApiService = new ConfigApiService($db);
     $borradorService = new BorradorService($db);
+    $empresaService = new EmpresaService($db);
+    $serviciosService = new ServiciosService($db);
+    $articulosService = new ArticulosService($db);
+    $contribuyentesService = new ContribuyentesService($db);
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
@@ -127,6 +147,10 @@ try {
     $listaGuiaElectronicaController = new ListaGuiaElectronicaController($db);
     $configApiController = new ConfigApiController($db);
     $borradorController = new BorradorController($db);
+    $empresaController = new EmpresaController($empresaRepository);
+    $serviciosController = new ServiciosController($serviciosRepository);
+    $articulosController = new ArticulosController($articulosRepository);
+    $contribuyentesController = new ContribuyentesController($contribuyentesRepository);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -151,6 +175,10 @@ try {
             'listaGuiaElectronica' => $listaGuiaElectronicaController,
             'configApi' => $configApiController,
             'borrador' => $borradorController,
+            'empresa' => $empresaController,
+            'servicios' => $serviciosController,
+            'articulos' => $articulosController,
+            'contribuyentes' => $contribuyentesController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -169,6 +197,10 @@ try {
             'listaGuiaElectronica' => $listaGuiaElectronicaService,
             'configApi' => $configApiService,
             'borrador' => $borradorService,
+            'empresa' => $empresaService,
+            'servicios' => $serviciosService,
+            'articulos' => $articulosService,
+            'contribuyentes' => $contribuyentesService,
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
@@ -188,7 +220,11 @@ try {
             'guiaElectronica' => $guiaElectronicaRepository,
             'listaGuiaElectronica' => $listaGuiaElectronicaRepository,
             'configApi' => $configApiRepository,
-            'borrador' => $borradorRepository
+            'borrador' => $borradorRepository,
+            'empresa' => $empresaRepository,
+            'servicios' => $serviciosRepository,
+            'articulos' => $articulosRepository,
+            'contribuyentes' => $contribuyentesRepository
         ]
     ];
 } catch (Exception $e) {

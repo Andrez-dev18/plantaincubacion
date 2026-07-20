@@ -151,6 +151,30 @@ try {
     $borradorRoutes = require_once __DIR__ . '/../routes/borrador.routes.php';
     $borradorRoutes($container);
 
+    // ========================================
+    // MÓDULO: EMPRESAS
+    // ========================================
+    $empresaRoutes = require_once __DIR__ . '/../routes/empresa.php';
+    $empresaRoutes($container);
+
+    // ========================================
+    // MÓDULO: SERVICIOS
+    // ========================================
+    $serviciosRoutes = require_once __DIR__ . '/../routes/servicios.php';
+    $serviciosRoutes($container);
+
+    // ========================================
+    // MÓDULO: ARTICULOS
+    // ========================================
+    $articulosRoutes = require_once __DIR__ . '/../routes/articulos.php';
+    $articulosRoutes($container);
+
+    // ========================================
+    // MÓDULO: CONTRIBUYENTES
+    // ========================================
+    $contribuyentesRoutes = require_once __DIR__ . '/../routes/contribuyentes.php';
+    $contribuyentesRoutes($container);
+
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
     // require_once __DIR__ . '/../routes/lotes.php';
