@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../repositories/ArticulosRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class ArticulosService
 {
@@ -83,9 +84,16 @@ class ArticulosService
                 return ['success' => false, 'message' => 'El código de artículo es obligatorio.'];
             }
 
+            $datosPrevios = null;
+            if ($isEdit) {
+                $datosPrevios = $this->repo->obtener($this->db, $codigo);
+            }
+
             if ($isEdit) {
                 $this->repo->actualizar($this->db, $codigo, $datos);
                 $msg = 'Artículo actualizado exitosamente.';
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('UPDATE', 'articulos', $codigo, $datosPrevios, $datos, "Artículo {$codigo} editado.");
             } else {
                 // Validar duplicado
                 $existe = $this->repo->obtener($this->db, $codigo);
@@ -94,6 +102,8 @@ class ArticulosService
                 }
                 $this->repo->insertar($this->db, $datos);
                 $msg = 'Artículo creado exitosamente.';
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('INSERT', 'articulos', $codigo, null, $datos, "Artículo {$codigo} registrado.");
             }
 
             return [
@@ -121,7 +131,12 @@ class ArticulosService
                 return ['success' => false, 'message' => 'El código del artículo no fue proporcionado.'];
             }
 
+            $datosPrevios = $this->repo->obtener($this->db, $codigo);
             $resultado = $this->repo->eliminar($this->db, $codigo);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('DELETE', 'articulos', $codigo, $datosPrevios, null, "Artículo {$codigo} (" . ($datosPrevios['descripcion'] ?? '') . ") eliminado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Artículo eliminado exitosamente.'

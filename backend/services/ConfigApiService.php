@@ -6,11 +6,14 @@
  */
 
 require_once __DIR__ . '/../repositories/ConfigApiRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class ConfigApiService {
     private $repo;
+    private $db;
 
     public function __construct($db) {
+        $this->db = $db;
         $this->repo = new ConfigApiRepository($db);
     }
 
@@ -97,12 +100,19 @@ class ConfigApiService {
                 return ['success' => false, 'message' => 'La ruta de la API es requerida.'];
             }
 
+            $datosPrevios = null;
+            if ($isEdit) {
+                $datosPrevios = $this->repo->findById($id);
+            }
+
             if ($isEdit) {
                 if (!$id) {
                     return ['success' => false, 'message' => 'ID de API no válido para actualizar.'];
                 }
                 $resultado = $this->repo->update($id, $nom, $ruta);
                 if ($resultado) {
+                    $logsService = new LogsSistemaService($this->db);
+                    $logsService->logAction('UPDATE', 'amd_config_apis_pic', $id, $datosPrevios, $data, "Configuración de API {$nom} actualizada.");
                     return [
                         'success' => true,
                         'message' => 'API actualizada exitosamente.'
@@ -117,6 +127,8 @@ class ConfigApiService {
                 }
                 $nuevoId = $this->repo->create($nom, $ruta, $token);
                 if ($nuevoId) {
+                    $logsService = new LogsSistemaService($this->db);
+                    $logsService->logAction('INSERT', 'amd_config_apis_pic', $nuevoId, null, $data, "Configuración de API {$nom} registrada.");
                     return [
                         'success' => true,
                         'message' => 'API registrada exitosamente.',
@@ -151,8 +163,11 @@ class ConfigApiService {
                 return ['success' => false, 'message' => 'ID de API no válido.'];
             }
 
+            $datosPrevios = $this->repo->findById($id);
             $resultado = $this->repo->updateToken($id, $token);
             if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('UPDATE TOKEN', 'amd_config_apis_pic', $id, $datosPrevios, ['token' => $token], "Token de API con ID {$id} (" . ($datosPrevios['nom'] ?? '') . ") actualizado.");
                 return [
                     'success' => true,
                     'message' => 'Token de API actualizado correctamente.'
@@ -180,8 +195,11 @@ class ConfigApiService {
                 return ['success' => false, 'message' => 'ID de API no válido.'];
             }
 
+            $datosPrevios = $this->repo->findById($id);
             $resultado = $this->repo->delete($id);
             if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('DELETE', 'amd_config_apis_pic', $id, $datosPrevios, null, "Configuración de API con ID {$id} (" . ($datosPrevios['nom'] ?? '') . ") eliminada.");
                 return [
                     'success' => true,
                     'message' => 'API eliminada correctamente.'

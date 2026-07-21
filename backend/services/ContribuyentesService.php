@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../repositories/ContribuyentesRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class ContribuyentesService
 {
@@ -83,9 +84,16 @@ class ContribuyentesService
                 return ['success' => false, 'message' => 'El código de contribuyente es obligatorio.'];
             }
 
+            $datosPrevios = null;
+            if ($isEdit) {
+                $datosPrevios = $this->repo->obtener($this->db, $codigo);
+            }
+
             if ($isEdit) {
                 $this->repo->actualizar($this->db, $codigo, $datos);
                 $msg = 'Contribuyente actualizado exitosamente.';
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('UPDATE', 'ccte', $codigo, $datosPrevios, $datos, "Contribuyente {$codigo} editado.");
             } else {
                 // Validar duplicado
                 $existe = $this->repo->existe($this->db, $codigo);
@@ -94,6 +102,8 @@ class ContribuyentesService
                 }
                 $this->repo->insertar($this->db, $datos);
                 $msg = 'Contribuyente creado exitosamente.';
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('INSERT', 'ccte', $codigo, null, $datos, "Contribuyente {$codigo} registrado.");
             }
 
             return [
@@ -121,7 +131,12 @@ class ContribuyentesService
                 return ['success' => false, 'message' => 'El código no fue proporcionado.'];
             }
 
+            $datosPrevios = $this->repo->obtener($this->db, $codigo);
             $resultado = $this->repo->eliminar($this->db, $codigo);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('DELETE', 'ccte', $codigo, $datosPrevios, null, "Contribuyente {$codigo} (" . ($datosPrevios['nombre'] ?? '') . ") eliminado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Contribuyente eliminado exitosamente.'
@@ -147,7 +162,12 @@ class ContribuyentesService
                 return ['success' => false, 'message' => 'El código no fue proporcionado.'];
             }
 
+            $datosPrevios = $this->repo->obtener($this->db, $codigo);
             $resultado = $this->repo->cambiarEstado($this->db, $codigo);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('TOGGLE STATUS', 'ccte', $codigo, $datosPrevios, null, "Estado del contribuyente {$codigo} (" . ($datosPrevios['nombre'] ?? '') . ") alternado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Estado de contribuyente actualizado exitosamente.'

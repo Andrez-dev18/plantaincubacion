@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../repositories/EmpresaRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class EmpresaService
 {
@@ -74,12 +75,26 @@ class EmpresaService
     {
         try {
             $id = !empty($datos['id']) ? (int)$datos['id'] : null;
-            
+            $isEdit = ($id !== null && $id > 0);
+            $datosPrevios = null;
+            if ($isEdit) {
+                $datosPrevios = $this->repo->obtenerPorId((int)$id);
+            }
+
             $resultadoId = $this->repo->guardar($datos, $id);
+
+            if ($resultadoId) {
+                $logsService = new LogsSistemaService($this->db);
+                if ($isEdit) {
+                    $logsService->logAction('UPDATE', 'empresa', $id, $datosPrevios, $datos, "Empresa con ID {$id} (" . ($datos['nom_empresa'] ?? '') . ") editada.");
+                } else {
+                    $logsService->logAction('INSERT', 'empresa', $resultadoId, null, $datos, "Empresa registrada exitosamente con ID {$resultadoId}.");
+                }
+            }
 
             return [
                 'success' => true,
-                'message' => ($id !== null && $id > 0) ? 'Empresa actualizada exitosamente.' : 'Empresa creada exitosamente.',
+                'message' => $isEdit ? 'Empresa actualizada exitosamente.' : 'Empresa creada exitosamente.',
                 'data' => ['id' => $resultadoId]
             ];
         } catch (Exception $e) {
@@ -103,7 +118,12 @@ class EmpresaService
                 return ['success' => false, 'message' => 'El identificador de la empresa no fue proporcionado.'];
             }
 
+            $datosPrevios = $this->repo->obtenerPorId((int)$id);
             $resultado = $this->repo->eliminar((int)$id);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('DELETE', 'empresa', $id, $datosPrevios, null, "Empresa con ID {$id} (" . ($datosPrevios['nom_empresa'] ?? '') . ") eliminada.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Empresa eliminada exitosamente.'
@@ -129,7 +149,12 @@ class EmpresaService
                 return ['success' => false, 'message' => 'El identificador de la empresa no fue proporcionado.'];
             }
 
+            $datosPrevios = $this->repo->obtenerPorId((int)$id);
             $resultado = $this->repo->cambiarEstado((int)$id);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('TOGGLE STATUS', 'empresa', $id, $datosPrevios, null, "Estado de la empresa con ID {$id} (" . ($datosPrevios['nom_empresa'] ?? '') . ") alternado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Estado de la empresa actualizado.'
