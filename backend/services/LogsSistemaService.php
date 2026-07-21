@@ -15,9 +15,12 @@ class LogsSistemaService
 
     private function getUsuarioSesion()
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         return [
-            'codigo' => $_SESSION['usuario'] ?? null,
-            'nombre' => $_SESSION['nombre'] ?? null,
+            'codigo' => $_SESSION['usuario'] ?? $_SESSION['username'] ?? $_SESSION['id_usuario'] ?? null,
+            'nombre' => $_SESSION['nombre'] ?? $_SESSION['nombre_completo'] ?? null,
         ];
     }
 
@@ -31,7 +34,7 @@ class LogsSistemaService
         $usuario = $this->getUsuarioSesion();
 
         $data = [
-            'id_programa'       => 1,
+            'id_programa'       => 2,
             'cod_usuario'    => $usuario['codigo'],
             'nom_usuario'    => $usuario['nombre'],
             'accion'         => $accion,
@@ -58,7 +61,7 @@ class LogsSistemaService
         $client['ubicacion_gps'] = $ubicacionGPS; // Sobrescribir con la real
 
         $data = [
-            'id_programa'       => 1,
+            'id_programa'       => 2,
             'cod_usuario'       => $cod,
             'nom_usuario'       => $nom,
             'accion'            => $accion,

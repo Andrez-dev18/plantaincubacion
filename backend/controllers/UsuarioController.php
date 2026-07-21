@@ -216,6 +216,14 @@ class UsuarioController
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
+        $idUsuario = $_SESSION['id_usuario'] ?? $_SESSION['username'] ?? null;
+        $nombreCompleto = $_SESSION['nombre_completo'] ?? $_SESSION['nombre'] ?? null;
+
+        if ($idUsuario) {
+            $this->service->registrarLogout($idUsuario, $nombreCompleto);
+        }
+
         $_SESSION = [];
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
