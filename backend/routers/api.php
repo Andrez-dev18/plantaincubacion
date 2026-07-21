@@ -175,6 +175,12 @@ try {
     $contribuyentesRoutes = require_once __DIR__ . '/../routes/contribuyentes.php';
     $contribuyentesRoutes($container);
 
+    // ========================================
+    // MÓDULO: LOGS DE SISTEMA
+    // ========================================
+    $logsSistemaRoutes = require_once __DIR__ . '/../routes/logs_sistema.php';
+    $logsSistemaRoutes($container);
+
     // Aquí se cargarán más rutas conforme se agreguen módulos:
     // require_once __DIR__ . '/../routes/incubacion.php';
     // require_once __DIR__ . '/../routes/lotes.php';

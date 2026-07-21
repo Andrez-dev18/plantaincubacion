@@ -30,6 +30,7 @@ try {
     require_once __DIR__ . '/repositories/ServiciosRepository.php';
     require_once __DIR__ . '/repositories/ArticulosRepository.php';
     require_once __DIR__ . '/repositories/ContribuyentesRepository.php';
+    require_once __DIR__ . '/repositories/LogsSistemaRepository.php';
 
     // Services
     require_once __DIR__ . '/services/UsuarioService.php'; // Nuestro único servicio unificado
@@ -55,6 +56,7 @@ try {
     require_once __DIR__ . '/services/ServiciosService.php';
     require_once __DIR__ . '/services/ArticulosService.php';
     require_once __DIR__ . '/services/ContribuyentesService.php';
+    require_once __DIR__ . '/services/LogsSistemaService.php';
 
     // Controllers
     require_once __DIR__ . '/controllers/UsuarioController.php'; // Nuestro único controlador unificado
@@ -80,6 +82,7 @@ try {
     require_once __DIR__ . '/controllers/ServiciosController.php';
     require_once __DIR__ . '/controllers/ArticulosController.php';
     require_once __DIR__ . '/controllers/ContribuyentesController.php';
+    require_once __DIR__ . '/controllers/LogsSistemaController.php';
 
     // 1. Crear conexión
     $db = Database::getInstance()->getConnection();
@@ -103,6 +106,7 @@ try {
     $serviciosRepository = new ServiciosRepository($db);
     $articulosRepository = new ArticulosRepository($db);
     $contribuyentesRepository = new ContribuyentesRepository($db);
+    $logsSistemaRepository = new LogsSistemaRepository($db);
 
     // 3. Crear servicios
     $usuarioService = new UsuarioService($db);
@@ -127,6 +131,7 @@ try {
     $serviciosService = new ServiciosService($db);
     $articulosService = new ArticulosService($db);
     $contribuyentesService = new ContribuyentesService($db);
+    $logsSistemaService = new LogsSistemaService($db);
 
     // 4. Crear controladores
     $usuarioController = new UsuarioController($db); // Inyectamos $db como lo definimos
@@ -151,6 +156,7 @@ try {
     $serviciosController = new ServiciosController($serviciosRepository);
     $articulosController = new ArticulosController($articulosRepository);
     $contribuyentesController = new ContribuyentesController($contribuyentesRepository);
+    $logsSistemaController = new LogsSistemaController($logsSistemaRepository);
 
     // Contenedor de dependencias (accesible para las rutas)
     return [
@@ -179,6 +185,7 @@ try {
             'servicios' => $serviciosController,
             'articulos' => $articulosController,
             'contribuyentes' => $contribuyentesController,
+            'logs_sistema' => $logsSistemaController,
         ],
         'services' => [
             'usuario' => $usuarioService,
@@ -201,6 +208,7 @@ try {
             'servicios' => $serviciosService,
             'articulos' => $articulosService,
             'contribuyentes' => $contribuyentesService,
+            'logs_sistema' => $logsSistemaService,
         ],
         'repositories' => [
             'usuario' => $usuarioRepository,
@@ -224,7 +232,8 @@ try {
             'empresa' => $empresaRepository,
             'servicios' => $serviciosRepository,
             'articulos' => $articulosRepository,
-            'contribuyentes' => $contribuyentesRepository
+            'contribuyentes' => $contribuyentesRepository,
+            'logs_sistema' => $logsSistemaRepository
         ]
     ];
 } catch (Exception $e) {
