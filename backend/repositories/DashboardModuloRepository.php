@@ -13,6 +13,10 @@ class DashboardModuloRepository {
         $this->conn = $db;
     }
 
+    public function getConnection() {
+        return $this->conn;
+    }
+
     /**
      * Obtiene el menú permitido para un usuario en un programa específico
      *

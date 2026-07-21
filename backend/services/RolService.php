@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../repositories/RolRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class RolService
 {
     private $repo;
+    private $db;
 
     public function __construct($db)
     {
+        $this->db = $db;
         $this->repo = new RolRepository($db);
     }
 
@@ -93,10 +96,24 @@ class RolService
                 ];
             }
 
+            $datosPrevios = null;
+            if ($isEdit) {
+                $datosPrevios = $this->repo->obtenerPorId($datos['id']);
+            }
+
             // Limpieza perimetral de módulos
             $modulosPermitidos = isset($datos['modulos_permitidos']) ? array_unique($datos['modulos_permitidos']) : [];
 
             $resultado = $this->repo->guardar($datos, $modulosPermitidos, $isEdit);
+
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                if ($isEdit) {
+                    $logsService->logAction('UPDATE', 'adm_rol_pic', $datos['id'], $datosPrevios, $datos, "Rol {$datos['cod_rol']} editado.");
+                } else {
+                    $logsService->logAction('INSERT', 'adm_rol_pic', $datos['cod_rol'], null, $datos, "Rol {$datos['cod_rol']} registrado.");
+                }
+            }
 
             return [
                 'success' => $resultado,
@@ -130,6 +147,10 @@ class RolService
             }
 
             $resultado = $this->repo->eliminar($id);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('DELETE', 'adm_rol_pic', $id, $rolActual, null, "Rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") eliminado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Rol eliminado exitosamente.'
@@ -159,6 +180,10 @@ class RolService
             }
 
             $resultado = $this->repo->cambiarEstado($id);
+            if ($resultado) {
+                $logsService = new LogsSistemaService($this->db);
+                $logsService->logAction('TOGGLE STATUS', 'adm_rol_pic', $id, $rolActual, null, "Estado del rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") alternado.");
+            }
             return [
                 'success' => $resultado,
                 'message' => 'Estado del rol actualizado.'

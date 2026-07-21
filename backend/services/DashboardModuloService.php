@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/../repositories/DashboardModuloRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class DashboardModuloService {
     private $repo;
@@ -105,7 +106,28 @@ class DashboardModuloService {
 
         $datos['id_programa'] = '1';
 
-        return $this->repo->guardar($datos);
+        $db = $this->repo->getConnection();
+        $logsService = new LogsSistemaService($db);
+
+        $isEdit = !empty($datos['id']);
+        $datosPrevios = null;
+
+        if ($isEdit) {
+            $datosPrevios = $this->repo->obtenerPorId($datos['id']);
+        }
+
+        $resultado = $this->repo->guardar($datos);
+
+        if ($resultado) {
+            $id = $isEdit ? $datos['id'] : $datos['cod_mod'];
+            if ($isEdit) {
+                $logsService->logAction('UPDATE', 'amd_dashboard_modulos_pic', $id, $datosPrevios, $datos, "Módulo del menú {$datos['cod_mod']} actualizado.");
+            } else {
+                $logsService->logAction('INSERT', 'amd_dashboard_modulos_pic', $id, null, $datos, "Módulo del menú {$datos['cod_mod']} registrado.");
+            }
+        }
+
+        return $resultado;
     }
 
     /**
@@ -125,6 +147,15 @@ class DashboardModuloService {
             throw new Exception("No puedes eliminar este grupo porque tiene sub-módulos dentro. Elimina o mueve los sub-módulos primero.");
         }
 
-        return $this->repo->eliminar($id);
+        $db = $this->repo->getConnection();
+        $logsService = new LogsSistemaService($db);
+
+        $resultado = $this->repo->eliminar($id);
+
+        if ($resultado) {
+            $logsService->logAction('DELETE', 'amd_dashboard_modulos_pic', $id, $modulo, null, "Módulo del menú con ID {$id} ({$modulo['cod_mod']}) eliminado.");
+        }
+
+        return $resultado;
     }
 }
