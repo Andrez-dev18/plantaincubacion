@@ -87,6 +87,27 @@ class GestionUsuariosController {
                     }
                 },
                 {
+                    data: 'can_create',
+                    className: 'text-center',
+                    render: (data) => parseInt(data || 0) === 1
+                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200"><i class="fas fa-check mr-1"></i> Sí</span>'
+                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200"><i class="fas fa-times mr-1"></i> No</span>'
+                },
+                {
+                    data: 'can_edit',
+                    className: 'text-center',
+                    render: (data) => parseInt(data || 0) === 1
+                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200"><i class="fas fa-check mr-1"></i> Sí</span>'
+                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200"><i class="fas fa-times mr-1"></i> No</span>'
+                },
+                {
+                    data: 'can_delete',
+                    className: 'text-center',
+                    render: (data) => parseInt(data || 0) === 1
+                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200"><i class="fas fa-check mr-1"></i> Sí</span>'
+                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200"><i class="fas fa-times mr-1"></i> No</span>'
+                },
+                {
                     data: 'activo',
                     className: 'text-left',
                     render: (data) => parseInt(data) === 1
@@ -161,6 +182,9 @@ class GestionUsuariosController {
                 inputCodigo.value = response.data.codigo || '';
                 document.getElementById('user_nombre').value = response.data.nombre || '';
                 document.getElementById('user_ruc').value = response.data.ruc || '';
+                document.getElementById('user_can_create').checked = parseInt(response.data.can_create || 0) === 1;
+                document.getElementById('user_can_edit').checked = parseInt(response.data.can_edit || 0) === 1;
+                document.getElementById('user_can_delete').checked = parseInt(response.data.can_delete || 0) === 1;
             } else {
                 Swal.fire('Error', 'No se pudieron cargar los datos del usuario.', 'error');
                 return;
@@ -174,6 +198,9 @@ class GestionUsuariosController {
             inputCodigo.classList.remove('bg-gray-100', 'cursor-not-allowed');
             inputPassword.setAttribute('required', 'required');
             document.getElementById('user_ruc').value = '';
+            document.getElementById('user_can_create').checked = false;
+            document.getElementById('user_can_edit').checked = false;
+            document.getElementById('user_can_delete').checked = false;
         }
 
         modal.classList.remove('hidden');
@@ -203,7 +230,10 @@ class GestionUsuariosController {
             codigo: document.getElementById('user_codigo').value.trim(),
             nombre: document.getElementById('user_nombre').value.trim(),
             ruc: document.getElementById('user_ruc').value.trim(),
-            password: document.getElementById('user_password').value
+            password: document.getElementById('user_password').value,
+            can_create: document.getElementById('user_can_create').checked ? '1' : '0',
+            can_edit: document.getElementById('user_can_edit').checked ? '1' : '0',
+            can_delete: document.getElementById('user_can_delete').checked ? '1' : '0'
         };
 
         try {

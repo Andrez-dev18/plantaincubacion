@@ -321,8 +321,8 @@ class UsuarioRepository {
     // ─────────────────────────────────────────────────────────────────────
     public function getUsuariosServerSide($start, $length, $searchValue, $orderColumn, $orderDir)
     {
-        // Índices basados en la vista HTML (0: #, 1: Codigo, 2: Nombre, 3: Roles, 4: Estado, 5: Ultimo acceso)
-        $columnasBd = ['u.codigo', 'u.codigo', 'u.nombre', 'nombres_roles', 'u.estado', 'u.ultimo_acceso'];
+        // Índices basados en la vista HTML (0: #, 1: Codigo, 2: Nombre, 3: Roles, 4: Crear, 5: Editar, 6: Eliminar, 7: Estado, 8: OPCIONES)
+        $columnasBd = ['u.codigo', 'u.codigo', 'u.nombre', 'nombres_roles', 'u.crea', 'u.modifica', 'u.elimina', 'u.estado'];
         $campoOrden = $columnasBd[$orderColumn] ?? 'u.codigo';
 
         $sqlBase = "FROM usuario u ";
@@ -351,12 +351,15 @@ class UsuarioRepository {
                         u.nombre, 
                         CASE WHEN u.estado = 'A' THEN 1 ELSE 0 END AS activo, 
                         u.ultimo_acceso,
+                        u.crea AS can_create,
+                        u.modifica AS can_edit,
+                        u.elimina AS can_delete,
                         IFNULL(GROUP_CONCAT(r.nom_rol ORDER BY r.nom_rol SEPARATOR '||'), '') AS nombres_roles
                     " . $sqlBase . "
                     LEFT JOIN adm_usuario_rol_pic ur ON ur.codigo = u.codigo AND ur.epre = 'RS'
                     LEFT JOIN adm_rol_pic r ON r.cod_rol = ur.cod_rol AND r.id_programa = '1' AND r.activo = 1
                     " . $whereSql . "
-                    GROUP BY u.codigo, u.nombre, u.estado, u.ultimo_acceso
+                    GROUP BY u.codigo, u.nombre, u.estado, u.ultimo_acceso, u.crea, u.modifica, u.elimina
                     ORDER BY $campoOrden $orderDir 
                     LIMIT :start, :length";
 
@@ -383,7 +386,9 @@ class UsuarioRepository {
     // ─────────────────────────────────────────────────────────────────────
     public function obtenerPorCodigo($codigo)
     {
-        $sql = "SELECT codigo, nombre, ruc, CASE WHEN estado = 'A' THEN 1 ELSE 0 END as activo FROM usuario WHERE codigo = :codigo LIMIT 1";
+        $sql = "SELECT codigo, nombre, ruc, CASE WHEN estado = 'A' THEN 1 ELSE 0 END as activo, 
+                       crea AS can_create, modifica AS can_edit, elimina AS can_delete 
+                FROM usuario WHERE codigo = :codigo LIMIT 1";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':codigo' => $codigo]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -395,19 +400,27 @@ class UsuarioRepository {
     public function guardar($datos, $isEdit = false)
     {
         $ruc = !empty($datos['ruc']) ? $datos['ruc'] : null;
+        $crea = isset($datos['can_create']) ? (int)$datos['can_create'] : 0;
+        $modifica = isset($datos['can_edit']) ? (int)$datos['can_edit'] : 0;
+        $elimina = isset($datos['can_delete']) ? (int)$datos['can_delete'] : 0;
 
         if ($isEdit) {
-            // EDITAR (Solo actualiza nombre y RUC, no toca contraseña)
-            $sql = "UPDATE usuario SET nombre = :nombre, ruc = :ruc WHERE codigo = :codigo";
+            // EDITAR (Actualiza nombre, RUC, crea, modifica, elimina)
+            $sql = "UPDATE usuario 
+                    SET nombre = :nombre, ruc = :ruc, crea = :crea, modifica = :modifica, elimina = :elimina 
+                    WHERE codigo = :codigo";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':nombre', $datos['nombre']);
             $stmt->bindParam(':ruc', $ruc);
+            $stmt->bindParam(':crea', $crea, PDO::PARAM_INT);
+            $stmt->bindParam(':modifica', $modifica, PDO::PARAM_INT);
+            $stmt->bindParam(':elimina', $elimina, PDO::PARAM_INT);
             $stmt->bindParam(':codigo', $datos['codigo']);
             return $stmt->execute();
         } else {
-            // CREAR (Inserta con contraseña encriptada AES mediante conempre)
-            $sql = "INSERT INTO usuario (codigo, nombre, ruc, password, epre, estado, reduser, fecha_registro) 
-                    SELECT :codigo, :nombre, :ruc, LEFT(AES_ENCRYPT(:password, c.enom), 8), 'RS', 'A', :codigo, NOW() 
+            // CREAR (Inserta con contraseña encriptada AES, crea, modifica, elimina)
+            $sql = "INSERT INTO usuario (codigo, nombre, ruc, password, epre, estado, reduser, fecha_registro, crea, modifica, elimina) 
+                    SELECT :codigo, :nombre, :ruc, LEFT(AES_ENCRYPT(:password, c.enom), 8), 'RS', 'A', :codigo, NOW(), :crea, :modifica, :elimina 
                     FROM conempre c WHERE c.epre = 'RS' LIMIT 1";
 
             $stmt = $this->conn->prepare($sql);
@@ -415,6 +428,9 @@ class UsuarioRepository {
             $stmt->bindParam(':nombre', $datos['nombre']);
             $stmt->bindParam(':ruc', $ruc);
             $stmt->bindParam(':password', $datos['password']);
+            $stmt->bindParam(':crea', $crea, PDO::PARAM_INT);
+            $stmt->bindParam(':modifica', $modifica, PDO::PARAM_INT);
+            $stmt->bindParam(':elimina', $elimina, PDO::PARAM_INT);
             return $stmt->execute();
         }
     }
