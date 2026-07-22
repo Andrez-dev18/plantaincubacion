@@ -8,6 +8,9 @@ class ContribuyentesController {
     }
 
     async init() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNuevo');
+
         this.setupEventListeners();
         await this.renderizarTablaContribuyentes();
     }
@@ -92,19 +95,19 @@ class ContribuyentesController {
                         const toggleBtnTitle = isActivo ? 'Desactivar Contribuyente' : 'Activar Contribuyente';
                         const toggleBtnIcon = isActivo ? 'fa-ban' : 'fa-check';
 
-                        return `
+                        return AppSecurity.filtrarBotonesTabla(`
                             <div class="flex gap-2 justify-center">
-                                <button type="button" class="btn-editar-contribuyente bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Contribuyente" data-codigo="${row.codigo}">
+                                <button type="button" data-perm="edit" class="btn-editar-contribuyente bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Contribuyente" data-codigo="${row.codigo}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button type="button" class="btn-toggle-contribuyente ${toggleBtnClass} px-2 py-1.5 rounded transition-colors shadow-sm" title="${toggleBtnTitle}" data-codigo="${row.codigo}">
+                                <button type="button" data-perm="edit" class="btn-toggle-contribuyente ${toggleBtnClass} px-2 py-1.5 rounded transition-colors shadow-sm" title="${toggleBtnTitle}" data-codigo="${row.codigo}">
                                     <i class="fas ${toggleBtnIcon}"></i>
                                 </button>
-                                <button type="button" class="btn-eliminar-contribuyente bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Contribuyente" data-codigo="${row.codigo}">
+                                <button type="button" data-perm="delete" class="btn-eliminar-contribuyente bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Contribuyente" data-codigo="${row.codigo}">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
-                        `;
+                        `);
                     }
                 }
             ],

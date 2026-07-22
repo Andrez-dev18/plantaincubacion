@@ -35,7 +35,8 @@ class UsuarioRepository {
      */
     public function loginConRol($username, $password) {
         $sql = "SELECT u.codigo as id_usuario, u.codigo as username, u.nombre as nombre_completo,
-                   CASE WHEN u.estado = 'A' THEN 1 ELSE 0 END as estado
+                   CASE WHEN u.estado = 'A' THEN 1 ELSE 0 END as estado,
+                   u.crea, u.modifica, u.elimina
             FROM usuario u
             CROSS JOIN conempre c
             WHERE c.epre = 'RS'

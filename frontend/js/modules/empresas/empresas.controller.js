@@ -8,6 +8,9 @@ class EmpresasController {
     }
 
     async init() {
+        // Validar permiso de creación de forma unificada
+        AppSecurity.aplicarPermisoCrear('btnNuevo');
+
         this.setupEventListeners();
         this.setupSelect2();
         await this.renderizarTablaEmpresas();
@@ -132,19 +135,19 @@ class EmpresasController {
                     data: null,
                     orderable: false,
                     className: 'text-center',
-                    render: (data, type, row) => `
+                    render: (data, type, row) => AppSecurity.filtrarBotonesTabla(`
                         <div class="flex gap-2 justify-center">
-                            <button type="button" class="btn-editar-empresa bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Empresa" data-id="${row.id_proveedor}">
+                            <button type="button" data-perm="edit" class="btn-editar-empresa bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Empresa" data-id="${row.id_proveedor}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn-toggle-estado ${parseInt(row.activo) === 1 ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-green-100 hover:bg-green-200 text-green-600'} px-2 py-1.5 rounded transition-colors shadow-sm" title="${parseInt(row.activo) === 1 ? 'Desactivar' : 'Activar'} Empresa" data-id="${row.id_proveedor}" data-estado="${row.activo}">
+                            <button type="button" data-perm="edit" class="btn-toggle-estado ${parseInt(row.activo) === 1 ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-green-100 hover:bg-green-200 text-green-600'} px-2 py-1.5 rounded transition-colors shadow-sm" title="${parseInt(row.activo) === 1 ? 'Desactivar' : 'Activar'} Empresa" data-id="${row.id_proveedor}" data-estado="${row.activo}">
                                 <i class="fas fa-power-off"></i>
                             </button>
-                            <button type="button" class="btn-eliminar-empresa bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Empresa" data-id="${row.id_proveedor}">
+                            <button type="button" data-perm="delete" class="btn-eliminar-empresa bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Empresa" data-id="${row.id_proveedor}">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
-                    `
+                    `)
                 }
             ],
             scrollX: true,

@@ -176,7 +176,10 @@ class UsuarioService {
                     'username' => $result['username'],
                     'nombre_completo' => $result['nombre_completo'],
                     'estado' => $result['estado'],
-                    'roles' => $roles
+                    'roles' => $roles,
+                    'crea' => (int)$result['crea'],
+                    'modifica' => (int)$result['modifica'],
+                    'elimina' => (int)$result['elimina']
                 ];
 
                 // Registrar log de login exitoso
@@ -198,7 +201,10 @@ class UsuarioService {
                         'username' => $result['username'],
                         'nombre_completo' => $result['nombre_completo'],
                         'estado' => $result['estado'],
-                        'roles' => $roles
+                        'roles' => $roles,
+                        'crea' => (int)$result['crea'],
+                        'modifica' => (int)$result['modifica'],
+                        'elimina' => (int)$result['elimina']
                     ]
                 ];
             } else {

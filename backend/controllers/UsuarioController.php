@@ -146,6 +146,9 @@ class UsuarioController
             $_SESSION['username']        = $resultado['data']['username'];
             $_SESSION['nombre_completo'] = $resultado['data']['nombre_completo'];
             $_SESSION['roles']           = $resultado['data']['roles'];
+            $_SESSION['crea']            = $resultado['data']['crea'];
+            $_SESSION['modifica']        = $resultado['data']['modifica'];
+            $_SESSION['elimina']          = $resultado['data']['elimina'];
 
             $this->jsonResponse(['success' => true, 'data' => $_SESSION], 200);
         } else {

@@ -8,6 +8,9 @@ class ServiciosController {
     }
 
     async init() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNuevo');
+
         this.setupEventListeners();
         await this.renderizarTablaServicios();
     }
@@ -75,16 +78,16 @@ class ServiciosController {
                     data: null,
                     orderable: false,
                     className: 'text-center',
-                    render: (data, type, row) => `
+                    render: (data, type, row) => AppSecurity.filtrarBotonesTabla(`
                         <div class="flex gap-2 justify-center">
-                            <button type="button" class="btn-editar-servicio bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Servicio" data-codi="${row.codi}">
+                            <button type="button" data-perm="edit" class="btn-editar-servicio bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Editar Servicio" data-codi="${row.codi}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn-eliminar-servicio bg-orange-100 hover:bg-orange-200 text-orange-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Servicio" data-codi="${row.codi}">
+                            <button type="button" data-perm="delete" class="btn-eliminar-servicio bg-orange-100 hover:bg-orange-200 text-orange-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="Eliminar Servicio" data-codi="${row.codi}">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
-                    `
+                    `)
                 }
             ],
             scrollX: true,

@@ -95,3 +95,94 @@ const AppConfig = {
 
 window.AppConfig = AppConfig;
 window.apiBaseUrl = AppConfig.API.BASE_URL;
+
+
+// MÓDULO DE SEGURIDAD GLOBAL
+const AppSecurity = {
+    /**
+     * Obtiene los datos del usuario logueado desde la sesión.
+     */
+    getUserData: function() {
+        try {
+            // Asegúrate de guardar la respuesta del login en sessionStorage con esta clave
+            const userData = sessionStorage.getItem("usuario"); 
+            return userData ? JSON.parse(userData) : null;          
+        } catch (e) {
+            console.error("Error leyendo datos de sesión", e);
+            return null;
+        }
+    },
+
+    /**
+     * Verifica el campo 'crea' de la base de datos (1 = Permitido, 0 = Denegado)
+     */
+    puedeCrear: function() {
+        const user = this.getUserData();
+        return user ? parseInt(user.crea) === 1 : false;
+    },
+
+    /**
+     * Verifica el campo 'modifica' de la base de datos
+     */
+    puedeEditar: function() {
+        const user = this.getUserData();
+        return user ? parseInt(user.modifica) === 1 : false;
+    },
+
+    /**
+     * Verifica el campo 'elimina' de la base de datos
+     */
+    puedeEliminar: function() {
+        const user = this.getUserData();
+        return user ? parseInt(user.elimina) === 1 : false;
+    },
+
+    /**
+     * Oculta o muestra un botón de creación en base al permiso puedeCrear().
+     * @param {string} btnId ID del botón (por defecto 'btnNuevo')
+     */
+    aplicarPermisoCrear: function(btnId = 'btnNuevo') {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.style.display = this.puedeCrear() ? '' : 'none';
+        }
+    },
+
+    /**
+     * Filtra una cadena de texto HTML de botones de acción eliminando aquellos
+     * que requieran permisos que el usuario no posea (marcados con data-perm="edit" o data-perm="delete").
+     * Si no queda ningún botón con permisos, retorna un indicador de "Sin permisos".
+     * @param {string} htmlString Cadena HTML con el contenedor y los botones de acción
+     * @returns {string} HTML filtrado
+     */
+    filtrarBotonesTabla: function(htmlString) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString.trim(), 'text/html');
+            const wrapper = doc.body.firstElementChild || doc.body;
+
+            // Filtrar botones de edición
+            if (!this.puedeEditar()) {
+                doc.querySelectorAll('[data-perm="edit"]').forEach(el => el.remove());
+            }
+
+            // Filtrar botones de eliminación
+            if (!this.puedeEliminar()) {
+                doc.querySelectorAll('[data-perm="delete"]').forEach(el => el.remove());
+            }
+
+            // Validar si quedan botones interactivos restantes dentro del contenedor
+            const botonesRestantes = wrapper.querySelectorAll('button, a');
+            if (botonesRestantes.length === 0) {
+                return '<span class="text-gray-400 text-xs italic">Sin permisos</span>';
+            }
+
+            return wrapper.outerHTML || doc.body.innerHTML;
+        } catch (e) {
+            console.error("Error al filtrar botones de tabla:", e);
+            return htmlString;
+        }
+    }
+};
+
+window.AppSecurity = AppSecurity;
