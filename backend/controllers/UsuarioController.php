@@ -175,8 +175,8 @@ class UsuarioController
             $db = Database::getInstance()->getConnection();
             $navegacionRepo = new NavegacionRepository($db);
 
-            // Obtenemos los módulos usando el ID del programa '1' fijo para PIC
-            $modulos = $navegacionRepo->obtenerMenuJerarquico($idUsuario, '1');
+            // Obtenemos los módulos usando el ID del programa '2'
+            $modulos = $navegacionRepo->obtenerMenuJerarquico($idUsuario, '2');
 
             $this->jsonResponse([
                 'success' => true,

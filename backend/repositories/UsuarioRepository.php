@@ -357,8 +357,8 @@ class UsuarioRepository {
                         u.elimina AS can_delete,
                         IFNULL(GROUP_CONCAT(r.nom_rol ORDER BY r.nom_rol SEPARATOR '||'), '') AS nombres_roles
                     " . $sqlBase . "
-                    LEFT JOIN adm_usuario_rol_pic ur ON ur.codigo = u.codigo AND ur.epre = 'RS'
-                    LEFT JOIN adm_rol_pic r ON r.cod_rol = ur.cod_rol AND r.id_programa = '1' AND r.activo = 1
+                    LEFT JOIN adm_usuario_rol ur ON ur.codigo = u.codigo
+                    LEFT JOIN adm_rol r ON r.cod_rol = ur.cod_rol AND (r.id_programa = '2' OR r.id_programa IS NULL OR r.id_programa = '') AND r.activo = 1
                     " . $whereSql . "
                     GROUP BY u.codigo, u.nombre, u.estado, u.ultimo_acceso, u.crea, u.modifica, u.elimina
                     ORDER BY $campoOrden $orderDir 

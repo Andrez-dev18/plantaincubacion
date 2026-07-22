@@ -3,7 +3,7 @@
  * DashboardModuloRepository
  *
  * Repositorio para gestionar el menú del dashboard
- * Adaptado a la lógica del sistema mejorado con tablas _pic y programa ID 1
+ * Adaptado a la lógica del sistema mejorado con tablas generales y programa ID 2
  */
 
 class DashboardModuloRepository {
@@ -25,7 +25,7 @@ class DashboardModuloRepository {
      * @param string $idPrograma
      * @return array
      */
-    public function getMenuPermitido($usuarioCodigo, $epre, $idPrograma = '1') {
+    public function getMenuPermitido($usuarioCodigo, $epre, $idPrograma = '2') {
         $query = "SELECT DISTINCT 
                     m.cod_mod, 
                     m.nom_mod, 
@@ -37,12 +37,11 @@ class DashboardModuloRepository {
                     m.titulo,
                     m.orden
                   FROM usuario u 
-                  INNER JOIN adm_usuario_rol_pic ur ON u.codigo = ur.codigo AND u.epre = ur.epre
-                  INNER JOIN adm_rol_pic r ON ur.cod_rol = r.cod_rol
-                  INNER JOIN adm_rol_progr_modulo_pic rpm ON r.id = rpm.id_rol
-                  INNER JOIN amd_dashboard_modulos_pic m ON rpm.cod_mod = m.cod_mod AND rpm.id_programa = m.id_programa
+                  INNER JOIN adm_usuario_rol ur ON u.codigo = ur.codigo
+                  INNER JOIN adm_rol r ON ur.cod_rol = r.cod_rol
+                  INNER JOIN adm_rol_progr_modulo rpm ON r.id = rpm.id_rol
+                  INNER JOIN amd_dashboard_modulos m ON rpm.cod_mod = m.cod_mod AND rpm.id_programa = m.id_programa
                   WHERE u.codigo = :usuarioCodigo 
-                    AND u.epre = :epre 
                     AND m.id_programa = :idPrograma 
                     AND u.estado = 'A'
                     AND r.activo = 1
@@ -50,7 +49,6 @@ class DashboardModuloRepository {
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':usuarioCodigo', $usuarioCodigo);
-        $stmt->bindParam(':epre', $epre);
         $stmt->bindParam(':idPrograma', $idPrograma);
         $stmt->execute();
 
@@ -63,8 +61,8 @@ class DashboardModuloRepository {
      * @param string $idPrograma
      * @return array
      */
-    public function listarModulosMenu($idPrograma = '1') {
-        $query = "SELECT * FROM amd_dashboard_modulos_pic WHERE id_programa = :idPrograma ORDER BY parent_cod, orden";
+    public function listarModulosMenu($idPrograma = '2') {
+        $query = "SELECT * FROM amd_dashboard_modulos WHERE id_programa = :idPrograma ORDER BY parent_cod, orden";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':idPrograma', $idPrograma);
         $stmt->execute();
@@ -77,8 +75,8 @@ class DashboardModuloRepository {
      * @param string $idPrograma
      * @return array
      */
-    public function listarModulosGrupos($idPrograma = '1') {
-        $query = "SELECT cod_mod, nom_mod FROM amd_dashboard_modulos_pic WHERE id_programa = :idPrograma AND tipo = 'group' ORDER BY orden";
+    public function listarModulosGrupos($idPrograma = '2') {
+        $query = "SELECT cod_mod, nom_mod FROM amd_dashboard_modulos WHERE id_programa = :idPrograma AND tipo = 'group' ORDER BY orden";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':idPrograma', $idPrograma);
         $stmt->execute();
@@ -92,7 +90,7 @@ class DashboardModuloRepository {
      * @return array|false
      */
     public function obtenerPorId($id) {
-        $query = "SELECT * FROM amd_dashboard_modulos_pic WHERE id = :id";
+        $query = "SELECT * FROM amd_dashboard_modulos WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
@@ -106,8 +104,8 @@ class DashboardModuloRepository {
      * @param string $idPrograma
      * @return bool
      */
-    public function tieneHijos($codMod, $idPrograma = '1') {
-        $query = "SELECT COUNT(*) as total FROM amd_dashboard_modulos_pic WHERE parent_cod = :codMod AND id_programa = :idPrograma";
+    public function tieneHijos($codMod, $idPrograma = '2') {
+        $query = "SELECT COUNT(*) as total FROM amd_dashboard_modulos WHERE parent_cod = :codMod AND id_programa = :idPrograma";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':codMod', $codMod);
         $stmt->bindParam(':idPrograma', $idPrograma);
@@ -130,16 +128,16 @@ class DashboardModuloRepository {
         $label_short = !empty($datos['label_short']) ? $datos['label_short'] : null;
         $icono       = !empty($datos['icono']) ? $datos['icono'] : 'fas fa-circle';
 
-        // Forzar id_programa a '1' si no se especifica
-        $id_programa = !empty($datos['id_programa']) ? $datos['id_programa'] : '1';
+        // Forzar id_programa a '2' si no se especifica
+        $id_programa = !empty($datos['id_programa']) ? $datos['id_programa'] : '2';
 
         if (empty($datos['id'])) {
-            $query = "INSERT INTO amd_dashboard_modulos_pic 
+            $query = "INSERT INTO amd_dashboard_modulos 
                        (id_programa, cod_mod, tipo, parent_cod, nom_mod, label_short, icono, url, tipo_param, titulo, orden) 
                        VALUES (:id_programa, :cod_mod, :tipo, :parent_cod, :nom_mod, :label_short, :icono, :url, :tipo_param, :titulo, :orden)";
             $stmt = $this->conn->prepare($query);
         } else {
-            $query = "UPDATE amd_dashboard_modulos_pic 
+            $query = "UPDATE amd_dashboard_modulos 
                        SET cod_mod = :cod_mod, tipo = :tipo, parent_cod = :parent_cod, nom_mod = :nom_mod, 
                            label_short = :label_short, icono = :icono, url = :url, tipo_param = :tipo_param, 
                            titulo = :titulo, orden = :orden 
@@ -170,7 +168,7 @@ class DashboardModuloRepository {
      * @return bool
      */
     public function eliminar($id) {
-        $query = "DELETE FROM amd_dashboard_modulos_pic WHERE id = :id";
+        $query = "DELETE FROM amd_dashboard_modulos WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();

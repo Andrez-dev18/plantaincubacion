@@ -42,7 +42,7 @@ class RolController {
 
     /**
      * POST /api/rol/listar
-     * Lista todos los roles del Programa 1 (Planta Incubación)
+     * Lista todos los roles del Programa 2 (Planta Incubación)
      */
     public function listar() {
         $resultado = $this->service->listarRoles();

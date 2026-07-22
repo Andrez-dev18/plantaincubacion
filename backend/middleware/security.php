@@ -1,5 +1,6 @@
 <?php
 // SEGURIDAD DESACTIVADA TEMPORALMENTE
+session_name('SESS_INCUBA');
 session_start();
 // Liberar el lock del archivo de sesión inmediatamente.
 // Así los 8+ requests paralelos del frontend no se bloquean entre sí.

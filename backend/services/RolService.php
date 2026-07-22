@@ -109,9 +109,9 @@ class RolService
             if ($resultado) {
                 $logsService = new LogsSistemaService($this->db);
                 if ($isEdit) {
-                    $logsService->logAction('UPDATE', 'adm_rol_pic', $datos['id'], $datosPrevios, $datos, "Rol {$datos['cod_rol']} editado.");
+                    $logsService->logAction('UPDATE', 'adm_rol', $datos['id'], $datosPrevios, $datos, "Rol {$datos['cod_rol']} editado.");
                 } else {
-                    $logsService->logAction('INSERT', 'adm_rol_pic', $datos['cod_rol'], null, $datos, "Rol {$datos['cod_rol']} registrado.");
+                    $logsService->logAction('INSERT', 'adm_rol', $datos['cod_rol'], null, $datos, "Rol {$datos['cod_rol']} registrado.");
                 }
             }
 
@@ -149,7 +149,7 @@ class RolService
             $resultado = $this->repo->eliminar($id);
             if ($resultado) {
                 $logsService = new LogsSistemaService($this->db);
-                $logsService->logAction('DELETE', 'adm_rol_pic', $id, $rolActual, null, "Rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") eliminado.");
+                $logsService->logAction('DELETE', 'adm_rol', $id, $rolActual, null, "Rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") eliminado.");
             }
             return [
                 'success' => $resultado,
@@ -182,7 +182,7 @@ class RolService
             $resultado = $this->repo->cambiarEstado($id);
             if ($resultado) {
                 $logsService = new LogsSistemaService($this->db);
-                $logsService->logAction('TOGGLE STATUS', 'adm_rol_pic', $id, $rolActual, null, "Estado del rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") alternado.");
+                $logsService->logAction('TOGGLE STATUS', 'adm_rol', $id, $rolActual, null, "Estado del rol con ID {$id} (" . ($rolActual['cod_rol'] ?? '') . ") alternado.");
             }
             return [
                 'success' => $resultado,

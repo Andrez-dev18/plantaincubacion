@@ -168,8 +168,18 @@ class UsuarioService {
             $logsService = new LogsSistemaService($this->db);
 
             if ($result) {
-                // Obtener los roles específicos de Planta Incubación (programa 1)
-                $roles = $this->rolRepo->obtenerRolesCodigo($result['id_usuario']);
+                // Obtener los roles específicos de Planta Incubación (programa 2)
+                $stmt = $this->db->prepare(
+                    "SELECT r.id as id_rol, r.cod_rol, r.nom_rol, r.nom_rol as nombre, r.nom_rol as nombre_rol
+                       FROM adm_usuario_rol ur
+                       JOIN adm_rol r ON r.cod_rol = ur.cod_rol 
+                                     AND (r.id_programa = '2' OR r.id_programa IS NULL OR r.id_programa = '')
+                                     AND r.activo = 1
+                      WHERE ur.codigo = ?
+                      ORDER BY r.nom_rol ASC"
+                );
+                $stmt->execute([$result['id_usuario']]);
+                $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 $userData = [
                     'id_usuario' => $result['id_usuario'],

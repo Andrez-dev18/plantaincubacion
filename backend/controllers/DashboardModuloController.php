@@ -3,7 +3,7 @@
  * DashboardModuloController
  *
  * Controlador para gestionar el menú del dashboard
- * Adaptado a la lógica del sistema mejorado con programa ID 1
+ * Adaptado a la lógica del sistema mejorado con programa ID 2
  */
 
 class DashboardModuloController {

@@ -3,7 +3,7 @@
  * DashboardModuloService
  *
  * Servicio para gestionar el menú del dashboard
- * Adaptado a la lógica del sistema mejorado con programa ID 1
+ * Adaptado a la lógica del sistema mejorado con programa ID 2
  */
 
 require_once __DIR__ . '/../repositories/DashboardModuloRepository.php';
@@ -28,9 +28,48 @@ class DashboardModuloService {
             throw new Exception("Faltan datos de identificación del usuario.");
         }
 
-        $modulosPlanos = $this->repo->getMenuPermitido($usuarioCodigo, $epre, '1');
+        $permitidos = $this->repo->getMenuPermitido($usuarioCodigo, $epre, '2');
 
-        return $this->construirArbol($modulosPlanos);
+        $modulosAMostrar = [];
+        $codigosAMostrar = [];
+
+        // Primero, agregamos todos los permitidos directos
+        foreach ($permitidos as $m) {
+            if (!in_array($m['cod_mod'], $codigosAMostrar)) {
+                $modulosAMostrar[] = $m;
+                $codigosAMostrar[] = $m['cod_mod'];
+            }
+        }
+
+        // Cargamos todos los módulos del programa para buscar padres
+        $todosModulos = $this->repo->listarModulosMenu('2');
+        $modulosPorCodigo = [];
+        foreach ($todosModulos as $m) {
+            $modulosPorCodigo[$m['cod_mod']] = $m;
+        }
+
+        // Buscamos y agregamos padres recursivamente (carpetas contenedoras)
+        $cola = $codigosAMostrar;
+        while (!empty($cola)) {
+            $cod = array_shift($cola);
+            if (isset($modulosPorCodigo[$cod])) {
+                $parentCod = $modulosPorCodigo[$cod]['parent_cod'];
+                if (!empty($parentCod) && !in_array($parentCod, $codigosAMostrar)) {
+                    if (isset($modulosPorCodigo[$parentCod])) {
+                        $modulosAMostrar[] = $modulosPorCodigo[$parentCod];
+                        $codigosAMostrar[] = $parentCod;
+                        $cola[] = $parentCod;
+                    }
+                }
+            }
+        }
+
+        // Ordenamos los módulos a mostrar según el orden definido
+        usort($modulosAMostrar, function($a, $b) {
+            return (int)$a['orden'] - (int)$b['orden'];
+        });
+
+        return $this->construirArbol($modulosAMostrar);
     }
 
     /**
@@ -44,7 +83,17 @@ class DashboardModuloService {
         $branch = array();
 
         foreach ($elementos as $elemento) {
-            if ($elemento['parent_cod'] == $parentId) {
+            $elParent = $elemento['parent_cod'] ?? null;
+            if ($elParent === '') {
+                $elParent = null;
+            }
+            
+            $targetParent = $parentId;
+            if ($targetParent === '') {
+                $targetParent = null;
+            }
+
+            if ($elParent == $targetParent) {
                 $children = $this->construirArbol($elementos, $elemento['cod_mod']);
 
                 if ($children) {
@@ -60,21 +109,21 @@ class DashboardModuloService {
     }
 
     /**
-     * Listar todos los módulos del programa por defecto (ID 1)
+     * Listar todos los módulos del programa por defecto (ID 2)
      *
      * @return array
      */
     public function listarTodos() {
-        return $this->repo->listarModulosMenu('1');
+        return $this->repo->listarModulosMenu('2');
     }
 
     /**
-     * Listar grupos de módulos del programa por defecto (ID 1)
+     * Listar grupos de módulos del programa por defecto (ID 2)
      *
      * @return array
      */
     public function listarGrupos() {
-        return $this->repo->listarModulosGrupos('1');
+        return $this->repo->listarModulosGrupos('2');
     }
 
     /**
@@ -104,7 +153,7 @@ class DashboardModuloService {
             $datos['tipo_param'] = null;
         }
 
-        $datos['id_programa'] = '1';
+        $datos['id_programa'] = '2';
 
         $db = $this->repo->getConnection();
         $logsService = new LogsSistemaService($db);
@@ -121,9 +170,9 @@ class DashboardModuloService {
         if ($resultado) {
             $id = $isEdit ? $datos['id'] : $datos['cod_mod'];
             if ($isEdit) {
-                $logsService->logAction('UPDATE', 'amd_dashboard_modulos_pic', $id, $datosPrevios, $datos, "Módulo del menú {$datos['cod_mod']} actualizado.");
+                $logsService->logAction('UPDATE', 'amd_dashboard_modulos', $id, $datosPrevios, $datos, "Módulo del menú {$datos['cod_mod']} actualizado.");
             } else {
-                $logsService->logAction('INSERT', 'amd_dashboard_modulos_pic', $id, null, $datos, "Módulo del menú {$datos['cod_mod']} registrado.");
+                $logsService->logAction('INSERT', 'amd_dashboard_modulos', $id, null, $datos, "Módulo del menú {$datos['cod_mod']} registrado.");
             }
         }
 
@@ -143,7 +192,7 @@ class DashboardModuloService {
             throw new Exception("El módulo no existe.");
         }
 
-        if ($modulo['tipo'] === 'group' && $this->repo->tieneHijos($modulo['cod_mod'], '1')) {
+        if ($modulo['tipo'] === 'group' && $this->repo->tieneHijos($modulo['cod_mod'], '2')) {
             throw new Exception("No puedes eliminar este grupo porque tiene sub-módulos dentro. Elimina o mueve los sub-módulos primero.");
         }
 
@@ -153,7 +202,7 @@ class DashboardModuloService {
         $resultado = $this->repo->eliminar($id);
 
         if ($resultado) {
-            $logsService->logAction('DELETE', 'amd_dashboard_modulos_pic', $id, $modulo, null, "Módulo del menú con ID {$id} ({$modulo['cod_mod']}) eliminado.");
+            $logsService->logAction('DELETE', 'amd_dashboard_modulos', $id, $modulo, null, "Módulo del menú con ID {$id} ({$modulo['cod_mod']}) eliminado.");
         }
 
         return $resultado;

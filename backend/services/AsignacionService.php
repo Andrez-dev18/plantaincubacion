@@ -28,7 +28,7 @@ class AsignacionService
         }
 
         return [
-            'roles_disponibles' => $this->repo->obtenerRolesDisponibles('1'), // 1 para Planta Incubación
+            'roles_disponibles' => $this->repo->obtenerRolesDisponibles('2'), // 2 para el programa
             'roles_usuario'     => $this->repo->obtenerRolesDeUsuario($codigoUsuario, $epre)
         ];
     }
