@@ -343,7 +343,7 @@ class ListaGuiaElectronicaController {
                     render: (data, type, row) => {
                         const actionSerie = row.serie || '';
                         const actionNumero = row.numero || '';
-                        return `
+                        return AppSecurity.filtrarBotonesTabla(`
                             <div class="flex gap-2 justify-center">
                                 <button class="action-btn action-view" data-action="ver" 
                                     data-treg="${this._escapeHtml(row.treg)}" 
@@ -353,7 +353,7 @@ class ListaGuiaElectronicaController {
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <!-- NUEVO BOTÓN DE EDITAR -->
-                                <button class="action-btn bg-yellow-500 text-white hover:bg-yellow-600 transition-colors" data-action="editar" 
+                                <button class="action-btn bg-yellow-500 text-white hover:bg-yellow-600 transition-colors" data-perm="edit" data-action="editar" 
                                     data-treg="${this._escapeHtml(row.treg)}" 
                                     title="Editar y Reenviar Guía">
                                     <i class="fas fa-edit"></i>
@@ -370,7 +370,7 @@ class ListaGuiaElectronicaController {
                                     title="Consultar Estado SUNAT/NubeFact">
                                     <i class="fas fa-cloud"></i>
                                 </button>
-                                <button class="action-btn action-delete" data-action="eliminar" 
+                                <button class="action-btn action-delete" data-perm="delete" data-action="eliminar" 
                                     data-treg="${this._escapeHtml(row.treg)}" 
                                     data-serie="${this._escapeHtml(actionSerie)}" 
                                     data-numero="${this._escapeHtml(actionNumero)}" 
@@ -378,7 +378,7 @@ class ListaGuiaElectronicaController {
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
-                        `;
+                        `);
                         /*
                         btn eliminar
                         <button class="action-btn action-delete" data-action="eliminar" 

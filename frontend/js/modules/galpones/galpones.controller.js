@@ -16,6 +16,9 @@ class GalponesController {
     }
 
     async init() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNuevoGalpon');
+
         // Cargar características primero
         await this.cargarCaracteristicas();
         

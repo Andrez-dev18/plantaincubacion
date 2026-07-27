@@ -14,6 +14,9 @@ class CaracteristicasController {
     }
 
     async init() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNuevaCaracteristica');
+
         // Cargar tipos de datos
         await this.cargarTiposDatos();
         
@@ -104,20 +107,24 @@ class CaracteristicasController {
                 <td class="text-sm px-4 py-3 text-gray-700">${carac.listado_opciones ? carac.listado_opciones.substring(0, 50) + '...' : '-'}</td>
                 <td class="text-sm px-4 py-3 text-gray-600">${carac.usuario_crea || '-'}</td>
                 <td class="text-center px-4 py-3">
-                    <div class="flex gap-2 justify-center">
-                        <button 
-                            class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition"
-                            data-id="${carac.id}"
-                            title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button 
-                            class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition"
-                            data-id="${carac.id}"
-                            title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    ${AppSecurity.filtrarBotonesTabla(`
+                        <div class="flex gap-2 justify-center">
+                            <button 
+                                class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition"
+                                data-perm="edit"
+                                data-id="${carac.id}"
+                                title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition"
+                                data-perm="delete"
+                                data-id="${carac.id}"
+                                title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `)}
                 </td>
             </tr>
         `).join('');
@@ -589,20 +596,24 @@ class CaracteristicasController {
                 <td class="text-sm px-4 py-3 text-gray-700">${carac.listado_opciones ? carac.listado_opciones.substring(0, 50) + '...' : '-'}</td>
                 <td class="text-sm px-4 py-3 text-gray-600">${carac.usuario_crea || '-'}</td>
                 <td class="text-center px-4 py-3">
-                    <div class="flex gap-2 justify-center">
-                        <button 
-                            class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition"
-                            data-id="${carac.id}"
-                            title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button 
-                            class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition"
-                            data-id="${carac.id}"
-                            title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    ${AppSecurity.filtrarBotonesTabla(`
+                        <div class="flex gap-2 justify-center">
+                            <button 
+                                class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition"
+                                data-perm="edit"
+                                data-id="${carac.id}"
+                                title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition"
+                                data-perm="delete"
+                                data-id="${carac.id}"
+                                title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `)}
                 </td>
             </tr>
         `).join('');

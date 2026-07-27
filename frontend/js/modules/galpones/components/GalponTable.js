@@ -110,32 +110,36 @@ class GalponTable extends Component {
                 </td>
                 ${this.renderCaracteristicasValues(galpon)}
                 <td class="text-center px-4 py-3">
-                    <div class="flex gap-2 justify-center">
-                        ${this.onView ? `
-                            <button 
-                                class="btn-view bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
-                                data-id="${galponId}"
-                                title="Ver detalles">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        ` : ''}
-                        ${this.onEdit ? `
-                            <button 
-                                class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
-                                data-id="${galponId}"
-                                title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        ` : ''}
-                        ${this.onDelete ? `
-                            <button 
-                                class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
-                                data-id="${galponId}"
-                                title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : ''}
-                    </div>
+                    ${AppSecurity.filtrarBotonesTabla(`
+                        <div class="flex gap-2 justify-center">
+                            ${this.onView ? `
+                                <button 
+                                    class="btn-view bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
+                                    data-id="${galponId}"
+                                    title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : ''}
+                            ${this.onEdit ? `
+                                <button 
+                                    class="btn-edit bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
+                                    data-id="${galponId}"
+                                    data-perm="edit"
+                                    title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                            ${this.onDelete ? `
+                                <button 
+                                    class="btn-delete bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition btn-hover-scale"
+                                    data-id="${galponId}"
+                                    data-perm="delete"
+                                    title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    `)}
                 </td>
             </tr>
         `;

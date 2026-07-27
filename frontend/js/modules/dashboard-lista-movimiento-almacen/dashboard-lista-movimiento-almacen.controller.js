@@ -68,6 +68,9 @@ class DashboardListaMovimientoAlmacenController {
     }
 
     async init() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNuevoMovimiento');
+
         this._setDefaultDates();
         this._bindEvents();
 
@@ -367,17 +370,19 @@ class DashboardListaMovimientoAlmacenController {
                     <td class="px-3 py-3 text-right font-semibold">${this._formatMoneda(row.timport || 0)}</td>
                     <td class="px-3 py-3">${this._escapeHtml(row.tuser || '-')}</td>
                     <td class="px-3 py-3">
-                        <div class="flex gap-2 justify-center">
-                            <button class="action-btn action-view" data-action="ver" data-treg="${this._escapeHtml(row.treg)}" title="Ver detalle">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="action-btn action-pdf" data-action="preview-pdf" data-treg="${this._escapeHtml(row.treg)}" title="Vista previa Comprobante">
-                                <i class="fas fa-file-invoice"></i>
-                            </button>
-                            <button class="action-btn action-edit" data-action="editar" data-treg="${this._escapeHtml(row.treg)}" title="Editar movimiento">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                        </div>
+                        ${AppSecurity.filtrarBotonesTabla(`
+                            <div class="flex gap-2 justify-center">
+                                <button class="action-btn action-view" data-action="ver" data-treg="${this._escapeHtml(row.treg)}" title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn action-pdf" data-action="preview-pdf" data-treg="${this._escapeHtml(row.treg)}" title="Vista previa Comprobante">
+                                    <i class="fas fa-file-invoice"></i>
+                                </button>
+                                <button class="action-btn action-edit" data-perm="edit" data-action="editar" data-treg="${this._escapeHtml(row.treg)}" title="Editar movimiento">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                        `)}
                     </td>
                 </tr>
             `;

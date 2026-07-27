@@ -29,6 +29,9 @@ class GestionProyeccionesController {
      * Configurar event listeners
      */
     initEventListeners() {
+        // Validar permiso de creación
+        AppSecurity.aplicarPermisoCrear('btnNueva');
+
         document.getElementById('btnNueva')?.addEventListener('click', () => this.nuevaProyeccion());
         document.getElementById('btnContinuarPaso2')?.addEventListener('click', () => this.continuarPaso2());
     }
@@ -115,14 +118,16 @@ class GestionProyeccionesController {
                     <span class="${badgeClass}">${badgeText}</span>
                 </td>
                 <td class="text-center">
-                    <div class="flex justify-center gap-2 items-center">
-                        <button class="btn-editar text-blue-600 hover:text-blue-800 transition-colors btn-table-action" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-eliminar text-red-600 hover:text-red-800 transition-colors btn-table-action" title="Eliminar">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
+                    ${AppSecurity.filtrarBotonesTabla(`
+                        <div class="flex justify-center gap-2 items-center">
+                            <button class="btn-editar text-blue-600 hover:text-blue-800 transition-colors btn-table-action" data-perm="edit" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-eliminar text-red-600 hover:text-red-800 transition-colors btn-table-action" data-perm="delete" title="Eliminar">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `)}
                 </td>
             `;
 
@@ -130,17 +135,21 @@ class GestionProyeccionesController {
             const btnEditar = tr.querySelector('.btn-editar');
             const btnEliminar = tr.querySelector('.btn-eliminar');
 
-            btnEditar.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.proyeccionSeleccionada = proyeccion.nombre;
-                this.editarProyeccion();
-            });
+            if (btnEditar) {
+                btnEditar.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.proyeccionSeleccionada = proyeccion.nombre;
+                    this.editarProyeccion();
+                });
+            }
 
-            btnEliminar.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.proyeccionSeleccionada = proyeccion.nombre;
-                this.eliminarProyeccion();
-            });
+            if (btnEliminar) {
+                btnEliminar.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.proyeccionSeleccionada = proyeccion.nombre;
+                    this.eliminarProyeccion();
+                });
+            }
 
             // Event listener para selección de fila
             tr.addEventListener('click', () => this.seleccionarProyeccion(tr));
