@@ -41,6 +41,54 @@
             </div>
         </section>
 
+        <!-- Filtros -->
+        <section id="filterSection" class="bg-white rounded-2xl card-shadow p-4 mb-4 slide-down">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-purple-600"></i>
+                    <h2 class="text-xl font-bold text-gray-700">Filtros</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="btnLimpiarFiltros" class="text-purple-600 hover:text-purple-700 font-semibold text-sm flex items-center gap-1.5 transition-colors">
+                        <i class="fas fa-times-circle"></i>
+                        Limpiar
+                    </button>
+                    <button id="btnToggleFiltros" class="text-purple-600 hover:text-purple-700 transition-colors p-1">
+                        <i class="fas fa-chevron-up" id="filterChevron"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="filterContent" class="show transition-all duration-300 ease-in-out">
+                <div class="grid grid-cols-12 gap-4 items-end mt-4">
+                    <!-- Artículo -->
+                    <div class="col-span-12 md:col-span-6 relative">
+                        <label for="filterArticulo" class="block text-xs font-semibold text-gray-600 mb-1">Artículo</label>
+                        <input type="text" id="filterArticulo" placeholder="Buscar por código o descripción..." autocomplete="off"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white transition-all font-medium font-semibold">
+                        <!-- Dropdown de sugerencias -->
+                        <div id="suggestionsDropdown" class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[100] max-h-60 overflow-y-auto hidden">
+                        </div>
+                    </div>
+                    <!-- Switch -->
+                    <div class="col-span-12 md:col-span-4 flex items-center gap-3 h-[38px] pb-2 md:pb-0">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="filterIncompletos" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                        <span class="text-xs font-semibold text-gray-600">Intercalar Registros</span>
+                    </div>
+                    <!-- Botón Aplicar Filtro -->
+                    <div class="col-span-12 md:col-span-2">
+                        <button id="btnAplicarFiltros" 
+                            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all duration-200 flex items-center justify-center gap-2 h-[38px] hover:scale-[1.01] active:scale-[0.99]">
+                            <i class="fas fa-filter text-xs"></i>
+                            Aplicar Filtro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Tabla -->
         <section class="bg-white rounded-2xl card-shadow p-6 slide-down">
             <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">

@@ -11,17 +11,39 @@ class ContribuyentesRepository
         $this->conn = $db;
     }
 
-    public function listar(PDO $db, string $q, int $page, int $pageSize): array
+    public function listar(PDO $db, string $q, int $page, int $pageSize, string $nombre = '', string $ruc = ''): array
     {
         $page = max(1, $page);
         $pageSize = max(1, min(100, $pageSize));
         $offset = ($page - 1) * $pageSize;
-        $where = '';
+        
+        $whereConditions = array(
+            "nombre IS NOT NULL AND TRIM(nombre) != ''",
+            "(LENGTH(TRIM(codigo)) = 8 OR (LENGTH(TRIM(codigo)) = 11 AND LENGTH(TRIM(ruc)) = 11))"
+        );
         $params = array();
+        
         if ($q !== '') {
-            $where = ' WHERE codigo LIKE :q1 OR nombre LIKE :q2 OR ruc LIKE :q3';
+            $whereConditions[] = '(codigo LIKE :q1 OR nombre LIKE :q2 OR ruc LIKE :q3)';
             $like = '%' . $q . '%';
-            $params = array(':q1' => $like, ':q2' => $like, ':q3' => $like);
+            $params[':q1'] = $like;
+            $params[':q2'] = $like;
+            $params[':q3'] = $like;
+        }
+        
+        if ($nombre !== '') {
+            $whereConditions[] = 'nombre LIKE :nombre';
+            $params[':nombre'] = '%' . $nombre . '%';
+        }
+        
+        if ($ruc !== '') {
+            $whereConditions[] = 'ruc LIKE :ruc';
+            $params[':ruc'] = '%' . $ruc . '%';
+        }
+        
+        $where = '';
+        if (!empty($whereConditions)) {
+            $where = ' WHERE ' . implode(' AND ', $whereConditions);
         }
 
         $count = $db->prepare('SELECT COUNT(*) FROM ccte' . $where);

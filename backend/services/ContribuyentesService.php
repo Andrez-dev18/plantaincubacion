@@ -21,10 +21,10 @@ class ContribuyentesService
      * @param int $pageSize
      * @return array
      */
-    public function listarContribuyentes(string $q = '', int $page = 1, int $pageSize = 25)
+    public function listarContribuyentes(string $q = '', int $page = 1, int $pageSize = 25, string $nombre = '', string $ruc = '')
     {
         try {
-            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize);
+            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize, $nombre, $ruc);
             return [
                 'success' => true,
                 'data' => $resultado['rows'],

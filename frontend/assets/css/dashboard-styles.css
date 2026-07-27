@@ -527,6 +527,7 @@ div.dt-scroll-body::-webkit-scrollbar:vertical {
     max-height: 600px;
     opacity: 1;
     padding-top: 1rem;
+    overflow: visible;
 }
 
 /* === SELECT2 ESTILO DASHBOARD === */

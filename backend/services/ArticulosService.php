@@ -21,10 +21,10 @@ class ArticulosService
      * @param int $pageSize
      * @return array
      */
-    public function listarArticulos(string $q = '', int $page = 1, int $pageSize = 25)
+    public function listarArticulos(string $q = '', int $page = 1, int $pageSize = 25, string $codigo = '', bool $soloIncompletos = false)
     {
         try {
-            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize);
+            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize, $codigo, $soloIncompletos);
             return [
                 'success' => true,
                 'data' => $resultado['rows'],

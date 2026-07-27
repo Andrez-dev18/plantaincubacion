@@ -45,10 +45,12 @@ class ContribuyentesController {
     public function listar() {
         $data = $this->getRequestData();
         $q = $data['q'] ?? $_GET['q'] ?? '';
+        $nombre = $data['nombre'] ?? $_GET['nombre'] ?? '';
+        $ruc = $data['ruc'] ?? $_GET['ruc'] ?? '';
         $page = isset($data['page']) ? (int)$data['page'] : (isset($_GET['page']) ? (int)$_GET['page'] : 1);
         $pageSize = isset($data['pageSize']) ? (int)$data['pageSize'] : (isset($_GET['pageSize']) ? (int)$_GET['pageSize'] : 25);
 
-        $resultado = $this->service->listarContribuyentes($q, $page, $pageSize);
+        $resultado = $this->service->listarContribuyentes($q, $page, $pageSize, $nombre, $ruc);
         $this->jsonResponse($resultado, $resultado['success'] ? 200 : 500);
     }
 

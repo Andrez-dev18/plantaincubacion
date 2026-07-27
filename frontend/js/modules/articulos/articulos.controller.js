@@ -12,6 +12,7 @@ class ArticulosController {
         AppSecurity.aplicarPermisoCrear('btnNuevo');
 
         this.setupEventListeners();
+        this.setupFiltros();
         await this.renderizarTablaArticulos();
     }
 
@@ -25,6 +26,162 @@ class ArticulosController {
 
         // Intercepción del Submit del Formulario Principal (Crear/Editar)
         document.getElementById('formArticulo')?.addEventListener('submit', (e) => this.guardarFormArticulo(e));
+    }
+
+    setupFiltros() {
+        const filterInput = document.getElementById('filterArticulo');
+        const dropdown = document.getElementById('suggestionsDropdown');
+        const btnToggle = document.getElementById('btnToggleFiltros');
+        const filterContent = document.getElementById('filterContent');
+        const btnLimpiar = document.getElementById('btnLimpiarFiltros');
+        const btnAplicar = document.getElementById('btnAplicarFiltros');
+
+        // Toggle filtros
+        if (btnToggle && filterContent) {
+            // Asegurar que inicie con overflow: visible si está expandido por defecto
+            if (filterContent.classList.contains('show')) {
+                filterContent.style.overflow = 'visible';
+            } else {
+                filterContent.style.overflow = 'hidden';
+            }
+
+            btnToggle.addEventListener('click', () => {
+                const isOpen = filterContent.classList.contains('show');
+                const chevron = document.getElementById('filterChevron');
+                if (isOpen) {
+                    filterContent.classList.remove('show');
+                    filterContent.style.overflow = 'hidden';
+                    if (chevron) {
+                        chevron.classList.remove('fa-chevron-up');
+                        chevron.classList.add('fa-chevron-down');
+                    }
+                } else {
+                    filterContent.classList.add('show');
+                    // Esperar a que termine la animación para hacer visible el overflow
+                    setTimeout(() => {
+                        if (filterContent.classList.contains('show')) {
+                            filterContent.style.overflow = 'visible';
+                        }
+                    }, 400);
+                    if (chevron) {
+                        chevron.classList.remove('fa-chevron-down');
+                        chevron.classList.add('fa-chevron-up');
+                    }
+                }
+            });
+        }
+
+        // Limpiar filtros
+        if (btnLimpiar) {
+            btnLimpiar.addEventListener('click', () => {
+                if (filterInput) {
+                    filterInput.value = '';
+                    filterInput.removeAttribute('data-selected-codigo');
+                }
+                const filterSwitch = document.getElementById('filterIncompletos');
+                if (filterSwitch) {
+                    filterSwitch.checked = false;
+                }
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+                if (this.dataTableGestion) {
+                    this.dataTableGestion.search('').draw();
+                }
+            });
+        }
+
+        // Aplicar filtros
+        if (btnAplicar) {
+            btnAplicar.addEventListener('click', () => {
+                if (this.dataTableGestion) {
+                    this.dataTableGestion.ajax.reload();
+                }
+            });
+        }
+
+        // Evento de cambio en el switch de amarillos
+        const filterSwitch = document.getElementById('filterIncompletos');
+        if (filterSwitch) {
+            filterSwitch.addEventListener('change', () => {
+                if (this.dataTableGestion) {
+                    this.dataTableGestion.ajax.reload();
+                }
+            });
+        }
+
+        // Autocomplete/Suggestions
+        let searchTimeout = null;
+        if (filterInput) {
+            filterInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                
+                // Clear attributes so manually typed searches don't carry previous metadata
+                filterInput.removeAttribute('data-selected-codigo');
+
+                clearTimeout(searchTimeout);
+
+                if (query.length < 1) {
+                    if (dropdown) dropdown.classList.add('hidden');
+                    return;
+                }
+
+                if (query.includes(' - ')) return;
+
+                searchTimeout = setTimeout(() => {
+                    this.service.getArticulos({ q: query, page: 1, pageSize: 15 })
+                        .then(response => {
+                            if (response.success && response.data && response.data.length > 0) {
+                                this.renderSuggestions(response.data);
+                            } else {
+                                if (dropdown) dropdown.classList.add('hidden');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error fetching suggestions:', err);
+                            if (dropdown) dropdown.classList.add('hidden');
+                        });
+                }, 300);
+            });
+        }
+
+        // Cerrar dropdown al hacer click fuera
+        document.addEventListener('click', (e) => {
+            if (dropdown && !dropdown.contains(e.target) && e.target !== filterInput) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
+
+    renderSuggestions(data) {
+        const dropdown = document.getElementById('suggestionsDropdown');
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '';
+
+        data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'px-4 py-2.5 hover:bg-gray-50 cursor-pointer text-sm flex items-center border-b border-gray-100 last:border-b-0 transition-colors';
+            
+            div.innerHTML = `
+                <span class="text-blue-600 font-bold font-mono mr-2">${item.codigo || ''}</span>
+                <span class="text-gray-400 mr-2">-</span>
+                <span class="text-gray-700 font-semibold uppercase">${item.descri || ''}</span>
+            `;
+
+            div.addEventListener('click', () => {
+                const input = document.getElementById('filterArticulo');
+                if (input) {
+                    input.value = `${item.codigo || ''} - ${item.descri || ''}`;
+                    input.setAttribute('data-selected-codigo', item.codigo || '');
+                }
+                dropdown.classList.add('hidden');
+            });
+
+            dropdown.appendChild(div);
+        });
+
+        dropdown.classList.remove('hidden');
     }
 
     async renderizarTablaArticulos() {
@@ -41,9 +198,29 @@ class ArticulosController {
             ajax: (dataRequests, callback) => {
                 const pageSize = dataRequests.length || 25;
                 const page = Math.floor((dataRequests.start || 0) / pageSize) + 1;
-                const q = dataRequests.search?.value || '';
+                
+                let q = '';
+                let codigo = '';
+                const filterInput = document.getElementById('filterArticulo');
+                const selectedCodigo = filterInput?.getAttribute('data-selected-codigo') || '';
+                const filterArticuloVal = filterInput?.value?.trim() || '';
 
-                this.service.getArticulos({ q: q, page: page, pageSize: pageSize })
+                if (filterArticuloVal !== '') {
+                    if (selectedCodigo !== '') {
+                        // Si se seleccionó desde sugerencias, filtramos exactamente por ese código
+                        codigo = selectedCodigo;
+                    } else {
+                        // Si fue escrito a mano, mandamos como búsqueda general
+                        q = filterArticuloVal;
+                    }
+                } else {
+                    // Fallback al buscador de DataTables
+                    q = dataRequests.search?.value || '';
+                }
+
+                const filterIncompletos = document.getElementById('filterIncompletos')?.checked || false;
+
+                this.service.getArticulos({ q: q, codigo: codigo, solo_incompletos: filterIncompletos, page: page, pageSize: pageSize })
                     .then(response => {
                         if (response.success && response.data) {
                             callback({
@@ -109,6 +286,13 @@ class ArticulosController {
                     `)
                 }
             ],
+            createdRow: (row, data, dataIndex) => {
+                const linVal = String(data.lin || '').trim();
+                const almaVal = String(data.alma || '').trim();
+                if (linVal === '' || almaVal === '') {
+                    $(row).addClass('!bg-yellow-100 hover:!bg-yellow-200 transition-colors');
+                }
+            },
             scrollX: true,
             responsive: false,
             pageLength: 10,

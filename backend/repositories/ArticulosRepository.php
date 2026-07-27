@@ -11,7 +11,7 @@ class ArticulosRepository
         $this->conn = $db;
     }
 
-    public function listar(PDO $db, string $q = '', int $page = 1, int $pageSize = 25): array
+    public function listar(PDO $db, string $q = '', int $page = 1, int $pageSize = 25, string $codigo = '', bool $soloIncompletos = false): array
     {
         $page = max(1, $page);
         $pageSize = max(1, min(100, $pageSize));
@@ -26,12 +26,21 @@ class ArticulosRepository
             $params[':q2'] = $like;
         }
 
+        if ($codigo !== '') {
+            $where .= ' AND codigo = :codigo';
+            $params[':codigo'] = $codigo;
+        }
+
+        if ($soloIncompletos) {
+            $where .= " AND (lin IS NULL OR TRIM(lin) = '' OR alma IS NULL OR TRIM(alma) = '')";
+        }
+
         $stCount = $db->prepare('SELECT COUNT(*) FROM mitm' . $where);
         $stCount->execute($params);
         $total = (int)$stCount->fetchColumn();
 
         $sql = "SELECT codigo, descri, IFNULL(unidad,'') AS unidad, IFNULL(peso,'') AS peso,
-                       IFNULL(lin,'') AS lin, IFNULL(cuenta,'') AS cuenta,
+                       IFNULL(lin,'') AS lin, IFNULL(alma,'') AS alma, IFNULL(cuenta,'') AS cuenta,
                        IFNULL(ctacos,'') AS ctacos, IFNULL(ctacar,'') AS ctacar,
                        IFNULL(ctaabo,'') AS ctaabo, IFNULL(c_venta,'') AS c_venta,
                        IFNULL(preuni,0) AS preuni, IFNULL(preven,0) AS preven,
@@ -39,7 +48,7 @@ class ArticulosRepository
                        IFNULL(estado,'A') AS estado, IFNULL(tactivo,'S') AS tactivo
                   FROM mitm
                   $where
-                 ORDER BY codigo ASC
+                 ORDER BY (CASE WHEN lin IS NULL OR TRIM(lin) = '' OR alma IS NULL OR TRIM(alma) = '' THEN 1 ELSE 0 END) ASC, lin ASC, alma ASC, codigo ASC
                  LIMIT $pageSize OFFSET $offset";
         $st = $db->prepare($sql);
         $st->execute($params);

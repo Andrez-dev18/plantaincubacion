@@ -11,7 +11,7 @@ class ServiciosRepository
         $this->conn = $db;
     }
 
-    public function listar(PDO $db, string $q = '', int $page = 1, int $pageSize = 25): array
+    public function listar(PDO $db, string $q = '', int $page = 1, int $pageSize = 25, string $codi = ''): array
     {
         $page = max(1, $page);
         $pageSize = max(1, min(100, $pageSize));
@@ -24,6 +24,11 @@ class ServiciosRepository
             $like = '%' . $q . '%';
             $params[':q1'] = $like;
             $params[':q2'] = $like;
+        }
+
+        if ($codi !== '') {
+            $where .= ' AND codi = :codi';
+            $params[':codi'] = $codi;
         }
 
         $stCount = $db->prepare('SELECT COUNT(*) FROM amar' . $where);

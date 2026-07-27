@@ -20,10 +20,10 @@ class ServiciosService
      * @param int $pageSize
      * @return array
      */
-    public function listarServicios(string $q = '', int $page = 1, int $pageSize = 25)
+    public function listarServicios(string $q = '', int $page = 1, int $pageSize = 25, string $codi = '')
     {
         try {
-            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize);
+            $resultado = $this->repo->listar($this->db, $q, $page, $pageSize, $codi);
             return [
                 'success' => true,
                 'data' => $resultado['rows'],

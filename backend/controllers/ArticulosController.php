@@ -45,10 +45,12 @@ class ArticulosController {
     public function listar() {
         $data = $this->getRequestData();
         $q = $data['q'] ?? $_GET['q'] ?? '';
+        $codigo = $data['codigo'] ?? $_GET['codigo'] ?? '';
+        $soloIncompletos = filter_var($data['solo_incompletos'] ?? $_GET['solo_incompletos'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $page = isset($data['page']) ? (int)$data['page'] : (isset($_GET['page']) ? (int)$_GET['page'] : 1);
         $pageSize = isset($data['pageSize']) ? (int)$data['pageSize'] : (isset($_GET['pageSize']) ? (int)$_GET['pageSize'] : 25);
 
-        $resultado = $this->service->listarArticulos($q, $page, $pageSize);
+        $resultado = $this->service->listarArticulos($q, $page, $pageSize, $codigo, $soloIncompletos);
         $this->jsonResponse($resultado, $resultado['success'] ? 200 : 500);
     }
 

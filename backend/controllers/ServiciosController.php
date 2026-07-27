@@ -45,10 +45,11 @@ class ServiciosController {
     public function listar() {
         $data = $this->getRequestData();
         $q = $data['q'] ?? $_GET['q'] ?? '';
+        $codi = $data['codi'] ?? $_GET['codi'] ?? '';
         $page = isset($data['page']) ? (int)$data['page'] : (isset($_GET['page']) ? (int)$_GET['page'] : 1);
         $pageSize = isset($data['pageSize']) ? (int)$data['pageSize'] : (isset($_GET['pageSize']) ? (int)$_GET['pageSize'] : 25);
 
-        $resultado = $this->service->listarServicios($q, $page, $pageSize);
+        $resultado = $this->service->listarServicios($q, $page, $pageSize, $codi);
         $this->jsonResponse($resultado, $resultado['success'] ? 200 : 500);
     }
 
