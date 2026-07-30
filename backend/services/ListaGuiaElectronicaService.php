@@ -3,14 +3,17 @@
  * Servicio para el módulo de Lista de Guías de Remisión Electrónica
  */
 require_once __DIR__ . '/../repositories/ListaGuiaElectronicaRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class ListaGuiaElectronicaService
 {
     private $repo;
+    private $logsService;
 
     public function __construct($db)
     {
         $this->repo = new ListaGuiaElectronicaRepository($db);
+        $this->logsService = new LogsSistemaService($db);
     }
 
     /**
@@ -42,6 +45,25 @@ class ListaGuiaElectronicaService
      */
     public function eliminarGuia(string $treg): bool
     {
-        return $this->repo->eliminarGuia($treg);
+        $datosPrevios = $this->repo->obtenerGuiaPorTreg($treg);
+        $resultado = $this->repo->eliminarGuia($treg);
+
+        if ($resultado) {
+            $serieNumero = isset($datosPrevios['serie'], $datosPrevios['numero']) 
+                ? "{$datosPrevios['serie']}-{$datosPrevios['numero']}" 
+                : $treg;
+
+            $this->logsService->logAction(
+                'DELETE',
+                'guia',
+                $treg,
+                $datosPrevios,
+                null,
+                "Guía electrónica {$serieNumero} (treg: {$treg}) eliminada."
+            );
+        }
+
+        return $resultado;
     }
 }
+
