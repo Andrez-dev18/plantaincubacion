@@ -5,12 +5,15 @@
  */
 
 require_once __DIR__ . '/../repositories/MovimientoAlmacenRepository.php';
+require_once __DIR__ . '/LogsSistemaService.php';
 
 class MovimientoAlmacenService {
     private $repo;
+    private $logsService;
 
     public function __construct($db) {
         $this->repo = new MovimientoAlmacenRepository($db);
+        $this->logsService = new LogsSistemaService($db);
     }
 
     // ─── VERIFICACIÓN DE FECHA (equivalente VBA VerificaFecha) ───────────────
@@ -323,6 +326,20 @@ class MovimientoAlmacenService {
             }
         }
 
+        $treg = $nuevo['treg'];
+        $codtra = $data['tcodtra'] ?? '';
+        $alm = $data['talm'] ?? '';
+        $desc = "Movimiento de almacén registrado (treg: {$treg}, transacción: {$codtra}, almacén: {$alm}).";
+
+        $this->logsService->logAction(
+            'INSERT',
+            'guia',
+            $treg,
+            null,
+            $data,
+            $desc
+        );
+
         return ['treg' => $nuevo['treg'], 'mensaje' => 'Movimiento grabado correctamente.'];
     }
 
@@ -476,6 +493,24 @@ class MovimientoAlmacenService {
             }
         }
 
+        $datosPrevios = [
+            'cabecera' => $cabActual,
+            'detalle' => $detalleAnterior
+        ];
+
+        $codtra = $data['tcodtra'] ?? ($cabActual['tcodtra'] ?? '');
+        $alm = $data['talm'] ?? ($cabActual['talm'] ?? '');
+        $desc = "Movimiento de almacén #{$treg} actualizado (transacción: {$codtra}, almacén: {$alm}).";
+
+        $this->logsService->logAction(
+            'UPDATE',
+            'guia',
+            $treg,
+            $datosPrevios,
+            $data,
+            $desc
+        );
+
         return ['treg' => (int)$treg, 'mensaje' => 'Movimiento actualizado correctamente.'];
     }
 
@@ -484,6 +519,11 @@ class MovimientoAlmacenService {
         $detalle = $this->repo->getDetallePorReg($treg);
         $cab     = $this->repo->getMovimientoPorReg($treg);
         if (!$cab) throw new Exception("Movimiento #{$treg} no encontrado.", 404);
+
+        $datosPrevios = [
+            'cabecera' => $cab,
+            'detalle' => $detalle
+        ];
 
         $transaccion = $this->repo->getTransaccionById($cab['tcodtra']);
         // La primera letra del código determina la dirección: 'E'=ENTRADA, 'S'=SALIDA
@@ -502,7 +542,24 @@ class MovimientoAlmacenService {
         }
 
         $this->repo->eliminarDetalleCompleto($treg);
-        return $this->repo->eliminarCabecera($treg);
+        $resultado = $this->repo->eliminarCabecera($treg);
+
+        if ($resultado) {
+            $codtra = $cab['tcodtra'] ?? '';
+            $alm = $cab['talm'] ?? '';
+            $desc = "Movimiento de almacén #{$treg} eliminado (transacción: {$codtra}, almacén: {$alm}).";
+
+            $this->logsService->logAction(
+                'DELETE',
+                'guia',
+                $treg,
+                $datosPrevios,
+                null,
+                $desc
+            );
+        }
+
+        return $resultado;
     }
 
     public function getReporteKardex(array $filtros): array {
