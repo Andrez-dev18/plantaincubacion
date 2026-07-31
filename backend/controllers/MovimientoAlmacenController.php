@@ -169,17 +169,66 @@ class MovimientoAlmacenController
 
     public function listarMovimientosDashboard(): void
     {
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : null;
+
+        // Soporte de búsqueda flexible: 'q', 'search' (string) o 'search[value]' (array DataTables)
+        $search = $_GET['q'] ?? $_GET['search'] ?? '';
+        if (is_array($search)) {
+            $search = $search['value'] ?? '';
+        }
+
+        // Paginación: DataTables envía start (offset) y length (limit)
+        $start  = isset($_GET['start'])  ? (int)$_GET['start']  : null;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : null;
+
+        if ($start !== null && $length !== null) {
+            $perPage = max(1, min(500, $length));
+            $page    = (int)floor($start / $perPage) + 1;
+        } else {
+            $page    = max(1, (int)($_GET['page'] ?? 1));
+            $perPage = max(1, min(500, (int)($_GET['per_page'] ?? 25)));
+        }
+
+        // Ordenamiento enviado por DataTables (order[0][column] y order[0][dir])
+        $orderColumn = null;
+        $orderDir    = 'DESC';
+        if (isset($_GET['order']) && is_array($_GET['order']) && isset($_GET['order'][0])) {
+            $colIdx   = (int)($_GET['order'][0]['column'] ?? 0);
+            $orderDir = strtoupper($_GET['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+            if (isset($_GET['columns'][$colIdx]['data'])) {
+                $orderColumn = trim((string)$_GET['columns'][$colIdx]['data']);
+            }
+        }
+
         $filtros = [
-            'talm'     => $_GET['talm'] ?? '',
-            'tcodtra'  => $_GET['tcodtra'] ?? '',
-            'fecini'   => $_GET['fecini'] ?? '',
-            'fecfin'   => $_GET['fecfin'] ?? '',
-            'q'        => $_GET['q'] ?? '',
-            'page'     => (int)($_GET['page'] ?? 1),
-            'per_page' => (int)($_GET['per_page'] ?? 25),
+            'talm'         => $_GET['talm']    ?? '',
+            'tcodtra'      => $_GET['tcodtra'] ?? '',
+            'fecini'       => $_GET['fecini']  ?? '',
+            'fecfin'       => $_GET['fecfin']  ?? '',
+            'q'            => trim((string)$search),
+            'page'         => $page,
+            'per_page'     => $perPage,
+            'draw'         => $draw,
+            'order_column' => $orderColumn,
+            'order_dir'    => $orderDir,
         ];
 
-        $this->json($this->service->listarMovimientosDashboard($filtros));
+        $result = $this->service->listarMovimientosDashboard($filtros);
+
+        if ($draw !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'draw'            => $draw,
+                'recordsTotal'    => $result['meta']['recordsTotal']    ?? $result['meta']['total'],
+                'recordsFiltered' => $result['meta']['recordsFiltered'] ?? $result['meta']['total'],
+                'data'            => $result['rows'],
+                'resumen'         => $result['meta']['resumen']         ?? null,
+                'meta'            => $result['meta'],
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+
+        $this->json($result);
     }
 
     public function getMovimiento(array $params): void

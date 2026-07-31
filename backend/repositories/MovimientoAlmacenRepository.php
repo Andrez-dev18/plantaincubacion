@@ -423,16 +423,16 @@ class MovimientoAlmacenRepository
                   g.tfecfac, d.tcencos_dest, g.tglosa, g.tcostmin, g.tpesotot,
                   g.timport, g.tcod_conductor, g.tplaca, g.tmotivo_traslado,
                   g.tuser, g.tdate, g.ttime,
-                       a.descri AS nom_almacen, c.descri AS nom_transaccion
+                  a.descri AS nom_almacen, c.descri AS nom_transaccion
                 FROM guia g
-              LEFT JOIN (
+                LEFT JOIN (
                   SELECT i.treg,
                       MIN(i.talr) AS talr,
                       MIN(i.tcencos) AS tcencos_dest
                   FROM imov i
                   WHERE i.mark = ?
                   GROUP BY i.treg
-              ) d ON d.treg = g.treg
+                ) d ON d.treg = g.treg
                 LEFT JOIN alma a ON g.talm = a.codalm
                 LEFT JOIN coal c ON g.tcodtra = c.codtra
                 WHERE " . implode(' AND ', $where) . "
@@ -445,143 +445,178 @@ class MovimientoAlmacenRepository
     }
 
     public function listarMovimientosDashboard(array $filtros = []): array {
-    $page = max(1, (int)($filtros['page'] ?? 1));
-    $perPage = max(10, min(100, (int)($filtros['per_page'] ?? 25)));
-    $offset = ($page - 1) * $perPage;
+        $page    = max(1, (int)($filtros['page'] ?? 1));
+        $perPage = max(1, min(500, (int)($filtros['per_page'] ?? 25)));
+        $offset  = ($page - 1) * $perPage;
 
-    // ─── UNIFICACIÓN ARQUITECTURAL CLAVE: Agrupamos los datos físicos de imov antes de cruzarlos con la cabecera ───
-    $joins = "
-        INNER JOIN (
-            SELECT 
-                i.treg, 
-                i.tcodtra, 
-                i.talm, 
-                MAX(i.mark) AS mark,
-                IF(MAX(i.tcodtra) = 'E005', '-', MIN(i.talr)) AS talr, -- Limpieza de destino si es entrada
-                SUM(i.tpeso) AS tpesotot,
-                SUM(i.timport) AS timporttot
-            FROM imov i
-            WHERE i.mark IN ('J', 'CW1', 'CW2')
-            GROUP BY i.treg, i.tcodtra, i.talm
-        ) v ON v.treg = g.treg AND g.mark = 'J'
-        LEFT JOIN alma a ON v.talm = a.codalm
-        LEFT JOIN coal c ON v.tcodtra = c.codtra
-    ";
+        // Filtros base sobre guia e imov
+        $where  = ["g.mark = ?"];
+        $params = [$this->mark];
 
-    // Filtros base estrictos
-    $where = ["g.mark = ?"];
-    $params = [$this->mark]; // Vinculado al '?' de g.mark
-
-    // Filtro por Almacén dinámico
-    if (!empty($filtros['talm'])) {
-        $where[] = 'v.talm = ?';
-        $params[] = trim((string)$filtros['talm']);
-    }
-
-    // Filtro por Transacción independiente
-    if (!empty($filtros['tcodtra'])) {
-        $where[] = 'v.tcodtra = ?';
-        $params[] = trim((string)$filtros['tcodtra']);
-    }
-
-    if (!empty($filtros['fecini'])) {
-        $where[] = 'g.tfectra >= ?';
-        $params[] = trim((string)$filtros['fecini']);
-    }
-
-    if (!empty($filtros['fecfin'])) {
-        $where[] = 'g.tfectra <= ?';
-        $params[] = trim((string)$filtros['fecfin']);
-    }
-
-    $search = trim((string)($filtros['q'] ?? ''));
-    if ($search !== '') {
-        $like = "%{$search}%";
-        $where[] = "(
-            CAST(g.treg AS CHAR) LIKE ?
-            OR g.tprocli LIKE ?
-            OR g.tdoc LIKE ?
-            OR g.tserie LIKE ?
-            OR CAST(g.tnumfac AS CHAR) LIKE ?
-            OR g.tglosa LIKE ?
-            OR a.descri LIKE ?
-            OR c.descri LIKE ?
-        )";
-        for ($i = 0; $i < 8; $i++) {
-            $params[] = $like;
+        if (!empty($filtros['talm'])) {
+            $where[]  = 'i.talm = ?';
+            $params[] = trim((string)$filtros['talm']);
         }
-    }
 
-    $whereSql = implode(' AND ', $where);
+        if (!empty($filtros['tcodtra'])) {
+            $where[]  = 'i.tcodtra = ?';
+            $params[] = trim((string)$filtros['tcodtra']);
+        }
 
-    // 1. Conteo exacto de documentos listados
-    $sqlCount = "SELECT COUNT(*) AS total FROM guia g {$joins} WHERE {$whereSql}";
-    $stmtCount = $this->db->prepare($sqlCount);
-    $stmtCount->execute($params);
-    $total = (int)($stmtCount->fetchColumn() ?: 0);
+        if (!empty($filtros['fecini'])) {
+            $where[]  = 'g.tfectra >= ?';
+            $params[] = trim((string)$filtros['fecini']);
+        }
 
-    // 2. Resumen inferior unificado
-    $sqlResumen = "SELECT 
-                        COUNT(*) AS total_movimientos,
-                        COALESCE(SUM(v.timporttot), 0) AS total_importe,
-                        COALESCE(SUM(v.tpesotot), 0) AS total_peso
-                   FROM guia g 
-                   {$joins} 
-                   WHERE {$whereSql}";
-    $stmtResumen = $this->db->prepare($sqlResumen);
-    $stmtResumen->execute($params);
-    $resumen = $stmtResumen->fetch(PDO::FETCH_ASSOC) ?: [
-        'total_movimientos' => 0,
-        'total_importe' => 0,
-        'total_peso' => 0,
-    ];
+        if (!empty($filtros['fecfin'])) {
+            $where[]  = 'g.tfectra <= ?';
+            $params[] = trim((string)$filtros['fecfin']);
+        }
 
-    // 3. Obtención de filas agrupadas
-    $sqlRows = "SELECT 
-                    g.treg, 
-                    g.tfectra, 
-                    v.tcodtra, 
-                    v.talm,
-                    g.tprocli, 
-                    g.tdoc, 
-                    g.tserie, 
-                    g.tnumfac,
-                    g.tglosa, 
-                    v.tpesotot, 
-                    v.timporttot AS timport, 
-                    g.tuser,
-                    g.tdate, 
-                    g.ttime, 
-                    g.tmon,
-                    v.talr,
-                    a.descri AS nom_almacen,
-                    COALESCE(c.descri, IF(v.tcodtra='E005', 'INGRESO TRANSFERENCIA GRANJAS L', 'MOVIMIENTO')) AS nom_transaccion,
-                    c.gentsa
-                FROM guia g
-                {$joins}
-                WHERE {$whereSql}
-                ORDER BY g.tfectra DESC, g.treg DESC, v.tcodtra DESC
-                LIMIT {$perPage} OFFSET {$offset}";
-                
-    $stmtRows = $this->db->prepare($sqlRows);
-    $stmtRows->execute($params);
-    $rows = $stmtRows->fetchAll(PDO::FETCH_ASSOC);
+        $search = trim((string)($filtros['q'] ?? ''));
+        if ($search !== '') {
+            $like    = "%{$search}%";
+            $where[] = "(
+                CAST(g.treg AS CHAR) LIKE ?
+                OR g.tprocli LIKE ?
+                OR g.tdoc LIKE ?
+                OR g.tserie LIKE ?
+                OR CAST(g.tnumfac AS CHAR) LIKE ?
+                OR g.tglosa LIKE ?
+                OR a.descri LIKE ?
+                OR c.descri LIKE ?
+            )";
+            for ($i = 0; $i < 8; $i++) {
+                $params[] = $like;
+            }
+        }
 
-    return [
-        'rows' => $rows,
-        'meta' => [
-            'page' => $page,
-            'per_page' => $perPage,
-            'total' => $total,
-            'total_pages' => $total > 0 ? (int)ceil($total / $perPage) : 1,
-            'resumen' => [
-                'total_movimientos' => (int)($resumen['total_movimientos'] ?? 0),
-                'total_importe' => (float)($resumen['total_importe'] ?? 0),
-                'total_peso' => (float)($resumen['total_peso'] ?? 0),
+        $whereSql = implode(' AND ', $where);
+
+        // 1. Resumen unificado y conteo filtrado en UNA sola consulta optimizada
+        $sqlSummary = "SELECT 
+                            COUNT(*) AS total_movimientos,
+                            COALESCE(SUM(sub.timporttot), 0) AS total_importe,
+                            COALESCE(SUM(sub.tpesotot), 0) AS total_peso
+                       FROM (
+                            SELECT 
+                                SUM(i.timport) AS timporttot,
+                                SUM(i.tpeso) AS tpesotot
+                            FROM guia g
+                            INNER JOIN imov i ON i.treg = g.treg AND i.mark IN ('J', 'CW1', 'CW2')
+                            LEFT JOIN alma a ON i.talm = a.codalm
+                            LEFT JOIN coal c ON i.tcodtra = c.codtra
+                            WHERE {$whereSql}
+                            GROUP BY g.treg, i.tcodtra, i.talm
+                       ) AS sub";
+
+        $stmtSummary = $this->db->prepare($sqlSummary);
+        $stmtSummary->execute($params);
+        $resumenRow = $stmtSummary->fetch(PDO::FETCH_ASSOC);
+
+        $totalFiltered = (int)($resumenRow['total_movimientos'] ?? 0);
+        $totalImporte  = (float)($resumenRow['total_importe'] ?? 0);
+        $totalPeso     = (float)($resumenRow['total_peso'] ?? 0);
+
+        // 2. Conteo total sin filtros adicionales (recordsTotal para DataTables)
+        $hasExtraFilters = !empty($filtros['talm']) || !empty($filtros['tcodtra']) || 
+                           !empty($filtros['fecini']) || !empty($filtros['fecfin']) || $search !== '';
+
+        if (!$hasExtraFilters) {
+            $recordsTotal = $totalFiltered;
+        } else {
+            $sqlTotal = "SELECT COUNT(*) FROM (
+                            SELECT 1
+                            FROM guia g
+                            INNER JOIN imov i ON i.treg = g.treg AND i.mark IN ('J', 'CW1', 'CW2')
+                            WHERE g.mark = ?
+                            GROUP BY g.treg, i.tcodtra, i.talm
+                         ) AS sub_total";
+            $stmtTotal = $this->db->prepare($sqlTotal);
+            $stmtTotal->execute([$this->mark]);
+            $recordsTotal = (int)($stmtTotal->fetchColumn() ?: 0);
+        }
+
+        // 3. Mapeo seguro de columnas para ordenamiento dinámico (DataTables)
+        $sortableColumns = [
+            'treg'            => 'g.treg',
+            'tfectra'         => 'g.tfectra',
+            'tcodtra'         => 'i.tcodtra',
+            'talm'            => 'i.talm',
+            'tprocli'         => 'g.tprocli',
+            'tdoc'            => 'g.tdoc',
+            'tserie'          => 'g.tserie',
+            'tnumfac'         => 'g.tnumfac',
+            'tglosa'          => 'g.tglosa',
+            'tpesotot'        => 'tpesotot',
+            'timport'         => 'timporttot',
+            'timporttot'      => 'timporttot',
+            'nom_almacen'     => 'nom_almacen',
+            'nom_transaccion' => 'nom_transaccion',
+            'tuser'           => 'g.tuser',
+        ];
+
+        $orderCol = trim((string)($filtros['order_column'] ?? ''));
+        $orderDir = strtoupper(trim((string)($filtros['order_dir'] ?? 'DESC'))) === 'ASC' ? 'ASC' : 'DESC';
+
+        if (isset($sortableColumns[$orderCol])) {
+            $orderSql = "{$sortableColumns[$orderCol]} {$orderDir}";
+        } else {
+            $orderSql = "g.tfectra DESC, g.treg DESC, i.tcodtra DESC";
+        }
+
+        // 4. Obtención de la página de filas requerida
+        $sqlRows = "SELECT 
+                        g.treg, 
+                        MAX(g.tfectra) AS tfectra, 
+                        i.tcodtra, 
+                        i.talm,
+                        MAX(g.tprocli) AS tprocli, 
+                        MAX(g.tdoc) AS tdoc, 
+                        MAX(g.tserie) AS tserie, 
+                        MAX(g.tnumfac) AS tnumfac,
+                        MAX(g.tglosa) AS tglosa, 
+                        SUM(i.tpeso) AS tpesotot, 
+                        SUM(i.timport) AS timporttot, 
+                        SUM(i.timport) AS timport, 
+                        MAX(g.tuser) AS tuser,
+                        MAX(g.tdate) AS tdate, 
+                        MAX(g.ttime) AS ttime, 
+                        MAX(g.tmon) AS tmon,
+                        IF(i.tcodtra = 'E005', '-', MIN(i.talr)) AS talr,
+                        MAX(a.descri) AS nom_almacen,
+                        COALESCE(MAX(c.descri), IF(i.tcodtra='E005', 'INGRESO TRANSFERENCIA GRANJAS L', 'MOVIMIENTO')) AS nom_transaccion,
+                        MAX(c.gentsa) AS gentsa
+                    FROM guia g
+                    INNER JOIN imov i ON i.treg = g.treg AND i.mark IN ('J', 'CW1', 'CW2')
+                    LEFT JOIN alma a ON i.talm = a.codalm
+                    LEFT JOIN coal c ON i.tcodtra = c.codtra
+                    WHERE {$whereSql}
+                    GROUP BY g.treg, i.tcodtra, i.talm
+                    ORDER BY {$orderSql}
+                    LIMIT {$perPage} OFFSET {$offset}";
+
+        $stmtRows = $this->db->prepare($sqlRows);
+        $stmtRows->execute($params);
+        $rows = $stmtRows->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'rows' => $rows,
+            'meta' => [
+                'page'            => $page,
+                'per_page'        => $perPage,
+                'total'           => $totalFiltered,
+                'recordsTotal'    => $recordsTotal,
+                'recordsFiltered' => $totalFiltered,
+                'total_pages'     => $totalFiltered > 0 ? (int)ceil($totalFiltered / $perPage) : 1,
+                'resumen' => [
+                    'total_movimientos' => $totalFiltered,
+                    'total_importe'     => $totalImporte,
+                    'total_peso'        => $totalPeso,
+                ],
             ],
-        ],
-    ];
-}
+        ];
+    }
 
     public function getMovimientoPorReg(string $treg): ?array
     {
