@@ -469,22 +469,20 @@ class GuiaElectronicaController {
             });
         }
 
-        // Listener para eliminar todos los ítems de la grilla
+        // Listener para eliminar todos / resetear todo el formulario
         const btnEliminarTodos = document.getElementById('btn-eliminar-todos');
         if (btnEliminarTodos) {
             btnEliminarTodos.addEventListener('click', () => {
                 window.Swal.fire({
-                    title: '¿Eliminar todos?',
-                    text: 'Se quitarán todos los ítems de la grilla.',
+                    title: '¿Resetear Formulario?',
+                    text: 'Se limpiarán todos los campos del formulario y se quitarán los ítems de la grilla.',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Sí, eliminar',
+                    confirmButtonText: 'Sí, resetear',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        this.detalleItems = [];
-                        this.renderizarGrid();
-                        this.calcularTotales();
+                        this.limpiarFormularioCompleto();
                     }
                 });
             });
@@ -1716,6 +1714,7 @@ class GuiaElectronicaController {
         const inputCencos = document.getElementById('inputArtCencos');
         const inputGalpon = document.getElementById('inputArtGalpon');
         const inputObservacion = document.getElementById('inputArtObservacion');
+        const actionInput = document.getElementById('sr-action-input');
 
         if (inputCodigo) inputCodigo.value = '';
         if (inputDescri) inputDescri.value = '';
@@ -1729,6 +1728,7 @@ class GuiaElectronicaController {
         if (inputCencos) inputCencos.value = '';
         if (inputGalpon) inputGalpon.value = '';
         if (inputObservacion) inputObservacion.value = '';
+        if (actionInput) actionInput.value = '';
 
         const lblStockCant = document.getElementById('lblStockCantLote');
         const lblStockPeso = document.getElementById('lblStockPesoLote');
@@ -1736,6 +1736,124 @@ class GuiaElectronicaController {
         if (lblStockPeso) lblStockPeso.textContent = '';
 
         if (inputCodigo) inputCodigo.focus();
+    }
+
+    async limpiarFormularioCompleto() {
+        // 1. Resetear bandera de edición
+        this.tregEditando = null;
+        this.stockMaximoPermitido = 0;
+
+        // 2. Eliminar el borrador guardado en DB / LocalStorage
+        try {
+            const usuario = typeof this._obtenerUsuarioActual === 'function' ? this._obtenerUsuarioActual() : 'SYSTEM';
+            await this.guiaService.eliminarBorrador(this._draftKey, usuario);
+        } catch (e) {
+            console.error('Error al eliminar borrador:', e);
+        }
+
+        // 3. Limpiar ítems de la grilla y recalcular totales
+        this.detalleItems = [];
+        this.renderizarGrid();
+        this.calcularTotales();
+
+        // 4. Limpiar campos del área de ingreso rápido de la grilla
+        this.limpiarCamposGrid();
+
+        // 5. Restablecer tipo de envío a 'ALMACEN' por defecto y actualizar transacción
+        const radioAlmacen = document.getElementById('tipoEnvioAlmacen');
+        if (radioAlmacen) {
+            radioAlmacen.checked = true;
+            radioAlmacen.dispatchEvent(new Event('change'));
+        }
+
+        // 6. Limpiar campos de texto / selects
+        const inputsToClear = [
+            'zonaOrigen', 'clienteOrigen', 'zonaDestino', 'clienteDestino',
+            'codTransportista', 'nomTransportista', 'placaP', 'placaR',
+            'codConductor', 'nomConductor', 'licenciaCond',
+            'puntoPartida', 'puntoLlegada', 'observaciones',
+            'motivoTrasladoOtros', 'codigoDamDs',
+            'numBultos', 'pesoBrutoTotal'
+        ];
+
+        inputsToClear.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        // Correlativo y tipo de transporte por defecto
+        const numeroGuia = document.getElementById('numeroGuia');
+        if (numeroGuia) numeroGuia.value = '0';
+
+        const tipoTransporte = document.getElementById('tipoTransporte');
+        if (tipoTransporte) tipoTransporte.value = '01';
+
+        // Cliente RUC y Nombre por defecto (RINCONADA DEL SUR)
+        const inputClienteRuc = document.getElementById('clienteRuc');
+        const inputClienteNombre = document.getElementById('clienteNombre');
+        if (inputClienteRuc) inputClienteRuc.value = '20419158462';
+        if (inputClienteNombre) inputClienteNombre.value = 'GRANJA RINCONADA DEL SUR S.A.';
+
+        // Restablecer etiquetas informativas
+        const labelsToClear = [
+            'nombreClienteOrigen', 'nombreClienteDestino',
+            'lblStockCantLote', 'lblStockPesoLote'
+        ];
+        labelsToClear.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '';
+                el.title = '';
+            }
+        });
+
+        // Restablecer Serie
+        const selectSerie = document.getElementById('serie');
+        if (selectSerie) selectSerie.value = '';
+        this.actualizarCamposSerie();
+
+        // Restablecer Motivo de Traslado
+        const selectMotivo = document.getElementById('motivoTraslado');
+        if (selectMotivo) {
+            selectMotivo.value = '';
+            selectMotivo.dispatchEvent(new Event('change'));
+        }
+
+        // Restablecer Fechas a la fecha actual del sistema
+        const getHoy = () => {
+            const hoy = new Date();
+            const y = hoy.getFullYear();
+            const m = String(hoy.getMonth() + 1).padStart(2, '0');
+            const d = String(hoy.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+        const fechaActual = getHoy();
+
+        const inputFechaEmision = document.getElementById('fechaEmision');
+        if (inputFechaEmision) {
+            inputFechaEmision.value = fechaActual;
+            inputFechaEmision.setAttribute('readonly', 'readonly');
+            inputFechaEmision.classList.remove('bg-white');
+            inputFechaEmision.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-75');
+        }
+
+        const inputFechaTraslado = document.getElementById('fechaTraslado');
+        if (inputFechaTraslado) {
+            inputFechaTraslado.value = fechaActual;
+        }
+
+        // Si veníamos de modo edición con parámetro ?treg=..., limpiar la URL
+        if (window.history && window.history.replaceState) {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('treg')) {
+                url.searchParams.delete('treg');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        }
+
+        // Foco inicial
+        const initialFocus = document.getElementById('tipoEnvioAlmacen');
+        if (initialFocus) initialFocus.focus();
     }
 
     async guardarDatos() {
@@ -1992,49 +2110,7 @@ class GuiaElectronicaController {
                     this.tregEditando = response.treg;
                 } else {
                     // Si todo salió bien, limpiamos como siempre para hacer una nueva guía y eliminamos el borrador.
-                    this.tregEditando = null;
-                    this.guiaService.eliminarBorrador(this._draftKey, this._obtenerUsuarioActual())
-                        .catch(e => console.error('Error al eliminar borrador:', e));
-
-                    this.detalleItems = [];
-                    this.renderizarGrid();
-                    this.calcularTotales();
-
-                    const inputsToClear = [
-                        'codTransportista', 'nomTransportista',
-                        'codConductor', 'nomConductor', 'licenciaCond', 'placaP', 'placaR',
-                        'observaciones', 'clienteOrigen', 'clienteDestino', 'puntoPartida', 'puntoLlegada',
-                        'tipoTransporte', 'zonaOrigen', 'zonaDestino', 'codigoDamDs',
-                        'numBultos', 'pesoBrutoTotal' // <-- AQUÍ AGREGAMOS ESTOS DOS
-                    ];
-                    inputsToClear.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.value = '';
-                    });
-
-                    const labelsToClear = [
-                        'nombreClienteOrigen', 'nombreClienteDestino',
-                        'lblStockCantLote', 'lblStockPesoLote'
-                    ];
-                    labelsToClear.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.textContent = '';
-                            el.title = '';
-                        }
-                    });
-
-                    const selectSerie = document.getElementById('serie');
-                    if (selectSerie) selectSerie.value = '';
-                    this.actualizarCamposSerie();
-
-                    const selectMotivo = document.getElementById('motivoTraslado');
-                    if (selectMotivo) {
-                        selectMotivo.value = '';
-                        selectMotivo.dispatchEvent(new Event('change'));
-                    }
-
-                    document.getElementById('tipoEnvioAlmacen')?.focus();
+                    await this.limpiarFormularioCompleto();
                 }
 
             } else {
